@@ -165,6 +165,29 @@ function keywordSearchText(title: string, author: string) {
   return [...keywords, authorLastName].filter(Boolean).join(" ");
 }
 
+function cleanRelatedIsbn(value: string) {
+  const cleaned = value.replace(/[^0-9Xx]/g, "");
+  return /^(?:\d{13}|\d{9}[\dXx])$/.test(cleaned) ? cleaned : null;
+}
+
+async function libraryThingRelatedIsbns(isbn: string) {
+  const token = process.env.LIBRARYTHING_API_TOKEN?.trim();
+  if (!token || !isbn) return [];
+
+  const response = await fetch(
+    `https://www.librarything.com/api/${encodeURIComponent(token)}/thingISBN/${encodeURIComponent(isbn)}`,
+    { next: { revalidate: 86400 } },
+  );
+  if (!response.ok) return [];
+
+  const xml = await response.text();
+  const related = [...xml.matchAll(/<isbn>([^<]+)<\/isbn>/gi)]
+    .map((match) => cleanRelatedIsbn(match[1]))
+    .filter((value): value is string => Boolean(value) && value !== isbn);
+
+  return [...new Set(related)].slice(0, 4);
+}
+
 function openLibraryCoverById(coverId?: number) {
   return coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : null;
 }
@@ -281,6 +304,7 @@ export async function GET(request: NextRequest) {
   const isbn = request.nextUrl.searchParams.get("isbn")?.trim() || "";
   const title = request.nextUrl.searchParams.get("title")?.trim() || "";
   const author = request.nextUrl.searchParams.get("author")?.trim() || "";
+  const includeLibraryThing = request.nextUrl.searchParams.get("libraryThing") === "1";
 
   try {
     const searches: Promise<CoverOption[]>[] = [];
@@ -304,7 +328,33 @@ export async function GET(request: NextRequest) {
     }
 
     const groups = await Promise.allSettled(searches);
-    const candidates = groups.flatMap((group) => group.status === "fulfilled" ? group.value : []);
+    let candidates = groups.flatMap((group) => group.status === "fulfilled" ? group.value : []);
+
+    if (includeLibraryThing && isbn) {
+      try {
+        const relatedIsbns = await libraryThingRelatedIsbns(isbn);
+        const relatedSearches: Promise<CoverOption[]>[] = [];
+
+        for (const relatedIsbn of relatedIsbns) {
+          relatedSearches.push(openLibraryCoverByIsbn(relatedIsbn));
+          relatedSearches.push(openLibrarySearchByIsbn(relatedIsbn));
+          relatedSearches.push(googleBooksCovers(`isbn:${relatedIsbn}`, title, author, true));
+        }
+
+        const relatedGroups = await Promise.allSettled(relatedSearches);
+        const relatedCandidates = relatedGroups
+          .flatMap((group) => group.status === "fulfilled" ? group.value : [])
+          .map((option, index) => ({
+            ...option,
+            score: Math.min(option.score, 19.5 - index * 0.01),
+          }));
+
+        candidates = [...candidates, ...relatedCandidates];
+      } catch {
+        // LibraryThing is an optional edition-discovery source.
+      }
+    }
+
     const options = uniqueRanked(candidates);
 
     if (options.length) {
