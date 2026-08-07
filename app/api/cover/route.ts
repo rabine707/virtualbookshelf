@@ -99,17 +99,12 @@ function looksLikeSeriesMetadata(value: string) {
 function stripGoodreadsSeriesSuffix(title: string) {
   let cleaned = title.trim();
 
-  // Goodreads commonly exports titles such as:
-  // "Garron Park (From Nothing, #1)" or "Fourth Wing (The Empyrean, #1)".
-  // Remove only trailing bracketed groups that clearly look like series numbering,
-  // so meaningful parentheticals remain intact.
   for (let pass = 0; pass < 3; pass += 1) {
     const match = cleaned.match(/\s*[\(\[]([^\)\]]+)[\)\]]\s*$/);
     if (!match || !looksLikeSeriesMetadata(match[1])) break;
     cleaned = cleaned.slice(0, match.index).trim();
   }
 
-  // A few exports use an unbracketed trailing "- Book 2" style suffix.
   cleaned = cleaned
     .replace(/\s*[-–—:]\s*(?:book|volume|vol\.?|part)\s*(?:#|no\.?\s*)?\d+(?:\.\d+)?\s*$/i, "")
     .trim();
@@ -236,6 +231,10 @@ function cleanRelatedIsbn(value: string) {
   return /^(?:\d{13}|\d{9}[\dXx])$/.test(cleaned) ? cleaned : null;
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function libraryThingRelatedIsbns(isbn: string) {
   const token = process.env.LIBRARYTHING_API_TOKEN?.trim();
   if (!token || !isbn) return [];
@@ -252,6 +251,31 @@ async function libraryThingRelatedIsbns(isbn: string) {
     .filter((value): value is string => Boolean(value) && value !== isbn);
 
   return [...new Set(related)].slice(0, 10);
+}
+
+async function libraryThingIsbnsByTitle(title: string) {
+  const token = process.env.LIBRARYTHING_API_TOKEN?.trim();
+  const searchTitle = stripGoodreadsSeriesSuffix(title);
+  if (!token || !searchTitle) return [];
+
+  const response = await fetch(
+    `https://www.librarything.com/api/${encodeURIComponent(token)}/thingTitle/${encodeURIComponent(searchTitle)}`,
+    { next: { revalidate: 86400 } },
+  );
+  if (!response.ok) return [];
+
+  const xml = await response.text();
+  const returnedTitle = xml.match(/<title>([^<]+)<\/title>/i)?.[1]?.trim();
+  if (returnedTitle) {
+    const evidence = titleEvidence(searchTitle, returnedTitle);
+    if (!(evidence.exact || evidence.adjacent || evidence.coverage >= 0.75)) return [];
+  }
+
+  const isbns = [...xml.matchAll(/<isbn>([^<]+)<\/isbn>/gi)]
+    .map((match) => cleanRelatedIsbn(match[1]))
+    .filter((value): value is string => Boolean(value));
+
+  return [...new Set(isbns)].slice(0, 10);
 }
 
 function libraryThingServiceUrl(isbn: string) {
@@ -285,6 +309,19 @@ async function libraryThingCoverByIsbn(isbn: string, score: number): Promise<Cov
   const fingerprint = createHash("sha1").update(bytes).digest("hex");
   const proxyUrl = `/api/librarything-cover?isbn=${encodeURIComponent(isbn)}`;
   return [{ url: proxyUrl, source: "LibraryThing", score, fingerprint }];
+}
+
+async function libraryThingCoversSequential(isbns: string[], startScore = 22) {
+  const results: CoverOption[] = [];
+  const uniqueIsbns = [...new Set(isbns)].slice(0, 4);
+
+  for (const [index, isbn] of uniqueIsbns.entries()) {
+    await wait(1050);
+    const covers = await libraryThingCoverByIsbn(isbn, startScore - index * 0.1);
+    results.push(...covers);
+  }
+
+  return results;
 }
 
 function openLibraryCoverById(coverId?: number) {
@@ -409,6 +446,7 @@ export async function GET(request: NextRequest) {
   const title = request.nextUrl.searchParams.get("title")?.trim() || "";
   const author = request.nextUrl.searchParams.get("author")?.trim() || "";
   const includeLibraryThing = request.nextUrl.searchParams.get("libraryThing") === "1";
+  let discoveredIsbn = "";
 
   try {
     const searches: Promise<CoverOption[]>[] = [];
@@ -438,33 +476,45 @@ export async function GET(request: NextRequest) {
     const groups = await Promise.allSettled(searches);
     let candidates = groups.flatMap((group) => group.status === "fulfilled" ? group.value : []);
 
-    if (includeLibraryThing && isbn) {
+    if (includeLibraryThing) {
       try {
-        const relatedIsbns = await libraryThingRelatedIsbns(isbn);
-        const relatedSearches: Promise<CoverOption[]>[] = [
-          libraryThingCoverByIsbn(isbn, 22),
-        ];
+        let editionIsbns: string[] = [];
 
-        for (const [index, relatedIsbn] of relatedIsbns.entries()) {
-          relatedSearches.push(openLibraryCoverByIsbn(relatedIsbn));
-          relatedSearches.push(openLibrarySearchByIsbn(relatedIsbn));
-          relatedSearches.push(googleBooksCovers(`isbn:${relatedIsbn}`, title, author, true));
-          relatedSearches.push(libraryThingCoverByIsbn(relatedIsbn, 20.5 - index * 0.08));
+        if (isbn) {
+          const relatedIsbns = await libraryThingRelatedIsbns(isbn);
+          editionIsbns = [isbn, ...relatedIsbns];
+        } else if (title) {
+          editionIsbns = await libraryThingIsbnsByTitle(title);
+          discoveredIsbn = editionIsbns[0] || "";
         }
 
-        const relatedGroups = await Promise.allSettled(relatedSearches);
-        const relatedCandidates = relatedGroups
-          .flatMap((group) => group.status === "fulfilled" ? group.value : [])
-          .map((option, index) => ({
-            ...option,
-            score: option.source === "LibraryThing"
-              ? option.score
-              : Math.min(option.score, 19.5 - index * 0.01),
-          }));
+        if (editionIsbns.length) {
+          const nonLibraryThingSearches: Promise<CoverOption[]>[] = [];
 
-        candidates = [...candidates, ...relatedCandidates];
+          for (const [index, editionIsbn] of editionIsbns.entries()) {
+            nonLibraryThingSearches.push(openLibraryCoverByIsbn(editionIsbn));
+            nonLibraryThingSearches.push(openLibrarySearchByIsbn(editionIsbn));
+            nonLibraryThingSearches.push(googleBooksCovers(`isbn:${editionIsbn}`, title, author, !discoveredIsbn));
+
+            if (index >= 9) break;
+          }
+
+          const [nonLtGroups, ltCovers] = await Promise.all([
+            Promise.allSettled(nonLibraryThingSearches),
+            libraryThingCoversSequential(editionIsbns, isbn ? 22 : 21.5),
+          ]);
+
+          const relatedCandidates = nonLtGroups
+            .flatMap((group) => group.status === "fulfilled" ? group.value : [])
+            .map((option, index) => ({
+              ...option,
+              score: Math.min(option.score, 19.5 - index * 0.01),
+            }));
+
+          candidates = [...candidates, ...relatedCandidates, ...ltCovers];
+        }
       } catch {
-        // LibraryThing is an optional edition and cover-discovery source.
+        // LibraryThing is an optional title, edition, and cover-discovery source.
       }
     }
 
@@ -472,8 +522,15 @@ export async function GET(request: NextRequest) {
 
     if (options.length) {
       return NextResponse.json(
-        { ...options[0], options },
+        { ...options[0], options, ...(discoveredIsbn ? { discoveredIsbn } : {}) },
         { headers: includeLibraryThing ? { "Cache-Control": "no-store" } : responseHeaders },
+      );
+    }
+
+    if (discoveredIsbn) {
+      return NextResponse.json(
+        { url: null, source: null, options: [], discoveredIsbn },
+        { headers: { "Cache-Control": "no-store" } },
       );
     }
   } catch {
