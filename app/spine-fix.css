@@ -1,0 +1,17 @@
+/* Keep cover artwork proportional inside the narrow book-spine window.
+   The old styling deliberately oversized the image (132% x 114%) and then
+   scaled it again, which made the artwork feel stretched/zoomed on mobile. */
+.book-cover-art {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center center;
+  transform: none;
+}
+
+.book.has-cover:hover .book-cover-art,
+.book.has-cover:focus-visible .book-cover-art {
+  transform: scale(1.025);
+}
