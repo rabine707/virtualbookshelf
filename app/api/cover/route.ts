@@ -1,4 +1,3 @@
-import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 type OpenLibraryBook = {
@@ -55,7 +54,6 @@ type CoverOption = {
   url: string;
   source: string;
   score: number;
-  fingerprint?: string;
 };
 
 const responseHeaders = {
@@ -231,8 +229,17 @@ function cleanRelatedIsbn(value: string) {
   return /^(?:\d{13}|\d{9}[\dXx])$/.test(cleaned) ? cleaned : null;
 }
 
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function decodeHtml(value: string) {
+  return value
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">");
+}
+
+function htmlText(value: string) {
+  return decodeHtml(value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")).trim();
 }
 
 async function libraryThingRelatedIsbns(isbn: string) {
@@ -278,50 +285,61 @@ async function libraryThingIsbnsByTitle(title: string) {
   return [...new Set(isbns)].slice(0, 10);
 }
 
-function libraryThingServiceUrl(isbn: string) {
-  const token = process.env.LIBRARYTHING_API_TOKEN?.trim();
-  if (!token) return null;
-  return `https://covers.librarything.com/devkey/${encodeURIComponent(token)}/large/isbn/${encodeURIComponent(isbn)}`;
-}
+async function libraryThingPopularCoversByTitle(title: string, author: string): Promise<CoverOption[]> {
+  const searchTitle = stripGoodreadsSeriesSuffix(title);
+  if (!searchTitle) return [];
 
-function isBlankLibraryThingGif(bytes: Uint8Array) {
-  if (bytes.length < 10) return true;
-  const signature = String.fromCharCode(...bytes.slice(0, 6));
-  if (signature !== "GIF87a" && signature !== "GIF89a") return false;
-  const width = bytes[6] | (bytes[7] << 8);
-  const height = bytes[8] | (bytes[9] << 8);
-  return width <= 1 && height <= 1;
-}
+  try {
+    const response = await fetch(
+      `https://www.librarything.com/title/${encodeURIComponent(searchTitle)}`,
+      {
+        redirect: "follow",
+        next: { revalidate: 86400 },
+        headers: { "User-Agent": "Shelf-of-Fame cover lookup" },
+      },
+    );
+    if (!response.ok) return [];
 
-async function libraryThingCoverByIsbn(isbn: string, score: number): Promise<CoverOption[]> {
-  const serviceUrl = libraryThingServiceUrl(isbn);
-  if (!serviceUrl) return [];
+    const html = await response.text();
+    const heading = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1];
+    const pageTitle = heading ? htmlText(heading) : "";
+    if (pageTitle) {
+      const evidence = titleVariants(title)
+        .map((variant) => titleEvidence(variant, pageTitle))
+        .sort((a, b) => b.score - a.score)[0];
+      if (!evidence || !(evidence.exact || evidence.adjacent || evidence.coverage >= 0.75)) return [];
+    }
 
-  const response = await fetch(serviceUrl, { next: { revalidate: 604800 } });
-  if (!response.ok) return [];
+    const headerRegion = html.slice(0, 30000);
+    const authorMatch = headerRegion.match(/\bby\s*<a[^>]*>([\s\S]*?)<\/a>/i)?.[1];
+    const pageAuthor = authorMatch ? htmlText(authorMatch) : "";
+    if (author && pageAuthor && authorEvidence(author, [pageAuthor]) < 5) return [];
 
-  const contentType = response.headers.get("content-type") || "";
-  if (!contentType.startsWith("image/")) return [];
+    const start = html.search(/Popular Covers/i);
+    if (start < 0) return [];
 
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (!bytes.length || isBlankLibraryThingGif(bytes)) return [];
+    const tail = html.slice(start, start + 60000);
+    const end = tail.search(/Find It/i);
+    const section = end > 0 ? tail.slice(0, end) : tail;
+    const urls: string[] = [];
 
-  const fingerprint = createHash("sha1").update(bytes).digest("hex");
-  const proxyUrl = `/api/librarything-cover?isbn=${encodeURIComponent(isbn)}`;
-  return [{ url: proxyUrl, source: "LibraryThing", score, fingerprint }];
-}
+    for (const match of section.matchAll(/<img\b[^>]*\b(?:src|data-src)=["']([^"']+)["'][^>]*>/gi)) {
+      let url = decodeHtml(match[1]);
+      if (!/^(?:https?:)?\/\/pics(?:\.cdn)?\.librarything\.com\/picsizes\//i.test(url)) continue;
+      if (url.startsWith("//")) url = `https:${url}`;
+      url = url.replace(/^http:\/\//i, "https://");
+      if (!urls.includes(url)) urls.push(url);
+      if (urls.length >= 20) break;
+    }
 
-async function libraryThingCoversSequential(isbns: string[], startScore = 22) {
-  const results: CoverOption[] = [];
-  const uniqueIsbns = [...new Set(isbns)].slice(0, 4);
-
-  for (const [index, isbn] of uniqueIsbns.entries()) {
-    await wait(1050);
-    const covers = await libraryThingCoverByIsbn(isbn, startScore - index * 0.1);
-    results.push(...covers);
+    return urls.map((url, index) => ({
+      url,
+      source: "LibraryThing",
+      score: 18.5 - index * 0.02,
+    }));
+  } catch {
+    return [];
   }
-
-  return results;
 }
 
 function openLibraryCoverById(coverId?: number) {
@@ -432,12 +450,12 @@ function uniqueRanked(options: CoverOption[]) {
   return options
     .sort((a, b) => b.score - a.score)
     .filter((option) => {
-      const key = option.fingerprint || option.url.replace(/&zoom=\d+/i, "");
+      const key = option.url.replace(/&zoom=\d+/i, "");
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     })
-    .slice(0, 20)
+    .slice(0, 30)
     .map(({ url, source }) => ({ url, source }));
 }
 
@@ -488,31 +506,27 @@ export async function GET(request: NextRequest) {
           discoveredIsbn = editionIsbns[0] || "";
         }
 
-        if (editionIsbns.length) {
-          const nonLibraryThingSearches: Promise<CoverOption[]>[] = [];
-
-          for (const [index, editionIsbn] of editionIsbns.entries()) {
-            nonLibraryThingSearches.push(openLibraryCoverByIsbn(editionIsbn));
-            nonLibraryThingSearches.push(openLibrarySearchByIsbn(editionIsbn));
-            nonLibraryThingSearches.push(googleBooksCovers(`isbn:${editionIsbn}`, title, author, !discoveredIsbn));
-
-            if (index >= 9) break;
-          }
-
-          const [nonLtGroups, ltCovers] = await Promise.all([
-            Promise.allSettled(nonLibraryThingSearches),
-            libraryThingCoversSequential(editionIsbns, isbn ? 22 : 21.5),
-          ]);
-
-          const relatedCandidates = nonLtGroups
-            .flatMap((group) => group.status === "fulfilled" ? group.value : [])
-            .map((option, index) => ({
-              ...option,
-              score: Math.min(option.score, 19.5 - index * 0.01),
-            }));
-
-          candidates = [...candidates, ...relatedCandidates, ...ltCovers];
+        const deeperSearches: Promise<CoverOption[]>[] = [];
+        for (const [index, editionIsbn] of editionIsbns.entries()) {
+          deeperSearches.push(openLibraryCoverByIsbn(editionIsbn));
+          deeperSearches.push(openLibrarySearchByIsbn(editionIsbn));
+          deeperSearches.push(googleBooksCovers(`isbn:${editionIsbn}`, title, author, !discoveredIsbn));
+          if (index >= 9) break;
         }
+
+        const [deepGroups, libraryThingGallery] = await Promise.all([
+          Promise.allSettled(deeperSearches),
+          title ? libraryThingPopularCoversByTitle(title, author) : Promise.resolve([]),
+        ]);
+
+        const relatedCandidates = deepGroups
+          .flatMap((group) => group.status === "fulfilled" ? group.value : [])
+          .map((option, index) => ({
+            ...option,
+            score: Math.min(option.score, 19.5 - index * 0.01),
+          }));
+
+        candidates = [...candidates, ...relatedCandidates, ...libraryThingGallery];
       } catch {
         // LibraryThing is an optional title, edition, and cover-discovery source.
       }
