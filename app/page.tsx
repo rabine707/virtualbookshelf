@@ -21,6 +21,7 @@ type CoverResult = {
 
 const STORAGE_KEY = "shelf-of-fame-library-v1";
 const palette = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
+const coverMemory = new Map<string, CoverResult | null>();
 
 const sampleBooks: Book[] = [
   { id: "1", title: "Fourth Wing", author: "Rebecca Yarros", rating: 5, color: palette[4] },
@@ -45,6 +46,20 @@ function cleanIsbn(value?: string) {
 
 function isbnForBook(book: Book) {
   return cleanIsbn(book.isbn) || cleanIsbn(book.id);
+}
+
+function coverKey(book: Book) {
+  return isbnForBook(book) || `${book.title.toLowerCase().trim()}::${book.author.toLowerCase().trim()}`;
+}
+
+function coverRequestUrl(book: Book) {
+  const params = new URLSearchParams({
+    title: book.title,
+    author: book.author,
+  });
+  const isbn = isbnForBook(book);
+  if (isbn) params.set("isbn", isbn);
+  return `/api/cover?${params.toString()}`;
 }
 
 function normalizeGoodreadsRow(row: Record<string, string>, index: number): Book | null {
@@ -81,6 +96,102 @@ function isStoredBook(value: unknown): value is Book {
 function spineTitle(title: string) {
   if (title.length <= 38) return title;
   return `${title.slice(0, 35).trim()}…`;
+}
+
+type BookSpineProps = {
+  book: Book;
+  bookNumber: number;
+  onSelect: (book: Book) => void;
+};
+
+function BookSpine({ book, bookNumber, onSelect }: BookSpineProps) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const key = coverKey(book);
+  const eager = bookNumber < 8;
+  const [cover, setCover] = useState<CoverResult | null>(() => coverMemory.get(key) || null);
+  const [shouldLoad, setShouldLoad] = useState(() => eager || coverMemory.has(key));
+
+  useEffect(() => {
+    if (coverMemory.has(key)) {
+      setCover(coverMemory.get(key) || null);
+      setShouldLoad(true);
+      return;
+    }
+
+    if (eager) {
+      setShouldLoad(true);
+      return;
+    }
+
+    const node = buttonRef.current;
+    if (!node) return;
+
+    if (!("IntersectionObserver" in window)) {
+      setShouldLoad(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setShouldLoad(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: "650px 0px" });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [eager, key]);
+
+  useEffect(() => {
+    if (!shouldLoad || coverMemory.has(key)) return;
+
+    const controller = new AbortController();
+    fetch(coverRequestUrl(book), { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((result: CoverResult | null) => {
+        const valid = result?.url ? result : null;
+        coverMemory.set(key, valid);
+        setCover(valid);
+      })
+      .catch(() => undefined);
+
+    return () => controller.abort();
+  }, [book, key, shouldLoad]);
+
+  const style = {
+    "--book-color": book.color,
+    "--lean": `${((bookNumber % 7) - 3) * 0.42}deg`,
+    "--book-height": `${180 + ((bookNumber * 17) % 38)}px`,
+    "--book-width": `${66 + ((bookNumber * 11) % 34)}px`,
+    "--band-offset": `${25 + ((bookNumber * 13) % 42)}%`,
+  } as CSSProperties;
+
+  return (
+    <button
+      ref={buttonRef}
+      className={`book book-style-${bookNumber % 4}${cover?.url ? " has-cover" : ""}`}
+      style={style}
+      onClick={() => onSelect(book)}
+      title={`${book.title} — ${book.author}`}
+    >
+      {cover?.url ? (
+        <img
+          className="book-cover-art"
+          src={cover.url}
+          alt=""
+          loading={eager ? "eager" : "lazy"}
+          decoding="async"
+          onError={() => {
+            coverMemory.set(key, null);
+            setCover(null);
+          }}
+        />
+      ) : null}
+      {!cover?.url ? <span className="spine-mark" aria-hidden="true">◆</span> : null}
+      <span className="book-title">{spineTitle(book.title)}</span>
+      <span className="book-author">{book.author}</span>
+    </button>
+  );
 }
 
 export default function Home() {
@@ -134,21 +245,23 @@ export default function Home() {
       return;
     }
 
-    const controller = new AbortController();
-    const params = new URLSearchParams({
-      title: selected.title,
-      author: selected.author,
-    });
-    const isbn = isbnForBook(selected);
-    if (isbn) params.set("isbn", isbn);
+    const key = coverKey(selected);
+    if (coverMemory.has(key)) {
+      setCover(coverMemory.get(key) || null);
+      setCoverLoading(false);
+      return;
+    }
 
+    const controller = new AbortController();
     setCover(null);
     setCoverLoading(true);
 
-    fetch(`/api/cover?${params.toString()}`, { signal: controller.signal })
+    fetch(coverRequestUrl(selected), { signal: controller.signal })
       .then((response) => response.ok ? response.json() : null)
       .then((result: CoverResult | null) => {
-        if (result?.url) setCover(result);
+        const valid = result?.url ? result : null;
+        coverMemory.set(key, valid);
+        setCover(valid);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -202,6 +315,7 @@ export default function Home() {
           return;
         }
 
+        coverMemory.clear();
         setBooks(imported);
         showToast(`Imported ${imported.length} books. Saved on this browser.`);
       },
@@ -248,30 +362,14 @@ export default function Home() {
         {shelves.length ? shelves.map((shelf, shelfIndex) => (
           <div className="shelf-row" key={shelfIndex}>
             <div className="books">
-              {shelf.map((book, index) => {
-                const bookNumber = shelfIndex * 8 + index;
-                const style = {
-                  "--book-color": book.color,
-                  "--lean": `${((bookNumber % 7) - 3) * 0.42}deg`,
-                  "--book-height": `${180 + ((bookNumber * 17) % 38)}px`,
-                  "--book-width": `${66 + ((bookNumber * 11) % 34)}px`,
-                  "--band-offset": `${25 + ((bookNumber * 13) % 42)}%`,
-                } as CSSProperties;
-
-                return (
-                  <button
-                    className={`book book-style-${bookNumber % 4}`}
-                    style={style}
-                    key={book.id}
-                    onClick={() => setSelected(book)}
-                    title={`${book.title} — ${book.author}`}
-                  >
-                    <span className="spine-mark" aria-hidden="true">◆</span>
-                    <span className="book-title">{spineTitle(book.title)}</span>
-                    <span className="book-author">{book.author}</span>
-                  </button>
-                );
-              })}
+              {shelf.map((book, index) => (
+                <BookSpine
+                  key={book.id}
+                  book={book}
+                  bookNumber={shelfIndex * 8 + index}
+                  onSelect={setSelected}
+                />
+              ))}
             </div>
             <div className="wood-shelf" />
           </div>
@@ -281,7 +379,7 @@ export default function Home() {
       </section>
 
       <footer>
-        <span>Export your Goodreads library, then import the CSV here.</span>
+        <span>Real cover art loads onto the spines as you browse.</span>
         <span>{storageReady ? "Saved on this browser — refresh anytime." : "Loading your saved shelf…"}</span>
       </footer>
 
@@ -308,7 +406,10 @@ export default function Home() {
                   alt={`Cover of ${selected.title}`}
                   loading="eager"
                   decoding="async"
-                  onError={() => setCover(null)}
+                  onError={() => {
+                    coverMemory.set(coverKey(selected), null);
+                    setCover(null);
+                  }}
                 />
               ) : null}
             </div>
