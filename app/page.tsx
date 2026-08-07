@@ -10,6 +10,7 @@ type Book = {
   rating?: number;
   year?: string;
   shelf?: string;
+  isbn?: string;
   color: string;
 };
 
@@ -31,6 +32,21 @@ const sampleBooks: Book[] = [
   { id: "12", title: "Haunting Adeline", author: "H. D. Carlton", rating: 4, color: palette[3] },
 ];
 
+function cleanIsbn(value?: string) {
+  if (!value) return undefined;
+  const cleaned = value.replace(/[=\"'\s-]/g, "").trim();
+  return /^(?:\d{13}|\d{9}[\dXx])$/.test(cleaned) ? cleaned : undefined;
+}
+
+function isbnForBook(book: Book) {
+  return cleanIsbn(book.isbn) || cleanIsbn(book.id);
+}
+
+function coverForBook(book: Book) {
+  const isbn = isbnForBook(book);
+  return isbn ? `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-L.jpg?default=false` : undefined;
+}
+
 function normalizeGoodreadsRow(row: Record<string, string>, index: number): Book | null {
   const title = row.Title?.trim();
   if (!title) return null;
@@ -39,7 +55,7 @@ function normalizeGoodreadsRow(row: Record<string, string>, index: number): Book
   const rating = Number(row["My Rating"] || 0) || undefined;
   const year = row["Year Published"]?.trim() || row["Original Publication Year"]?.trim() || undefined;
   const shelf = row["Exclusive Shelf"]?.trim() || undefined;
-  const isbn = row.ISBN13?.replace(/[="']/g, "").trim() || row.ISBN?.replace(/[="']/g, "").trim();
+  const isbn = cleanIsbn(row.ISBN13) || cleanIsbn(row.ISBN);
 
   return {
     id: isbn || `${title}-${author}-${index}`,
@@ -48,6 +64,7 @@ function normalizeGoodreadsRow(row: Record<string, string>, index: number): Book
     rating,
     year,
     shelf,
+    isbn,
     color: palette[index % palette.length],
   };
 }
@@ -126,6 +143,9 @@ export default function Home() {
     for (let i = 0; i < visibleBooks.length; i += 8) result.push(visibleBooks.slice(i, i + 8));
     return result;
   }, [visibleBooks]);
+
+  const selectedCover = selected ? coverForBook(selected) : undefined;
+  const selectedIsbn = selected ? isbnForBook(selected) : undefined;
 
   function showToast(message: string) {
     setImportMessage(message);
@@ -244,9 +264,21 @@ export default function Home() {
         <div className="modal-backdrop" role="presentation" onClick={() => setSelected(null)}>
           <article className="modal" role="dialog" aria-modal="true" aria-label={selected.title} onClick={(e) => e.stopPropagation()}>
             <button className="close" onClick={() => setSelected(null)} aria-label="Close">×</button>
-            <div className="cover" style={{ background: selected.color }}>
-              <strong>{selected.title}</strong>
-              <span>{selected.author}</span>
+            <div className="cover">
+              <div className="cover-fallback" style={{ background: selected.color }}>
+                <strong>{selected.title}</strong>
+                <span>{selected.author}</span>
+              </div>
+              {selectedCover ? (
+                <img
+                  className="cover-image"
+                  src={selectedCover}
+                  alt={`Cover of ${selected.title}`}
+                  loading="eager"
+                  decoding="async"
+                  onError={(event) => { event.currentTarget.hidden = true; }}
+                />
+              ) : null}
             </div>
             <div className="details">
               <p className="eyebrow">BOOK DETAILS</p>
@@ -256,6 +288,7 @@ export default function Home() {
                 {selected.rating ? <><dt>Your rating</dt><dd>{"★".repeat(Math.min(selected.rating, 5))}</dd></> : null}
                 {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
                 {selected.shelf ? <><dt>Goodreads shelf</dt><dd>{selected.shelf}</dd></> : null}
+                {selectedIsbn ? <><dt>ISBN</dt><dd>{selectedIsbn}</dd></> : null}
               </dl>
             </div>
           </article>
