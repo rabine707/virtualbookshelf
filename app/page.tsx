@@ -14,6 +14,11 @@ type Book = {
   color: string;
 };
 
+type CoverResult = {
+  url: string;
+  source: string;
+};
+
 const STORAGE_KEY = "shelf-of-fame-library-v1";
 const palette = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
 
@@ -40,11 +45,6 @@ function cleanIsbn(value?: string) {
 
 function isbnForBook(book: Book) {
   return cleanIsbn(book.isbn) || cleanIsbn(book.id);
-}
-
-function coverForBook(book: Book) {
-  const isbn = isbnForBook(book);
-  return isbn ? `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-L.jpg?default=false` : undefined;
 }
 
 function normalizeGoodreadsRow(row: Record<string, string>, index: number): Book | null {
@@ -88,6 +88,8 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("title");
   const [selected, setSelected] = useState<Book | null>(null);
+  const [cover, setCover] = useState<CoverResult | null>(null);
+  const [coverLoading, setCoverLoading] = useState(false);
   const [importMessage, setImportMessage] = useState("");
   const [storageReady, setStorageReady] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -125,6 +127,37 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!selected) {
+      setCover(null);
+      setCoverLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      title: selected.title,
+      author: selected.author,
+    });
+    const isbn = isbnForBook(selected);
+    if (isbn) params.set("isbn", isbn);
+
+    setCover(null);
+    setCoverLoading(true);
+
+    fetch(`/api/cover?${params.toString()}`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((result: CoverResult | null) => {
+        if (result?.url) setCover(result);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!controller.signal.aborted) setCoverLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [selected]);
+
   const visibleBooks = useMemo(() => {
     const q = query.toLowerCase().trim();
     const filtered = q
@@ -144,7 +177,6 @@ export default function Home() {
     return result;
   }, [visibleBooks]);
 
-  const selectedCover = selected ? coverForBook(selected) : undefined;
   const selectedIsbn = selected ? isbnForBook(selected) : undefined;
 
   function showToast(message: string) {
@@ -266,17 +298,17 @@ export default function Home() {
             <button className="close" onClick={() => setSelected(null)} aria-label="Close">×</button>
             <div className="cover">
               <div className="cover-fallback" style={{ background: selected.color }}>
-                <strong>{selected.title}</strong>
+                <strong>{coverLoading ? "Finding cover…" : selected.title}</strong>
                 <span>{selected.author}</span>
               </div>
-              {selectedCover ? (
+              {cover?.url ? (
                 <img
                   className="cover-image"
-                  src={selectedCover}
+                  src={cover.url}
                   alt={`Cover of ${selected.title}`}
                   loading="eager"
                   decoding="async"
-                  onError={(event) => { event.currentTarget.hidden = true; }}
+                  onError={() => setCover(null)}
                 />
               ) : null}
             </div>
@@ -289,6 +321,7 @@ export default function Home() {
                 {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
                 {selected.shelf ? <><dt>Goodreads shelf</dt><dd>{selected.shelf}</dd></> : null}
                 {selectedIsbn ? <><dt>ISBN</dt><dd>{selectedIsbn}</dd></> : null}
+                {cover?.source ? <><dt>Cover source</dt><dd>{cover.source}</dd></> : null}
               </dl>
             </div>
           </article>
