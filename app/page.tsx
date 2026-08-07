@@ -26,7 +26,7 @@ type Book = {
 
 const STORAGE_KEY = "shelf-of-fame-library-v1";
 const COVER_DATA_VERSION_KEY = "shelf-of-fame-cover-data-version";
-const COVER_DATA_VERSION = "multi-cover-v2";
+const COVER_DATA_VERSION = "multi-cover-v3-librarything";
 const palette = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
 const coverMemory = new Map<string, CoverResult | null>();
 const coverOptionsMemory = new Map<string, CoverResult[]>();
@@ -60,7 +60,7 @@ function coverKey(book: Book) {
   return isbnForBook(book) || `${book.title.toLowerCase().trim()}::${book.author.toLowerCase().trim()}`;
 }
 
-function coverRequestUrl(book: Book) {
+function coverRequestUrl(book: Book, includeLibraryThing = false) {
   const params = new URLSearchParams({
     title: book.title,
     author: book.author,
@@ -68,6 +68,7 @@ function coverRequestUrl(book: Book) {
   });
   const isbn = isbnForBook(book);
   if (isbn) params.set("isbn", isbn);
+  if (includeLibraryThing) params.set("libraryThing", "1");
   return `/api/cover?${params.toString()}`;
 }
 
@@ -295,7 +296,7 @@ export default function Home() {
     setCoverLoading(true);
 
     const controller = new AbortController();
-    fetch(coverRequestUrl(selected), { signal: controller.signal, cache: "no-store" })
+    fetch(coverRequestUrl(selected, true), { signal: controller.signal, cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((result: CoverResponse | null) => {
         const fetchedOptions = result?.options || (result?.url ? [{ url: result.url, source: result.source }] : []);
