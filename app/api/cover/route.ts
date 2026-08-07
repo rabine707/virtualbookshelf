@@ -43,6 +43,14 @@ type MatchResult = {
   accepted: boolean;
 };
 
+type TitleEvidence = {
+  score: number;
+  exact: boolean;
+  adjacent: boolean;
+  coverage: number;
+  keywordCount: number;
+};
+
 type CoverOption = {
   url: string;
   source: string;
@@ -81,6 +89,50 @@ function titleKeywords(value?: string) {
   return significant.length ? [...new Set(significant)] : [...new Set(allWords)];
 }
 
+function looksLikeSeriesMetadata(value: string) {
+  const text = value.trim();
+  return /#\s*\d+(?:\.\d+)?\b/i.test(text)
+    || /\b(?:book|volume|vol\.?|part)\s*(?:#|no\.?\s*)?\d+(?:\.\d+)?\b/i.test(text)
+    || /\b(?:series|duet|trilogy|saga)\b[^\d]{0,30}\d+(?:\.\d+)?\b/i.test(text);
+}
+
+function stripGoodreadsSeriesSuffix(title: string) {
+  let cleaned = title.trim();
+
+  // Goodreads commonly exports titles such as:
+  // "Garron Park (From Nothing, #1)" or "Fourth Wing (The Empyrean, #1)".
+  // Remove only trailing bracketed groups that clearly look like series numbering,
+  // so meaningful parentheticals remain intact.
+  for (let pass = 0; pass < 3; pass += 1) {
+    const match = cleaned.match(/\s*[\(\[]([^\)\]]+)[\)\]]\s*$/);
+    if (!match || !looksLikeSeriesMetadata(match[1])) break;
+    cleaned = cleaned.slice(0, match.index).trim();
+  }
+
+  // A few exports use an unbracketed trailing "- Book 2" style suffix.
+  cleaned = cleaned
+    .replace(/\s*[-–—:]\s*(?:book|volume|vol\.?|part)\s*(?:#|no\.?\s*)?\d+(?:\.\d+)?\s*$/i, "")
+    .trim();
+
+  return cleaned || title.trim();
+}
+
+function titleVariants(title: string) {
+  const original = title.trim();
+  const core = stripGoodreadsSeriesSuffix(original);
+  const variants = core && normalizeText(core) !== normalizeText(original)
+    ? [core, original]
+    : [original];
+
+  const seen = new Set<string>();
+  return variants.filter((variant) => {
+    const key = normalizeText(variant);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function authorEvidence(requestedAuthor: string, candidateAuthors: string[]) {
   const wanted = normalizeText(requestedAuthor);
   if (!wanted) return 0;
@@ -111,52 +163,64 @@ function authorEvidence(requestedAuthor: string, candidateAuthors: string[]) {
   return best;
 }
 
+function titleEvidence(requestedTitle: string, candidateTitle?: string): TitleEvidence {
+  const wantedTitle = normalizeText(requestedTitle);
+  const foundTitle = normalizeText(candidateTitle);
+  if (!wantedTitle || !foundTitle) {
+    return { score: 0, exact: false, adjacent: false, coverage: 0, keywordCount: 0 };
+  }
+
+  const wantedKeywords = titleKeywords(wantedTitle);
+  const foundKeywordSet = new Set(titleKeywords(foundTitle));
+  const keywordMatches = wantedKeywords.filter((word) => foundKeywordSet.has(word)).length;
+  const coverage = wantedKeywords.length ? keywordMatches / wantedKeywords.length : 0;
+
+  let score = 0;
+  let exact = false;
+  let adjacent = false;
+
+  if (foundTitle === wantedTitle) {
+    score = 14;
+    exact = true;
+  } else if (foundTitle.includes(wantedTitle) || wantedTitle.includes(foundTitle)) {
+    score = 11;
+    adjacent = true;
+  } else {
+    score = coverage * 9;
+    if (coverage >= 0.75) score += 1;
+  }
+
+  return { score, exact, adjacent, coverage, keywordCount: wantedKeywords.length };
+}
+
 function matchCandidate(
   requestedTitle: string,
   requestedAuthor: string,
   candidateTitle?: string,
   candidateAuthors: string[] = [],
 ): MatchResult {
-  const wantedTitle = normalizeText(requestedTitle);
-  const foundTitle = normalizeText(candidateTitle);
-  if (!wantedTitle || !foundTitle) return { score: 0, accepted: false };
-
-  const wantedKeywords = titleKeywords(wantedTitle);
-  const foundKeywordSet = new Set(titleKeywords(foundTitle));
-  const keywordMatches = wantedKeywords.filter((word) => foundKeywordSet.has(word)).length;
-  const keywordCoverage = wantedKeywords.length ? keywordMatches / wantedKeywords.length : 0;
-
-  let titleScore = 0;
-  let exactTitle = false;
-  let adjacentTitle = false;
-
-  if (foundTitle === wantedTitle) {
-    titleScore = 14;
-    exactTitle = true;
-  } else if (foundTitle.includes(wantedTitle) || wantedTitle.includes(foundTitle)) {
-    titleScore = 11;
-    adjacentTitle = true;
-  } else {
-    titleScore = keywordCoverage * 9;
-    if (keywordCoverage >= 0.75) titleScore += 1;
-  }
+  const titleMatches = titleVariants(requestedTitle)
+    .map((variant) => titleEvidence(variant, candidateTitle))
+    .sort((a, b) => b.score - a.score);
+  const bestTitle = titleMatches[0];
+  if (!bestTitle || bestTitle.score <= 0) return { score: 0, accepted: false };
 
   const authorScore = authorEvidence(requestedAuthor, candidateAuthors);
   const hasRequestedAuthor = Boolean(normalizeText(requestedAuthor));
-  const score = titleScore + authorScore;
+  const score = bestTitle.score + authorScore;
 
   let accepted = false;
   if (!hasRequestedAuthor) {
-    accepted = exactTitle || adjacentTitle || keywordCoverage >= 0.7;
+    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.7;
   } else if (authorScore >= 7) {
-    accepted = exactTitle || adjacentTitle || keywordCoverage >= 0.34;
+    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.34;
   } else if (authorScore >= 5) {
-    accepted = exactTitle || adjacentTitle || keywordCoverage >= 0.5;
+    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.5;
   } else if (authorScore >= 3) {
-    accepted = exactTitle || adjacentTitle || keywordCoverage >= 0.75;
+    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.75;
   }
 
-  if (hasRequestedAuthor && wantedKeywords.length <= 1 && authorScore < 5) accepted = false;
+  if (hasRequestedAuthor && bestTitle.keywordCount <= 1 && authorScore < 5) accepted = false;
   return { score, accepted };
 }
 
@@ -253,7 +317,7 @@ async function openLibrarySearchByIsbn(isbn: string): Promise<CoverOption[]> {
   });
 }
 
-async function openLibraryMatches(url: string, title: string, author: string): Promise<CoverOption[]> {
+async function openLibraryMatches(url: string, requestedTitle: string, author: string): Promise<CoverOption[]> {
   const response = await fetch(url, { next: { revalidate: 86400 } });
   if (!response.ok) return [];
 
@@ -263,24 +327,24 @@ async function openLibraryMatches(url: string, title: string, author: string): P
   for (const doc of data.docs || []) {
     const image = openLibraryCoverById(doc.cover_i);
     if (!image) continue;
-    const match = matchCandidate(title, author, doc.title, doc.author_name || []);
+    const match = matchCandidate(requestedTitle, author, doc.title, doc.author_name || []);
     if (match.accepted) results.push({ url: image, source: "Open Library", score: match.score });
   }
 
   return results;
 }
 
-async function openLibrarySearchByTitle(title: string, author: string) {
-  const params = new URLSearchParams({ title, fields: "title,author_name,cover_i", limit: "30" });
+async function openLibrarySearchByTitle(searchTitle: string, requestedTitle: string, author: string) {
+  const params = new URLSearchParams({ title: searchTitle, fields: "title,author_name,cover_i", limit: "30" });
   if (author) params.set("author", author);
-  return openLibraryMatches(`https://openlibrary.org/search.json?${params.toString()}`, title, author);
+  return openLibraryMatches(`https://openlibrary.org/search.json?${params.toString()}`, requestedTitle, author);
 }
 
-async function openLibraryKeywordSearch(title: string, author: string) {
-  const q = keywordSearchText(title, author);
+async function openLibraryKeywordSearch(searchTitle: string, requestedTitle: string, author: string) {
+  const q = keywordSearchText(searchTitle, author);
   if (!q) return [];
   const params = new URLSearchParams({ q, fields: "title,author_name,cover_i", limit: "30" });
-  return openLibraryMatches(`https://openlibrary.org/search.json?${params.toString()}`, title, author);
+  return openLibraryMatches(`https://openlibrary.org/search.json?${params.toString()}`, requestedTitle, author);
 }
 
 function googleImage(book: GoogleBook) {
@@ -295,7 +359,12 @@ function googleImage(book: GoogleBook) {
   ) || null;
 }
 
-async function googleBooksCovers(query: string, title = "", author = "", trustFirst = false): Promise<CoverOption[]> {
+async function googleBooksCovers(
+  query: string,
+  requestedTitle = "",
+  author = "",
+  trustFirst = false,
+): Promise<CoverOption[]> {
   const params = new URLSearchParams({ q: query, maxResults: "40", printType: "books" });
   const response = await fetch(`https://www.googleapis.com/books/v1/volumes?${params.toString()}`, {
     next: { revalidate: 86400 },
@@ -314,7 +383,7 @@ async function googleBooksCovers(query: string, title = "", author = "", trustFi
       continue;
     }
 
-    const match = matchCandidate(title, author, item.volumeInfo?.title, item.volumeInfo?.authors || []);
+    const match = matchCandidate(requestedTitle, author, item.volumeInfo?.title, item.volumeInfo?.authors || []);
     if (match.accepted) results.push({ url: image, source: "Google Books", score: match.score + 0.25 });
   }
 
@@ -351,15 +420,19 @@ export async function GET(request: NextRequest) {
     }
 
     if (title) {
-      searches.push(openLibrarySearchByTitle(title, author));
-      searches.push(openLibraryKeywordSearch(title, author));
+      for (const searchTitle of titleVariants(title)) {
+        searches.push(openLibrarySearchByTitle(searchTitle, title, author));
+        searches.push(openLibraryKeywordSearch(searchTitle, title, author));
 
-      const strictGoogleQuery = author ? `intitle:${title} inauthor:${author}` : `intitle:${title}`;
-      searches.push(googleBooksCovers(strictGoogleQuery, title, author));
-      searches.push(googleBooksCovers(author ? `${title} ${author}` : title, title, author));
+        const strictGoogleQuery = author
+          ? `intitle:${searchTitle} inauthor:${author}`
+          : `intitle:${searchTitle}`;
+        searches.push(googleBooksCovers(strictGoogleQuery, title, author));
+        searches.push(googleBooksCovers(author ? `${searchTitle} ${author}` : searchTitle, title, author));
 
-      const keywordQuery = keywordSearchText(title, author);
-      if (keywordQuery) searches.push(googleBooksCovers(keywordQuery, title, author));
+        const keywordQuery = keywordSearchText(searchTitle, author);
+        if (keywordQuery) searches.push(googleBooksCovers(keywordQuery, title, author));
+      }
     }
 
     const groups = await Promise.allSettled(searches);
