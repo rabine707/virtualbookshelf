@@ -42,6 +42,12 @@ type MatchResult = {
   accepted: boolean;
 };
 
+type CoverOption = {
+  url: string;
+  source: string;
+  score: number;
+};
+
 const responseHeaders = {
   "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
 };
@@ -138,23 +144,17 @@ function matchCandidate(
   const score = titleScore + authorScore;
 
   let accepted = false;
-
   if (!hasRequestedAuthor) {
     accepted = exactTitle || adjacentTitle || keywordCoverage >= 0.7;
   } else if (authorScore >= 7) {
-    // Strong author match: allow editions/subtitles that still share a meaningful piece of the title.
     accepted = exactTitle || adjacentTitle || keywordCoverage >= 0.34;
   } else if (authorScore >= 5) {
-    // Last-name-level author confidence needs at least half of the meaningful title words.
     accepted = exactTitle || adjacentTitle || keywordCoverage >= 0.5;
   } else if (authorScore >= 3) {
-    // Partial author evidence only passes with a very strong title match.
     accepted = exactTitle || adjacentTitle || keywordCoverage >= 0.75;
   }
 
-  // One-word/generic titles are especially risky, so require a strong author match.
   if (hasRequestedAuthor && wantedKeywords.length <= 1 && authorScore < 5) accepted = false;
-
   return { score, accepted };
 }
 
@@ -169,85 +169,60 @@ function openLibraryCoverById(coverId?: number) {
   return coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : null;
 }
 
-async function openLibraryCoverByIsbn(isbn: string) {
+async function openLibraryCoverByIsbn(isbn: string): Promise<CoverOption[]> {
   const key = `ISBN:${isbn}`;
   const url = `https://openlibrary.org/api/books?bibkeys=${encodeURIComponent(key)}&format=json&jscmd=data`;
   const response = await fetch(url, { next: { revalidate: 86400 } });
-  if (!response.ok) return null;
+  if (!response.ok) return [];
 
   const data = await response.json() as Record<string, OpenLibraryBook>;
   const cover = data[key]?.cover;
-  return httpsImage(cover?.large || cover?.medium || cover?.small) || null;
+  const image = httpsImage(cover?.large || cover?.medium || cover?.small);
+  return image ? [{ url: image, source: "Open Library", score: 30 }] : [];
 }
 
-async function openLibrarySearchByIsbn(isbn: string) {
-  const params = new URLSearchParams({
-    isbn,
-    fields: "cover_i",
-    limit: "5",
-  });
+async function openLibrarySearchByIsbn(isbn: string): Promise<CoverOption[]> {
+  const params = new URLSearchParams({ isbn, fields: "cover_i", limit: "10" });
   const response = await fetch(`https://openlibrary.org/search.json?${params.toString()}`, {
     next: { revalidate: 86400 },
   });
-  if (!response.ok) return null;
+  if (!response.ok) return [];
 
   const data = await response.json() as OpenLibrarySearchResponse;
-  for (const doc of data.docs || []) {
+  return (data.docs || []).flatMap((doc, index) => {
     const image = openLibraryCoverById(doc.cover_i);
-    if (image) return image;
-  }
-  return null;
+    return image ? [{ url: image, source: "Open Library", score: 28 - index * 0.1 }] : [];
+  });
 }
 
-async function bestOpenLibraryMatch(url: string, title: string, author: string) {
+async function openLibraryMatches(url: string, title: string, author: string): Promise<CoverOption[]> {
   const response = await fetch(url, { next: { revalidate: 86400 } });
-  if (!response.ok) return null;
+  if (!response.ok) return [];
 
   const data = await response.json() as OpenLibrarySearchResponse;
-  let best: { image: string; score: number } | null = null;
+  const results: CoverOption[] = [];
 
   for (const doc of data.docs || []) {
     const image = openLibraryCoverById(doc.cover_i);
     if (!image) continue;
-
     const match = matchCandidate(title, author, doc.title, doc.author_name || []);
-    if (!match.accepted) continue;
-    if (!best || match.score > best.score) best = { image, score: match.score };
+    if (match.accepted) results.push({ url: image, source: "Open Library", score: match.score });
   }
 
-  return best?.image || null;
+  return results;
 }
 
 async function openLibrarySearchByTitle(title: string, author: string) {
-  const params = new URLSearchParams({
-    title,
-    fields: "title,author_name,cover_i",
-    limit: "20",
-  });
+  const params = new URLSearchParams({ title, fields: "title,author_name,cover_i", limit: "30" });
   if (author) params.set("author", author);
-
-  return bestOpenLibraryMatch(
-    `https://openlibrary.org/search.json?${params.toString()}`,
-    title,
-    author,
-  );
+  return openLibraryMatches(`https://openlibrary.org/search.json?${params.toString()}`, title, author);
 }
 
 async function openLibraryKeywordSearch(title: string, author: string) {
   const q = keywordSearchText(title, author);
-  if (!q) return null;
-
-  const params = new URLSearchParams({
-    q,
-    fields: "title,author_name,cover_i",
-    limit: "25",
-  });
-
-  return bestOpenLibraryMatch(
-    `https://openlibrary.org/search.json?${params.toString()}`,
-    title,
-    author,
-  );
+  if (!q) return [];
+  const params = new URLSearchParams({ q, fields: "title,author_name,cover_i", limit: "30" });
+  return openLibraryMatches(`https://openlibrary.org/search.json?${params.toString()}`, title, author);
 }
 
 function googleImage(book: GoogleBook) {
@@ -262,41 +237,44 @@ function googleImage(book: GoogleBook) {
   ) || null;
 }
 
-async function googleBooksCover(query: string, title = "", author = "", trustFirst = false) {
-  const params = new URLSearchParams({
-    q: query,
-    maxResults: "25",
-    printType: "books",
-  });
+async function googleBooksCovers(query: string, title = "", author = "", trustFirst = false): Promise<CoverOption[]> {
+  const params = new URLSearchParams({ q: query, maxResults: "40", printType: "books" });
   const response = await fetch(`https://www.googleapis.com/books/v1/volumes?${params.toString()}`, {
     next: { revalidate: 86400 },
   });
-  if (!response.ok) return null;
+  if (!response.ok) return [];
 
   const data = await response.json() as GoogleBooksResponse;
-  if (trustFirst) {
-    for (const item of data.items || []) {
-      const image = googleImage(item);
-      if (image) return image;
-    }
-    return null;
-  }
+  const results: CoverOption[] = [];
 
-  let best: { image: string; score: number } | null = null;
-  for (const item of data.items || []) {
+  for (const [index, item] of (data.items || []).entries()) {
     const image = googleImage(item);
     if (!image) continue;
 
+    if (trustFirst) {
+      results.push({ url: image, source: "Google Books", score: 29 - index * 0.1 });
+      continue;
+    }
+
     const match = matchCandidate(title, author, item.volumeInfo?.title, item.volumeInfo?.authors || []);
-    if (!match.accepted) continue;
-    if (!best || match.score > best.score) best = { image, score: match.score };
+    if (match.accepted) results.push({ url: image, source: "Google Books", score: match.score + 0.25 });
   }
 
-  return best?.image || null;
+  return results;
 }
 
-function coverResponse(url: string, source: string) {
-  return NextResponse.json({ url, source }, { headers: responseHeaders });
+function uniqueRanked(options: CoverOption[]) {
+  const seen = new Set<string>();
+  return options
+    .sort((a, b) => b.score - a.score)
+    .filter((option) => {
+      const key = option.url.replace(/&zoom=\d+/i, "");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 12)
+    .map(({ url, source }) => ({ url, source }));
 }
 
 export async function GET(request: NextRequest) {
@@ -305,46 +283,42 @@ export async function GET(request: NextRequest) {
   const author = request.nextUrl.searchParams.get("author")?.trim() || "";
 
   try {
+    const searches: Promise<CoverOption[]>[] = [];
+
     if (isbn) {
-      const openLibrary = await openLibraryCoverByIsbn(isbn);
-      if (openLibrary) return coverResponse(openLibrary, "Open Library");
-
-      const openLibrarySearch = await openLibrarySearchByIsbn(isbn);
-      if (openLibrarySearch) return coverResponse(openLibrarySearch, "Open Library");
-
-      const googleByIsbn = await googleBooksCover(`isbn:${isbn}`, title, author, true);
-      if (googleByIsbn) return coverResponse(googleByIsbn, "Google Books");
+      searches.push(openLibraryCoverByIsbn(isbn));
+      searches.push(openLibrarySearchByIsbn(isbn));
+      searches.push(googleBooksCovers(`isbn:${isbn}`, title, author, true));
     }
 
     if (title) {
-      const openLibraryByTitle = await openLibrarySearchByTitle(title, author);
-      if (openLibraryByTitle) return coverResponse(openLibraryByTitle, "Open Library");
+      searches.push(openLibrarySearchByTitle(title, author));
+      searches.push(openLibraryKeywordSearch(title, author));
 
-      const strictGoogleQuery = author
-        ? `intitle:${title} inauthor:${author}`
-        : `intitle:${title}`;
-      const googleStrict = await googleBooksCover(strictGoogleQuery, title, author);
-      if (googleStrict) return coverResponse(googleStrict, "Google Books");
-
-      const broadGoogleQuery = author ? `${title} ${author}` : title;
-      const googleBroad = await googleBooksCover(broadGoogleQuery, title, author);
-      if (googleBroad) return coverResponse(googleBroad, "Google Books");
-
-      const openLibraryKeywords = await openLibraryKeywordSearch(title, author);
-      if (openLibraryKeywords) return coverResponse(openLibraryKeywords, "Open Library");
+      const strictGoogleQuery = author ? `intitle:${title} inauthor:${author}` : `intitle:${title}`;
+      searches.push(googleBooksCovers(strictGoogleQuery, title, author));
+      searches.push(googleBooksCovers(author ? `${title} ${author}` : title, title, author));
 
       const keywordQuery = keywordSearchText(title, author);
-      if (keywordQuery) {
-        const googleKeywords = await googleBooksCover(keywordQuery, title, author);
-        if (googleKeywords) return coverResponse(googleKeywords, "Google Books");
-      }
+      if (keywordQuery) searches.push(googleBooksCovers(keywordQuery, title, author));
+    }
+
+    const groups = await Promise.allSettled(searches);
+    const candidates = groups.flatMap((group) => group.status === "fulfilled" ? group.value : []);
+    const options = uniqueRanked(candidates);
+
+    if (options.length) {
+      return NextResponse.json(
+        { ...options[0], options },
+        { headers: responseHeaders },
+      );
     }
   } catch {
-    // A failed provider should never break the shelf or book detail modal.
+    // Provider failures should never break the shelf.
   }
 
   return NextResponse.json(
-    { url: null, source: null },
+    { url: null, source: null, options: [] },
     { status: 404, headers: { "Cache-Control": "public, s-maxage=3600" } },
   );
 }
