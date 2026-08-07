@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, CSSProperties, useMemo, useRef, useState } from "react";
+import { ChangeEvent, CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 
 type Book = {
@@ -13,6 +13,7 @@ type Book = {
   color: string;
 };
 
+const STORAGE_KEY = "shelf-of-fame-library-v1";
 const palette = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
 
 const sampleBooks: Book[] = [
@@ -51,6 +52,15 @@ function normalizeGoodreadsRow(row: Record<string, string>, index: number): Book
   };
 }
 
+function isStoredBook(value: unknown): value is Book {
+  if (!value || typeof value !== "object") return false;
+  const book = value as Partial<Book>;
+  return typeof book.id === "string"
+    && typeof book.title === "string"
+    && typeof book.author === "string"
+    && typeof book.color === "string";
+}
+
 function spineTitle(title: string) {
   if (title.length <= 38) return title;
   return `${title.slice(0, 35).trim()}…`;
@@ -62,8 +72,41 @@ export default function Home() {
   const [sort, setSort] = useState("title");
   const [selected, setSelected] = useState<Book | null>(null);
   const [importMessage, setImportMessage] = useState("");
+  const [storageReady, setStorageReady] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const toastTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed: unknown = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const savedBooks = parsed.filter(isStoredBook);
+          if (savedBooks.length) setBooks(savedBooks);
+        }
+      }
+    } catch {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } finally {
+      setStorageReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!storageReady) return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+    } catch {
+      // If browser storage is unavailable, the shelf still works for this session.
+    }
+  }, [books, storageReady]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    };
+  }, []);
 
   const visibleBooks = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -108,7 +151,7 @@ export default function Home() {
         }
 
         setBooks(imported);
-        showToast(`Imported ${imported.length} books from Goodreads.`);
+        showToast(`Imported ${imported.length} books. Saved on this browser.`);
       },
     });
 
@@ -187,7 +230,7 @@ export default function Home() {
 
       <footer>
         <span>Export your Goodreads library, then import the CSV here.</span>
-        <span>Your library stays in this browser session for this prototype.</span>
+        <span>{storageReady ? "Saved on this browser — refresh anytime." : "Loading your saved shelf…"}</span>
       </footer>
 
       {importMessage && (
