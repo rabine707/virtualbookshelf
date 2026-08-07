@@ -26,7 +26,7 @@ type Book = {
 
 const STORAGE_KEY = "shelf-of-fame-library-v1";
 const COVER_DATA_VERSION_KEY = "shelf-of-fame-cover-data-version";
-const COVER_DATA_VERSION = "multi-cover-v3-librarything";
+const COVER_DATA_VERSION = "multi-cover-v4-on-demand-deep-search";
 const palette = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
 const coverMemory = new Map<string, CoverResult | null>();
 const coverOptionsMemory = new Map<string, CoverResult[]>();
@@ -115,6 +115,13 @@ function isStoredBook(value: unknown): value is Book {
 function spineTitle(title: string) {
   if (title.length <= 38) return title;
   return `${title.slice(0, 35).trim()}…`;
+}
+
+function coverSourceLabel(source: string) {
+  if (source === "Open Library") return "OL";
+  if (source === "Google Books") return "Google";
+  if (source === "LibraryThing") return "LT";
+  return source;
 }
 
 type BookSpineProps = {
@@ -232,6 +239,8 @@ export default function Home() {
   const [cover, setCover] = useState<CoverResult | null>(null);
   const [coverOptions, setCoverOptions] = useState<CoverResult[]>([]);
   const [coverLoading, setCoverLoading] = useState(false);
+  const [deepSearchLoading, setDeepSearchLoading] = useState(false);
+  const [deepSearchDone, setDeepSearchDone] = useState(false);
   const [importMessage, setImportMessage] = useState("");
   const [storageReady, setStorageReady] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -281,6 +290,8 @@ export default function Home() {
       setCover(null);
       setCoverOptions([]);
       setCoverLoading(false);
+      setDeepSearchLoading(false);
+      setDeepSearchDone(false);
       return;
     }
 
@@ -294,9 +305,13 @@ export default function Home() {
     setCover(preferred || coverMemory.get(key) || null);
     setCoverOptions(startingOptions);
     setCoverLoading(true);
+    setDeepSearchLoading(false);
+    setDeepSearchDone(false);
 
+    // Opening a book does the quick Open Library + Google Books search only.
+    // LibraryThing's deeper edition search is intentionally user-triggered below.
     const controller = new AbortController();
-    fetch(coverRequestUrl(selected, true), { signal: controller.signal, cache: "no-store" })
+    fetch(coverRequestUrl(selected), { signal: controller.signal, cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((result: CoverResponse | null) => {
         const fetchedOptions = result?.options || (result?.url ? [{ url: result.url, source: result.source }] : []);
@@ -315,7 +330,7 @@ export default function Home() {
       });
 
     return () => controller.abort();
-  }, [selected]);
+  }, [selected?.id]);
 
   const visibleBooks = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -352,6 +367,39 @@ export default function Home() {
     setCover(option);
     coverMemory.set(coverKey(updated), option);
     showToast(`Using the ${option.source} cover for ${selected.title}.`);
+  }
+
+  async function searchMoreCovers() {
+    if (!selected || !selectedIsbn || deepSearchLoading || deepSearchDone) return;
+
+    const key = coverKey(selected);
+    const preferred = selected.preferredCover;
+    const before = uniqueCovers(preferred ? [preferred, ...coverOptions] : coverOptions);
+    setDeepSearchLoading(true);
+
+    try {
+      const response = await fetch(coverRequestUrl(selected, true), { cache: "no-store" });
+      const result: CoverResponse | null = response.ok ? await response.json() : null;
+      const fetchedOptions = result?.options || (result?.url ? [{ url: result.url, source: result.source }] : []);
+      const allOptions = uniqueCovers(preferred ? [preferred, ...before, ...fetchedOptions] : [...before, ...fetchedOptions]);
+      const added = Math.max(0, allOptions.length - before.length);
+
+      coverOptionsMemory.set(key, allOptions);
+      setCoverOptions(allOptions);
+
+      if (!cover && result?.url) {
+        const fetchedDefault = { url: result.url, source: result.source };
+        coverMemory.set(key, fetchedDefault);
+        setCover(fetchedDefault);
+      }
+
+      setDeepSearchDone(true);
+      showToast(added ? `Found ${added} more cover${added === 1 ? "" : "s"} for ${selected.title}.` : `No additional covers found for ${selected.title}.`);
+    } catch {
+      showToast(`Couldn't finish the deeper cover search for ${selected.title}.`);
+    } finally {
+      setDeepSearchLoading(false);
+    }
   }
 
   function importCsv(event: ChangeEvent<HTMLInputElement>) {
@@ -482,28 +530,52 @@ export default function Home() {
                 {cover?.source ? <><dt>Cover source</dt><dd>{cover.source}</dd></> : null}
               </dl>
 
-              {coverOptions.length > 1 ? (
+              {(coverOptions.length > 0 || selectedIsbn) ? (
                 <section className="cover-picker" aria-label="Choose a cover">
                   <div className="cover-picker-heading">
                     <strong>Choose your cover</strong>
-                    <span>{coverOptions.length} matches</span>
+                    <span>{coverOptions.length} {coverOptions.length === 1 ? "match" : "matches"}</span>
                   </div>
-                  <div className="cover-options">
-                    {coverOptions.map((option, index) => (
-                      <button
-                        key={`${option.url}-${index}`}
-                        type="button"
-                        className={`cover-option${cover?.url === option.url ? " selected-cover" : ""}`}
-                        onClick={() => chooseCover(option)}
-                        aria-label={`Use cover ${index + 1} from ${option.source}`}
-                        title={`${option.source} cover`}
-                      >
-                        <img src={option.url} alt="" loading="lazy" decoding="async" />
-                        <span>{option.source === "Open Library" ? "OL" : "Google"}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <p className="cover-picker-note">Tap a cover to use it on your shelf. Your choice is saved on this device.</p>
+
+                  {coverOptions.length ? (
+                    <div className="cover-options">
+                      {coverOptions.map((option, index) => (
+                        <button
+                          key={`${option.url}-${index}`}
+                          type="button"
+                          className={`cover-option${cover?.url === option.url ? " selected-cover" : ""}`}
+                          onClick={() => chooseCover(option)}
+                          aria-label={`Use cover ${index + 1} from ${option.source}`}
+                          title={`${option.source} cover`}
+                        >
+                          <img src={option.url} alt="" loading="lazy" decoding="async" />
+                          <span>{coverSourceLabel(option.source)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {selectedIsbn ? (
+                    <button
+                      type="button"
+                      className="primary"
+                      style={{ marginTop: 10 }}
+                      onClick={searchMoreCovers}
+                      disabled={deepSearchLoading || deepSearchDone}
+                    >
+                      {deepSearchLoading
+                        ? "Searching more editions…"
+                        : deepSearchDone
+                          ? "More editions searched"
+                          : "Search more covers"}
+                    </button>
+                  ) : null}
+
+                  <p className="cover-picker-note">
+                    {selectedIsbn
+                      ? "Open Library and Google are checked automatically. Search more covers checks LibraryThing for additional editions only when you ask."
+                      : "Tap a cover to use it on your shelf. Your choice is saved on this device."}
+                  </p>
                 </section>
               ) : null}
             </div>
