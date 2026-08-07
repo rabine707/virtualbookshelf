@@ -3,6 +3,15 @@
 import { ChangeEvent, CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 
+type CoverResult = {
+  url: string;
+  source: string;
+};
+
+type CoverResponse = CoverResult & {
+  options?: CoverResult[];
+};
+
 type Book = {
   id: string;
   title: string;
@@ -12,11 +21,7 @@ type Book = {
   shelf?: string;
   isbn?: string;
   color: string;
-};
-
-type CoverResult = {
-  url: string;
-  source: string;
+  preferredCover?: CoverResult;
 };
 
 const STORAGE_KEY = "shelf-of-fame-library-v1";
@@ -53,10 +58,7 @@ function coverKey(book: Book) {
 }
 
 function coverRequestUrl(book: Book) {
-  const params = new URLSearchParams({
-    title: book.title,
-    author: book.author,
-  });
+  const params = new URLSearchParams({ title: book.title, author: book.author });
   const isbn = isbnForBook(book);
   if (isbn) params.set("isbn", isbn);
   return `/api/cover?${params.toString()}`;
@@ -108,10 +110,18 @@ function BookSpine({ book, bookNumber, onSelect }: BookSpineProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const key = coverKey(book);
   const eager = bookNumber < 8;
-  const [cover, setCover] = useState<CoverResult | null>(() => coverMemory.get(key) || null);
+  const [cover, setCover] = useState<CoverResult | null>(() => book.preferredCover || coverMemory.get(key) || null);
   const [shouldLoad, setShouldLoad] = useState(() => eager || coverMemory.has(key));
+  const displayedCover = book.preferredCover || cover;
 
   useEffect(() => {
+    if (book.preferredCover) {
+      coverMemory.set(key, book.preferredCover);
+      setCover(book.preferredCover);
+      setShouldLoad(true);
+      return;
+    }
+
     if (coverMemory.has(key)) {
       setCover(coverMemory.get(key) || null);
       setShouldLoad(true);
@@ -140,23 +150,23 @@ function BookSpine({ book, bookNumber, onSelect }: BookSpineProps) {
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [eager, key]);
+  }, [book.preferredCover, eager, key]);
 
   useEffect(() => {
-    if (!shouldLoad || coverMemory.has(key)) return;
+    if (book.preferredCover || !shouldLoad || coverMemory.has(key)) return;
 
     const controller = new AbortController();
     fetch(coverRequestUrl(book), { signal: controller.signal })
       .then((response) => response.ok ? response.json() : null)
-      .then((result: CoverResult | null) => {
-        const valid = result?.url ? result : null;
+      .then((result: CoverResponse | null) => {
+        const valid = result?.url ? { url: result.url, source: result.source } : null;
         coverMemory.set(key, valid);
         setCover(valid);
       })
       .catch(() => undefined);
 
     return () => controller.abort();
-  }, [book, key, shouldLoad]);
+  }, [book, book.preferredCover, key, shouldLoad]);
 
   const style = {
     "--book-color": book.color,
@@ -169,25 +179,27 @@ function BookSpine({ book, bookNumber, onSelect }: BookSpineProps) {
   return (
     <button
       ref={buttonRef}
-      className={`book book-style-${bookNumber % 4}${cover?.url ? " has-cover" : ""}`}
+      className={`book book-style-${bookNumber % 4}${displayedCover?.url ? " has-cover" : ""}`}
       style={style}
       onClick={() => onSelect(book)}
       title={`${book.title} — ${book.author}`}
     >
-      {cover?.url ? (
+      {displayedCover?.url ? (
         <img
           className="book-cover-art"
-          src={cover.url}
+          src={displayedCover.url}
           alt=""
           loading={eager ? "eager" : "lazy"}
           decoding="async"
           onError={() => {
-            coverMemory.set(key, null);
-            setCover(null);
+            if (!book.preferredCover) {
+              coverMemory.set(key, null);
+              setCover(null);
+            }
           }}
         />
       ) : null}
-      {!cover?.url ? <span className="spine-mark" aria-hidden="true">◆</span> : null}
+      {!displayedCover?.url ? <span className="spine-mark" aria-hidden="true">◆</span> : null}
       <span className="book-title">{spineTitle(book.title)}</span>
       <span className="book-author">{book.author}</span>
     </button>
@@ -200,6 +212,7 @@ export default function Home() {
   const [sort, setSort] = useState("title");
   const [selected, setSelected] = useState<Book | null>(null);
   const [cover, setCover] = useState<CoverResult | null>(null);
+  const [coverOptions, setCoverOptions] = useState<CoverResult[]>([]);
   const [coverLoading, setCoverLoading] = useState(false);
   const [importMessage, setImportMessage] = useState("");
   const [storageReady, setStorageReady] = useState(false);
@@ -241,25 +254,28 @@ export default function Home() {
   useEffect(() => {
     if (!selected) {
       setCover(null);
+      setCoverOptions([]);
       setCoverLoading(false);
       return;
     }
 
     const key = coverKey(selected);
-    if (coverMemory.has(key)) {
-      setCover(coverMemory.get(key) || null);
-      setCoverLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    setCover(null);
+    const preferred = selected.preferredCover;
+    setCover(preferred || coverMemory.get(key) || null);
+    setCoverOptions(preferred ? [preferred] : []);
     setCoverLoading(true);
 
+    const controller = new AbortController();
     fetch(coverRequestUrl(selected), { signal: controller.signal })
       .then((response) => response.ok ? response.json() : null)
-      .then((result: CoverResult | null) => {
-        const valid = result?.url ? result : null;
+      .then((result: CoverResponse | null) => {
+        const fetchedOptions = result?.options || (result?.url ? [{ url: result.url, source: result.source }] : []);
+        const allOptions = preferred
+          ? [preferred, ...fetchedOptions.filter((item) => item.url !== preferred.url)]
+          : fetchedOptions;
+        setCoverOptions(allOptions);
+
+        const valid = preferred || (result?.url ? { url: result.url, source: result.source } : null);
         coverMemory.set(key, valid);
         setCover(valid);
       })
@@ -296,6 +312,16 @@ export default function Home() {
     setImportMessage(message);
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setImportMessage(""), 4200);
+  }
+
+  function chooseCover(option: CoverResult) {
+    if (!selected) return;
+    const updated = { ...selected, preferredCover: option };
+    setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
+    setSelected(updated);
+    setCover(option);
+    coverMemory.set(coverKey(updated), option);
+    showToast(`Using the ${option.source} cover for ${selected.title}.`);
   }
 
   function importCsv(event: ChangeEvent<HTMLInputElement>) {
@@ -394,24 +420,23 @@ export default function Home() {
         <div className="modal-backdrop" role="presentation" onClick={() => setSelected(null)}>
           <article className="modal" role="dialog" aria-modal="true" aria-label={selected.title} onClick={(e) => e.stopPropagation()}>
             <button className="close" onClick={() => setSelected(null)} aria-label="Close">×</button>
-            <div className="cover">
-              <div className="cover-fallback" style={{ background: selected.color }}>
-                <strong>{coverLoading ? "Finding cover…" : selected.title}</strong>
-                <span>{selected.author}</span>
+            <div className="cover-column">
+              <div className="cover">
+                <div className="cover-fallback" style={{ background: selected.color }}>
+                  <strong>{coverLoading ? "Finding covers…" : selected.title}</strong>
+                  <span>{selected.author}</span>
+                </div>
+                {cover?.url ? (
+                  <img
+                    className="cover-image"
+                    src={cover.url}
+                    alt={`Cover of ${selected.title}`}
+                    loading="eager"
+                    decoding="async"
+                    onError={() => setCover(null)}
+                  />
+                ) : null}
               </div>
-              {cover?.url ? (
-                <img
-                  className="cover-image"
-                  src={cover.url}
-                  alt={`Cover of ${selected.title}`}
-                  loading="eager"
-                  decoding="async"
-                  onError={() => {
-                    coverMemory.set(coverKey(selected), null);
-                    setCover(null);
-                  }}
-                />
-              ) : null}
             </div>
             <div className="details">
               <p className="eyebrow">BOOK DETAILS</p>
@@ -424,6 +449,31 @@ export default function Home() {
                 {selectedIsbn ? <><dt>ISBN</dt><dd>{selectedIsbn}</dd></> : null}
                 {cover?.source ? <><dt>Cover source</dt><dd>{cover.source}</dd></> : null}
               </dl>
+
+              {coverOptions.length > 1 ? (
+                <section className="cover-picker" aria-label="Choose a cover">
+                  <div className="cover-picker-heading">
+                    <strong>Choose your cover</strong>
+                    <span>{coverOptions.length} matches</span>
+                  </div>
+                  <div className="cover-options">
+                    {coverOptions.map((option, index) => (
+                      <button
+                        key={`${option.url}-${index}`}
+                        type="button"
+                        className={`cover-option${cover?.url === option.url ? " selected-cover" : ""}`}
+                        onClick={() => chooseCover(option)}
+                        aria-label={`Use cover ${index + 1} from ${option.source}`}
+                        title={`${option.source} cover`}
+                      >
+                        <img src={option.url} alt="" loading="lazy" decoding="async" />
+                        <span>{option.source === "Open Library" ? "OL" : "Google"}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="cover-picker-note">Tap a cover to use it on your shelf. Your choice is saved on this device.</p>
+                </section>
+              ) : null}
             </div>
           </article>
         </div>
