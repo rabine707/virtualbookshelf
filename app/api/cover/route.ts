@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 type OpenLibraryBook = {
@@ -46,6 +47,7 @@ type CoverOption = {
   url: string;
   source: string;
   score: number;
+  fingerprint?: string;
 };
 
 const responseHeaders = {
@@ -185,7 +187,40 @@ async function libraryThingRelatedIsbns(isbn: string) {
     .map((match) => cleanRelatedIsbn(match[1]))
     .filter((value): value is string => Boolean(value) && value !== isbn);
 
-  return [...new Set(related)].slice(0, 4);
+  return [...new Set(related)].slice(0, 10);
+}
+
+function libraryThingServiceUrl(isbn: string) {
+  const token = process.env.LIBRARYTHING_API_TOKEN?.trim();
+  if (!token) return null;
+  return `https://covers.librarything.com/devkey/${encodeURIComponent(token)}/large/isbn/${encodeURIComponent(isbn)}`;
+}
+
+function isBlankLibraryThingGif(bytes: Uint8Array) {
+  if (bytes.length < 10) return true;
+  const signature = String.fromCharCode(...bytes.slice(0, 6));
+  if (signature !== "GIF87a" && signature !== "GIF89a") return false;
+  const width = bytes[6] | (bytes[7] << 8);
+  const height = bytes[8] | (bytes[9] << 8);
+  return width <= 1 && height <= 1;
+}
+
+async function libraryThingCoverByIsbn(isbn: string, score: number): Promise<CoverOption[]> {
+  const serviceUrl = libraryThingServiceUrl(isbn);
+  if (!serviceUrl) return [];
+
+  const response = await fetch(serviceUrl, { next: { revalidate: 604800 } });
+  if (!response.ok) return [];
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.startsWith("image/")) return [];
+
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (!bytes.length || isBlankLibraryThingGif(bytes)) return [];
+
+  const fingerprint = createHash("sha1").update(bytes).digest("hex");
+  const proxyUrl = `/api/librarything-cover?isbn=${encodeURIComponent(isbn)}`;
+  return [{ url: proxyUrl, source: "LibraryThing", score, fingerprint }];
 }
 
 function openLibraryCoverById(coverId?: number) {
@@ -291,12 +326,12 @@ function uniqueRanked(options: CoverOption[]) {
   return options
     .sort((a, b) => b.score - a.score)
     .filter((option) => {
-      const key = option.url.replace(/&zoom=\d+/i, "");
+      const key = option.fingerprint || option.url.replace(/&zoom=\d+/i, "");
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     })
-    .slice(0, 12)
+    .slice(0, 20)
     .map(({ url, source }) => ({ url, source }));
 }
 
@@ -333,12 +368,15 @@ export async function GET(request: NextRequest) {
     if (includeLibraryThing && isbn) {
       try {
         const relatedIsbns = await libraryThingRelatedIsbns(isbn);
-        const relatedSearches: Promise<CoverOption[]>[] = [];
+        const relatedSearches: Promise<CoverOption[]>[] = [
+          libraryThingCoverByIsbn(isbn, 22),
+        ];
 
-        for (const relatedIsbn of relatedIsbns) {
+        for (const [index, relatedIsbn] of relatedIsbns.entries()) {
           relatedSearches.push(openLibraryCoverByIsbn(relatedIsbn));
           relatedSearches.push(openLibrarySearchByIsbn(relatedIsbn));
           relatedSearches.push(googleBooksCovers(`isbn:${relatedIsbn}`, title, author, true));
+          relatedSearches.push(libraryThingCoverByIsbn(relatedIsbn, 20.5 - index * 0.08));
         }
 
         const relatedGroups = await Promise.allSettled(relatedSearches);
@@ -346,12 +384,14 @@ export async function GET(request: NextRequest) {
           .flatMap((group) => group.status === "fulfilled" ? group.value : [])
           .map((option, index) => ({
             ...option,
-            score: Math.min(option.score, 19.5 - index * 0.01),
+            score: option.source === "LibraryThing"
+              ? option.score
+              : Math.min(option.score, 19.5 - index * 0.01),
           }));
 
         candidates = [...candidates, ...relatedCandidates];
       } catch {
-        // LibraryThing is an optional edition-discovery source.
+        // LibraryThing is an optional edition and cover-discovery source.
       }
     }
 
@@ -360,7 +400,7 @@ export async function GET(request: NextRequest) {
     if (options.length) {
       return NextResponse.json(
         { ...options[0], options },
-        { headers: responseHeaders },
+        { headers: includeLibraryThing ? { "Cache-Control": "no-store" } : responseHeaders },
       );
     }
   } catch {
@@ -369,6 +409,9 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json(
     { url: null, source: null, options: [] },
-    { status: 404, headers: { "Cache-Control": "public, s-maxage=3600" } },
+    {
+      status: 404,
+      headers: { "Cache-Control": includeLibraryThing ? "no-store" : "public, s-maxage=3600" },
+    },
   );
 }
