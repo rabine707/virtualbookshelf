@@ -25,8 +25,11 @@ type Book = {
 };
 
 const STORAGE_KEY = "shelf-of-fame-library-v1";
+const COVER_DATA_VERSION_KEY = "shelf-of-fame-cover-data-version";
+const COVER_DATA_VERSION = "multi-cover-v2";
 const palette = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
 const coverMemory = new Map<string, CoverResult | null>();
+const coverOptionsMemory = new Map<string, CoverResult[]>();
 
 const sampleBooks: Book[] = [
   { id: "1", title: "Fourth Wing", author: "Rebecca Yarros", rating: 5, color: palette[4] },
@@ -58,10 +61,23 @@ function coverKey(book: Book) {
 }
 
 function coverRequestUrl(book: Book) {
-  const params = new URLSearchParams({ title: book.title, author: book.author });
+  const params = new URLSearchParams({
+    title: book.title,
+    author: book.author,
+    coverVersion: COVER_DATA_VERSION,
+  });
   const isbn = isbnForBook(book);
   if (isbn) params.set("isbn", isbn);
   return `/api/cover?${params.toString()}`;
+}
+
+function uniqueCovers(covers: CoverResult[]) {
+  const seen = new Set<string>();
+  return covers.filter((cover) => {
+    if (!cover?.url || seen.has(cover.url)) return false;
+    seen.add(cover.url);
+    return true;
+  });
 }
 
 function normalizeGoodreadsRow(row: Record<string, string>, index: number): Book | null {
@@ -156,11 +172,12 @@ function BookSpine({ book, bookNumber, onSelect }: BookSpineProps) {
     if (book.preferredCover || !shouldLoad || coverMemory.has(key)) return;
 
     const controller = new AbortController();
-    fetch(coverRequestUrl(book), { signal: controller.signal })
+    fetch(coverRequestUrl(book), { signal: controller.signal, cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((result: CoverResponse | null) => {
         const valid = result?.url ? { url: result.url, source: result.source } : null;
         coverMemory.set(key, valid);
+        if (result?.options?.length) coverOptionsMemory.set(key, uniqueCovers(result.options));
         setCover(valid);
       })
       .catch(() => undefined);
@@ -229,6 +246,13 @@ export default function Home() {
           if (savedBooks.length) setBooks(savedBooks);
         }
       }
+
+      const storedCoverVersion = window.localStorage.getItem(COVER_DATA_VERSION_KEY);
+      if (storedCoverVersion !== COVER_DATA_VERSION) {
+        coverMemory.clear();
+        coverOptionsMemory.clear();
+        window.localStorage.setItem(COVER_DATA_VERSION_KEY, COVER_DATA_VERSION);
+      }
     } catch {
       window.localStorage.removeItem(STORAGE_KEY);
     } finally {
@@ -261,21 +285,26 @@ export default function Home() {
 
     const key = coverKey(selected);
     const preferred = selected.preferredCover;
+    const cachedOptions = coverOptionsMemory.get(key) || [];
+    const startingOptions = preferred
+      ? uniqueCovers([preferred, ...cachedOptions])
+      : cachedOptions;
+
     setCover(preferred || coverMemory.get(key) || null);
-    setCoverOptions(preferred ? [preferred] : []);
+    setCoverOptions(startingOptions);
     setCoverLoading(true);
 
     const controller = new AbortController();
-    fetch(coverRequestUrl(selected), { signal: controller.signal })
+    fetch(coverRequestUrl(selected), { signal: controller.signal, cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((result: CoverResponse | null) => {
         const fetchedOptions = result?.options || (result?.url ? [{ url: result.url, source: result.source }] : []);
-        const allOptions = preferred
-          ? [preferred, ...fetchedOptions.filter((item) => item.url !== preferred.url)]
-          : fetchedOptions;
+        const allOptions = uniqueCovers(preferred ? [preferred, ...fetchedOptions] : fetchedOptions);
+        coverOptionsMemory.set(key, allOptions);
         setCoverOptions(allOptions);
 
-        const valid = preferred || (result?.url ? { url: result.url, source: result.source } : null);
+        const fetchedDefault = result?.url ? { url: result.url, source: result.source } : null;
+        const valid = preferred || coverMemory.get(key) || fetchedDefault;
         coverMemory.set(key, valid);
         setCover(valid);
       })
@@ -342,6 +371,8 @@ export default function Home() {
         }
 
         coverMemory.clear();
+        coverOptionsMemory.clear();
+        window.localStorage.setItem(COVER_DATA_VERSION_KEY, COVER_DATA_VERSION);
         setBooks(imported);
         showToast(`Imported ${imported.length} books. Saved on this browser.`);
       },
