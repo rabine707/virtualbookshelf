@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useMemo, useRef, useState } from "react";
+import { ChangeEvent, CSSProperties, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 
 type Book = {
@@ -51,6 +51,11 @@ function normalizeGoodreadsRow(row: Record<string, string>, index: number): Book
   };
 }
 
+function spineTitle(title: string) {
+  if (title.length <= 38) return title;
+  return `${title.slice(0, 35).trim()}…`;
+}
+
 export default function Home() {
   const [books, setBooks] = useState<Book[]>(sampleBooks);
   const [query, setQuery] = useState("");
@@ -58,6 +63,7 @@ export default function Home() {
   const [selected, setSelected] = useState<Book | null>(null);
   const [importMessage, setImportMessage] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
+  const toastTimer = useRef<number | null>(null);
 
   const visibleBooks = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -78,6 +84,12 @@ export default function Home() {
     return result;
   }, [visibleBooks]);
 
+  function showToast(message: string) {
+    setImportMessage(message);
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setImportMessage(""), 4200);
+  }
+
   function importCsv(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -91,12 +103,12 @@ export default function Home() {
           .filter((book): book is Book => Boolean(book));
 
         if (!imported.length) {
-          setImportMessage("I couldn't find any Goodreads books in that CSV.");
+          showToast("I couldn't find any Goodreads books in that CSV.");
           return;
         }
 
         setBooks(imported);
-        setImportMessage(`Imported ${imported.length} books from Goodreads.`);
+        showToast(`Imported ${imported.length} books from Goodreads.`);
       },
     });
 
@@ -106,49 +118,65 @@ export default function Home() {
   return (
     <main>
       <header className="hero">
-        <div>
-          <p className="eyebrow">YOUR READING LIFE, ON A SHELF</p>
-          <h1>Virtual Bookshelf</h1>
-          <p className="subhead">A cozy, visual home for the books you’ve read, loved, and want to remember.</p>
+        <div className="hero-copy">
+          <p className="eyebrow">YOUR READING LIFE, ON DISPLAY</p>
+          <h1>Shelf of Fame</h1>
+          <p className="subhead">Turn the books you’ve read into a shelf worth showing off.</p>
         </div>
-        <button className="primary" onClick={() => fileInput.current?.click()}>Import Goodreads CSV</button>
+        <button className="primary" onClick={() => fileInput.current?.click()}>Import Goodreads</button>
         <input ref={fileInput} type="file" accept=".csv,text/csv" hidden onChange={importCsv} />
       </header>
 
       <section className="toolbar" aria-label="Bookshelf controls">
-        <input
-          className="search"
-          type="search"
-          placeholder="Search title or author…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <div className="search-wrap">
+          <span aria-hidden="true">⌕</span>
+          <input
+            className="search"
+            type="search"
+            placeholder="Search title or author…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
         <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort books">
-          <option value="title">Sort: Title</option>
-          <option value="author">Sort: Author</option>
-          <option value="rating">Sort: Rating</option>
+          <option value="title">Title</option>
+          <option value="author">Author</option>
+          <option value="rating">Rating</option>
         </select>
-        <span className="count">{visibleBooks.length} books</span>
+        <div className="count-pill" aria-label={`${visibleBooks.length} books displayed`}>
+          <strong>{visibleBooks.length}</strong>
+          <span>books</span>
+        </div>
       </section>
 
-      {importMessage && <p className="notice">{importMessage}</p>}
-
-      <section className="bookcase" aria-label="Virtual bookshelf">
+      <section className="bookcase" aria-label="Shelf of Fame bookshelf">
         {shelves.length ? shelves.map((shelf, shelfIndex) => (
           <div className="shelf-row" key={shelfIndex}>
             <div className="books">
-              {shelf.map((book, index) => (
-                <button
-                  className="book"
-                  style={{ "--book-color": book.color, "--lean": `${((index % 5) - 2) * 0.7}deg` } as React.CSSProperties}
-                  key={book.id}
-                  onClick={() => setSelected(book)}
-                  title={`${book.title} — ${book.author}`}
-                >
-                  <span className="book-title">{book.title}</span>
-                  <span className="book-author">{book.author}</span>
-                </button>
-              ))}
+              {shelf.map((book, index) => {
+                const bookNumber = shelfIndex * 8 + index;
+                const style = {
+                  "--book-color": book.color,
+                  "--lean": `${((bookNumber % 7) - 3) * 0.42}deg`,
+                  "--book-height": `${180 + ((bookNumber * 17) % 38)}px`,
+                  "--book-width": `${66 + ((bookNumber * 11) % 34)}px`,
+                  "--band-offset": `${25 + ((bookNumber * 13) % 42)}%`,
+                } as CSSProperties;
+
+                return (
+                  <button
+                    className={`book book-style-${bookNumber % 4}`}
+                    style={style}
+                    key={book.id}
+                    onClick={() => setSelected(book)}
+                    title={`${book.title} — ${book.author}`}
+                  >
+                    <span className="spine-mark" aria-hidden="true">◆</span>
+                    <span className="book-title">{spineTitle(book.title)}</span>
+                    <span className="book-author">{book.author}</span>
+                  </button>
+                );
+              })}
             </div>
             <div className="wood-shelf" />
           </div>
@@ -158,9 +186,16 @@ export default function Home() {
       </section>
 
       <footer>
-        <span>Tip: export your library from Goodreads, then import the CSV here.</span>
-        <span>Your books stay in this browser session for this prototype.</span>
+        <span>Export your Goodreads library, then import the CSV here.</span>
+        <span>Your library stays in this browser session for this prototype.</span>
       </footer>
+
+      {importMessage && (
+        <div className="toast" role="status">
+          <span className="toast-dot" aria-hidden="true">✓</span>
+          {importMessage}
+        </div>
+      )}
 
       {selected && (
         <div className="modal-backdrop" role="presentation" onClick={() => setSelected(null)}>
