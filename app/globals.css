@@ -189,6 +189,7 @@ select {
   --book-width: 80px;
   --band-offset: 50%;
   position: relative;
+  isolation: isolate;
   width: clamp(64px, var(--book-width), 102px);
   height: clamp(170px, var(--book-height), 218px);
   padding: 13px 8px 11px;
@@ -210,13 +211,31 @@ select {
 .book::before {
   content: "";
   position: absolute;
+  z-index: 1;
   left: 0;
   right: 0;
   top: var(--band-offset);
   height: 2px;
   background: rgba(246,225,188,.42);
   box-shadow: 0 5px rgba(246,225,188,.12);
+  transition: opacity .2s ease;
 }
+
+.book::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.18), transparent 13%, transparent 78%, rgba(0,0,0,.30)),
+    linear-gradient(180deg, rgba(20,12,8,.15), rgba(20,12,8,.48));
+  transition: opacity .2s ease;
+}
+
+.book.has-cover::before { opacity: 0; }
+.book.has-cover::after { opacity: 1; }
 
 .book-style-1::before {
   height: 8px;
@@ -237,6 +256,19 @@ select {
   background: rgba(255,255,255,.12);
 }
 
+.book-cover-art {
+  position: absolute;
+  z-index: 0;
+  inset: -7% -16%;
+  width: 132%;
+  height: 114%;
+  object-fit: cover;
+  object-position: center;
+  writing-mode: horizontal-tb;
+  filter: saturate(.93) contrast(1.04) brightness(.84);
+  transform: scale(1.02);
+}
+
 .book:hover {
   transform: translateY(-9px) rotate(var(--lean));
   filter: brightness(1.07);
@@ -245,7 +277,7 @@ select {
 
 .spine-mark {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   margin-block-end: 7px;
   font-size: 8px;
   opacity: .72;
@@ -253,7 +285,7 @@ select {
 
 .book-title {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   max-height: 82%;
   font-size: clamp(12px, 1.55vw, 17px);
   font-weight: 700;
@@ -263,12 +295,20 @@ select {
 
 .book-author {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   margin-inline-start: auto;
   font: 700 9px/1.2 Arial, sans-serif;
   letter-spacing: .08em;
   opacity: .78;
 }
+
+.book.has-cover .book-title,
+.book.has-cover .book-author {
+  color: white;
+  text-shadow: 0 1px 3px rgba(0,0,0,.95), 0 0 8px rgba(0,0,0,.65);
+}
+
+.book.has-cover .book-author { opacity: .92; }
 
 .wood-shelf {
   height: 20px;
