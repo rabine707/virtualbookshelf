@@ -15,6 +15,12 @@ type CoverResponse = {
   discoveredIsbn?: string;
 };
 
+type CoverFeedback = {
+  accepted?: string;
+  rejected?: string[];
+  wrongEdition?: string[];
+};
+
 type Book = {
   id: string;
   title: string;
@@ -27,11 +33,12 @@ type Book = {
   importSource?: string;
   color: string;
   preferredCover?: CoverResult;
+  coverFeedback?: CoverFeedback;
 };
 
 const STORAGE_KEY = "shelf-of-fame-library-v1";
 const COVER_DATA_VERSION_KEY = "shelf-of-fame-cover-data-version";
-const COVER_DATA_VERSION = "multi-cover-v6-audible-import";
+const COVER_DATA_VERSION = "multi-cover-v7-broad-feedback";
 const palette = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
 const coverMemory = new Map<string, CoverResult | null>();
 const coverOptionsMemory = new Map<string, CoverResult[]>();
@@ -84,6 +91,18 @@ function uniqueCovers(covers: CoverResult[]) {
     seen.add(cover.url);
     return true;
   });
+}
+
+function rejectedUrls(book: Book) {
+  return new Set([
+    ...(book.coverFeedback?.rejected || []),
+    ...(book.coverFeedback?.wrongEdition || []),
+  ]);
+}
+
+function allowedCovers(book: Book, covers: CoverResult[]) {
+  const rejected = rejectedUrls(book);
+  return uniqueCovers(covers).filter((option) => !rejected.has(option.url));
 }
 
 function normalizeGoodreadsRow(row: Record<string, string>, index: number): Book | null {
@@ -203,6 +222,21 @@ function mergeAudibleBooks(current: Book[], imported: Book[]) {
   return next;
 }
 
+function mergeGoodreadsFeedback(current: Book[], imported: Book[]) {
+  const byIdentity = new Map(current.map((book) => [importIdentity(book), book]));
+  return imported.map((book) => {
+    const existing = byIdentity.get(importIdentity(book));
+    if (!existing) return book;
+    return {
+      ...book,
+      preferredCover: existing.preferredCover,
+      coverFeedback: existing.coverFeedback,
+      asin: existing.asin,
+      importSource: existing.importSource?.includes("Audible") ? "Goodreads + Audible" : book.importSource,
+    };
+  });
+}
+
 function isStoredBook(value: unknown): value is Book {
   if (!value || typeof value !== "object") return false;
   const book = value as Partial<Book>;
@@ -235,20 +269,24 @@ function BookSpine({ book, bookNumber, onSelect }: BookSpineProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const key = coverKey(book);
   const eager = bookNumber < 8;
-  const [cover, setCover] = useState<CoverResult | null>(() => book.preferredCover || coverMemory.get(key) || null);
+  const preferred = book.preferredCover && !rejectedUrls(book).has(book.preferredCover.url)
+    ? book.preferredCover
+    : undefined;
+  const [cover, setCover] = useState<CoverResult | null>(() => preferred || coverMemory.get(key) || null);
   const [shouldLoad, setShouldLoad] = useState(() => eager || coverMemory.has(key));
-  const displayedCover = book.preferredCover || cover;
+  const displayedCover = preferred || cover;
 
   useEffect(() => {
-    if (book.preferredCover) {
-      coverMemory.set(key, book.preferredCover);
-      setCover(book.preferredCover);
+    if (preferred) {
+      coverMemory.set(key, preferred);
+      setCover(preferred);
       setShouldLoad(true);
       return;
     }
 
     if (coverMemory.has(key)) {
-      setCover(coverMemory.get(key) || null);
+      const cached = coverMemory.get(key) || null;
+      setCover(cached && !rejectedUrls(book).has(cached.url) ? cached : null);
       setShouldLoad(true);
       return;
     }
@@ -275,24 +313,29 @@ function BookSpine({ book, bookNumber, onSelect }: BookSpineProps) {
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [book.preferredCover, eager, key]);
+  }, [book.coverFeedback, eager, key, preferred]);
 
   useEffect(() => {
-    if (book.preferredCover || !shouldLoad || coverMemory.has(key)) return;
+    if (preferred || !shouldLoad) return;
+
+    const cached = coverMemory.get(key);
+    if (cached !== undefined && (!cached || !rejectedUrls(book).has(cached.url))) return;
 
     const controller = new AbortController();
     fetch(coverRequestUrl(book), { signal: controller.signal, cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((result: CoverResponse | null) => {
-        const valid = result?.url && result?.source ? { url: result.url, source: result.source } : null;
+        const fetched = result?.options || (result?.url && result?.source ? [{ url: result.url, source: result.source }] : []);
+        const options = allowedCovers(book, fetched);
+        if (options.length) coverOptionsMemory.set(key, options);
+        const valid = options[0] || null;
         coverMemory.set(key, valid);
-        if (result?.options?.length) coverOptionsMemory.set(key, uniqueCovers(result.options));
         setCover(valid);
       })
       .catch(() => undefined);
 
     return () => controller.abort();
-  }, [book, book.preferredCover, key, shouldLoad]);
+  }, [book, key, preferred, shouldLoad]);
 
   const style = {
     "--book-color": book.color,
@@ -318,7 +361,7 @@ function BookSpine({ book, bookNumber, onSelect }: BookSpineProps) {
           loading={eager ? "eager" : "lazy"}
           decoding="async"
           onError={() => {
-            if (!book.preferredCover) {
+            if (!preferred) {
               coverMemory.set(key, null);
               setCover(null);
             }
@@ -381,10 +424,8 @@ export default function Home() {
     }
   }, [books, storageReady]);
 
-  useEffect(() => {
-    return () => {
-      if (toastTimer.current) window.clearTimeout(toastTimer.current);
-    };
+  useEffect(() => () => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
   }, []);
 
   useEffect(() => {
@@ -398,13 +439,18 @@ export default function Home() {
     }
 
     const key = coverKey(selected);
-    const preferred = selected.preferredCover;
-    const cachedOptions = coverOptionsMemory.get(key) || [];
+    const rejected = rejectedUrls(selected);
+    const preferred = selected.preferredCover && !rejected.has(selected.preferredCover.url)
+      ? selected.preferredCover
+      : undefined;
+    const cachedOptions = allowedCovers(selected, coverOptionsMemory.get(key) || []);
     const startingOptions = preferred
-      ? uniqueCovers([preferred, ...cachedOptions])
+      ? allowedCovers(selected, [preferred, ...cachedOptions])
       : cachedOptions;
+    const cachedCover = coverMemory.get(key);
+    const safeCached = cachedCover && !rejected.has(cachedCover.url) ? cachedCover : null;
 
-    setCover(preferred || coverMemory.get(key) || null);
+    setCover(preferred || safeCached || startingOptions[0] || null);
     setCoverOptions(startingOptions);
     setCoverLoading(true);
     setDeepSearchLoading(false);
@@ -414,15 +460,14 @@ export default function Home() {
     fetch(coverRequestUrl(selected), { signal: controller.signal, cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((result: CoverResponse | null) => {
-        const fetchedOptions = result?.options || (result?.url && result?.source ? [{ url: result.url, source: result.source }] : []);
-        const allOptions = uniqueCovers(preferred ? [preferred, ...fetchedOptions] : fetchedOptions);
+        const fetched = result?.options || (result?.url && result?.source ? [{ url: result.url, source: result.source }] : []);
+        const allOptions = allowedCovers(selected, preferred ? [preferred, ...fetched] : fetched);
         coverOptionsMemory.set(key, allOptions);
         setCoverOptions(allOptions);
 
-        const fetchedDefault = result?.url && result?.source ? { url: result.url, source: result.source } : null;
-        const valid = preferred || coverMemory.get(key) || fetchedDefault;
-        coverMemory.set(key, valid);
-        setCover(valid);
+        const next = preferred || safeCached || allOptions[0] || null;
+        coverMemory.set(key, next);
+        setCover(next);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -430,7 +475,7 @@ export default function Home() {
       });
 
     return () => controller.abort();
-  }, [selected?.id]);
+  }, [selected?.id, selected?.coverFeedback, selected?.preferredCover]);
 
   const visibleBooks = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -461,12 +506,51 @@ export default function Home() {
 
   function chooseCover(option: CoverResult) {
     if (!selected) return;
-    const updated = { ...selected, preferredCover: option };
+    const feedback: CoverFeedback = {
+      ...selected.coverFeedback,
+      accepted: option.url,
+      rejected: (selected.coverFeedback?.rejected || []).filter((url) => url !== option.url),
+      wrongEdition: (selected.coverFeedback?.wrongEdition || []).filter((url) => url !== option.url),
+    };
+    const updated = { ...selected, preferredCover: option, coverFeedback: feedback };
     setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
     setSelected(updated);
     setCover(option);
     coverMemory.set(coverKey(updated), option);
-    showToast(`Using the ${option.source} cover for ${selected.title}.`);
+    showToast(`Marked this ${option.source} cover as correct for ${selected.title}.`);
+  }
+
+  function rejectCurrentCover(kind: "wrong" | "edition") {
+    if (!selected || !cover) return;
+    const rejected = new Set(selected.coverFeedback?.rejected || []);
+    const wrongEdition = new Set(selected.coverFeedback?.wrongEdition || []);
+    if (kind === "edition") wrongEdition.add(cover.url);
+    else rejected.add(cover.url);
+
+    const feedback: CoverFeedback = {
+      ...selected.coverFeedback,
+      accepted: selected.coverFeedback?.accepted === cover.url ? undefined : selected.coverFeedback?.accepted,
+      rejected: [...rejected],
+      wrongEdition: [...wrongEdition],
+    };
+    const updated: Book = {
+      ...selected,
+      preferredCover: selected.preferredCover?.url === cover.url ? undefined : selected.preferredCover,
+      coverFeedback: feedback,
+    };
+    const remaining = allowedCovers(updated, coverOptions.filter((option) => option.url !== cover.url));
+    const next = remaining[0] || null;
+
+    setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
+    setSelected(updated);
+    setCoverOptions(remaining);
+    setCover(next);
+    coverOptionsMemory.set(coverKey(updated), remaining);
+    coverMemory.set(coverKey(updated), next);
+    setDeepSearchDone(false);
+    showToast(kind === "edition"
+      ? `Rejected that edition for ${selected.title}. It won't be suggested again.`
+      : `Rejected that cover for ${selected.title}. It won't be suggested again.`);
   }
 
   async function searchMoreCovers() {
@@ -474,23 +558,22 @@ export default function Home() {
 
     const key = coverKey(selected);
     const preferred = selected.preferredCover;
-    const before = uniqueCovers(preferred ? [preferred, ...coverOptions] : coverOptions);
+    const before = allowedCovers(selected, preferred ? [preferred, ...coverOptions] : coverOptions);
     setDeepSearchLoading(true);
 
     try {
       const response = await fetch(coverRequestUrl(selected, true), { cache: "no-store" });
       const result: CoverResponse | null = response.ok ? await response.json() : null;
-      const fetchedOptions = result?.options || (result?.url && result?.source ? [{ url: result.url, source: result.source }] : []);
-      const allOptions = uniqueCovers(preferred ? [preferred, ...before, ...fetchedOptions] : [...before, ...fetchedOptions]);
+      const fetched = result?.options || (result?.url && result?.source ? [{ url: result.url, source: result.source }] : []);
+      const allOptions = allowedCovers(selected, preferred ? [preferred, ...before, ...fetched] : [...before, ...fetched]);
       const added = Math.max(0, allOptions.length - before.length);
 
       coverOptionsMemory.set(key, allOptions);
       setCoverOptions(allOptions);
 
-      if (!cover && result?.url && result?.source) {
-        const fetchedDefault = { url: result.url, source: result.source };
-        coverMemory.set(key, fetchedDefault);
-        setCover(fetchedDefault);
+      if (!cover && allOptions[0]) {
+        coverMemory.set(key, allOptions[0]);
+        setCover(allOptions[0]);
       }
 
       if (result?.discoveredIsbn && !selectedIsbn) {
@@ -528,8 +611,8 @@ export default function Home() {
         coverMemory.clear();
         coverOptionsMemory.clear();
         window.localStorage.setItem(COVER_DATA_VERSION_KEY, COVER_DATA_VERSION);
-        setBooks(imported);
-        showToast(`Imported ${imported.length} Goodreads books. Saved on this browser.`);
+        setBooks((current) => mergeGoodreadsFeedback(current, imported));
+        showToast(`Imported ${imported.length} Goodreads books. Your cover choices were kept.`);
       },
     });
 
@@ -661,7 +744,40 @@ export default function Home() {
                   />
                 ) : null}
               </div>
+
+              <div style={{ display: "grid", gap: 8, marginTop: 12 }} aria-label="Cover feedback">
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={!cover}
+                  onClick={() => cover && chooseCover(cover)}
+                  title="Save this as the correct cover"
+                >
+                  ✓ Correct cover
+                </button>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={!cover}
+                    onClick={() => rejectCurrentCover("wrong")}
+                    style={{ opacity: cover ? 0.78 : 0.45 }}
+                  >
+                    ✕ Wrong cover
+                  </button>
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={!cover}
+                    onClick={() => rejectCurrentCover("edition")}
+                    style={{ opacity: cover ? 0.78 : 0.45 }}
+                  >
+                    Different edition
+                  </button>
+                </div>
+              </div>
             </div>
+
             <div className="details">
               <p className="eyebrow">BOOK DETAILS</p>
               <h2>{selected.title}</h2>
@@ -674,6 +790,8 @@ export default function Home() {
                 {selected.asin ? <><dt>Audible ASIN</dt><dd>{selected.asin}</dd></> : null}
                 {selectedIsbn ? <><dt>ISBN</dt><dd>{selectedIsbn}</dd></> : null}
                 {cover?.source ? <><dt>Cover source</dt><dd>{cover.source}</dd></> : null}
+                {selected.coverFeedback?.rejected?.length ? <><dt>Rejected covers</dt><dd>{selected.coverFeedback.rejected.length}</dd></> : null}
+                {selected.coverFeedback?.wrongEdition?.length ? <><dt>Wrong editions</dt><dd>{selected.coverFeedback.wrongEdition.length}</dd></> : null}
               </dl>
 
               <section className="cover-picker" aria-label="Choose a cover">
@@ -689,9 +807,10 @@ export default function Home() {
                         key={`${option.url}-${index}`}
                         type="button"
                         className={`cover-option${cover?.url === option.url ? " selected-cover" : ""}`}
-                        onClick={() => chooseCover(option)}
-                        aria-label={`Use cover ${index + 1} from ${option.source}`}
-                        title={`${option.source} cover`}
+                        onClick={() => setCover(option)}
+                        onDoubleClick={() => chooseCover(option)}
+                        aria-label={`Preview cover ${index + 1} from ${option.source}`}
+                        title={`Preview ${option.source} cover. Double-click to mark correct.`}
                       >
                         <img src={option.url} alt="" loading="lazy" decoding="async" />
                         <span>{coverSourceLabel(option.source)}</span>
@@ -716,8 +835,8 @@ export default function Home() {
 
                 <p className="cover-picker-note">
                   {selectedIsbn
-                    ? "Open Library and Google are checked automatically. Search more covers checks LibraryThing for additional editions only when you ask."
-                    : "No ISBN is stored for this book. Search more covers asks LibraryThing to identify it from its cleaned title, then checks the editions it finds."}
+                    ? "Shelf of Fame now searches broad title and author variations automatically. Mark a cover correct, wrong, or the wrong edition to teach this shelf what to keep and what to stop suggesting."
+                    : "No ISBN is stored for this book, so Shelf of Fame searches cleaned titles, keywords, author matches, and LibraryThing edition data. Your pass/fail choices are saved with the book."}
                 </p>
               </section>
             </div>
