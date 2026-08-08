@@ -1,0 +1,49 @@
+/* Organic cinematic pass: less repeated dressing, less grid-like books, matte timber. */
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(3n) .shelf-decor-set{display:none!important}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(5n+2) .shelf-decor-set{opacity:.72;transform:scale(.84);transform-origin:bottom center}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(5n+4) .shelf-decor-set{opacity:.82;filter:saturate(.72) brightness(.78)}
+
+/* Break the showroom-grid rhythm without cartoonishly tilting every book. */
+html[data-shelf-theme="dark-academia"] .books{gap:5px!important;align-items:flex-end}
+html[data-shelf-theme="dark-academia"] .book:nth-child(7n+2){transform:translateY(2px) rotate(-.45deg)}
+html[data-shelf-theme="dark-academia"] .book:nth-child(9n+4){transform:translateY(1px) rotate(.55deg)}
+html[data-shelf-theme="dark-academia"] .book:nth-child(11n+6){transform:translateY(3px) scaleY(.985)}
+html[data-shelf-theme="dark-academia"] .book:nth-child(13n+8){margin-left:3px}
+html[data-shelf-theme="dark-academia"] .book:nth-child(10n+9){margin-right:4px}
+html[data-shelf-theme="dark-academia"] .book:hover{transform:translateY(-5px)!important}
+
+/* Different row densities create natural negative space for objects. */
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+1) .books{padding-left:16%!important;padding-right:5%!important;justify-content:flex-start!important}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+2) .books{padding-left:4%!important;padding-right:18%!important;justify-content:flex-end!important}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+3) .books{padding-left:7%!important;padding-right:9%!important;justify-content:center!important}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+4) .books{padding-left:11%!important;padding-right:4%!important;justify-content:flex-start!important}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+5) .books{padding-left:3%!important;padding-right:13%!important;justify-content:flex-end!important}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n) .books{padding-left:6%!important;padding-right:6%!important;justify-content:center!important}
+
+/* Hide the repeated photographic candle on most rows so it reads as set dressing, not a tile. */
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+2) .decor-candle,
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+3) .decor-candle{display:none!important}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(8n+1) .decor-candle{opacity:.76!important;transform:scale(.82)!important}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(8n+5) .decor-candle{opacity:.88!important;transform:scaleX(-1) scale(.9)!important}
+
+/* Matte, aged timber rather than a glossy rendered bar. */
+html[data-shelf-theme="dark-academia"] .wood-shelf{
+  height:22px!important;
+  border-radius:1px 1px 3px 3px!important;
+  border-top:1px solid rgba(173,121,70,.11)!important;
+  background:
+    repeating-linear-gradient(2deg,rgba(130,83,47,.09) 0 1px,transparent 1px 4px),
+    linear-gradient(90deg,rgba(0,0,0,.18),transparent 18%,rgba(255,255,255,.012) 46%,transparent 72%,rgba(0,0,0,.22)),
+    linear-gradient(180deg,#3b2719 0%,#291a11 30%,#17100b 68%,#0a0705 100%)!important;
+  box-shadow:0 13px 22px rgba(0,0,0,.68),0 3px 5px rgba(0,0,0,.66),inset 0 1px rgba(216,166,108,.045),inset 0 -2px rgba(0,0,0,.78)!important;
+}
+html[data-shelf-theme="dark-academia"] .shelf-row::after{opacity:.48!important;filter:blur(7px)}
+
+/* Mobile: keep the asymmetry but don't sacrifice book visibility. */
+@media(max-width:720px){
+ html[data-shelf-theme="dark-academia"] .books{gap:4px!important}
+ html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(n) .books{padding-left:4%!important;padding-right:4%!important}
+ html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+1) .books{padding-left:11%!important;padding-right:3%!important}
+ html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+2) .books{padding-left:3%!important;padding-right:11%!important}
+ html[data-shelf-theme="dark-academia"] .decor-candle{max-width:112px!important;max-height:170px!important}
+}
