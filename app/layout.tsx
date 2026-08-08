@@ -9,10 +9,12 @@ import "./theme-mobile-hotfix.css";
 import "./theme-asset-dark.css";
 import "./modal-cover-hotfix.css";
 import "./web-cover-search.css";
+import "./saved-cover-choices.css";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import CoverDecisionSafety from "./CoverDecisionSafety";
 import CoverSelectionEnricher from "./CoverSelectionEnricher";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
+import SavedCoverChoices from "./SavedCoverChoices";
 import ThemeEnricher from "./ThemeEnricher";
 import WebCoverEnricher from "./WebCoverEnricher";
 
@@ -28,6 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {children}
         <CoverDecisionSafety />
         <CoverSelectionEnricher />
+        <SavedCoverChoices />
         <WebCoverEnricher />
         <RomanceShelfEnricher />
         <AudibleCoverEnricher />
