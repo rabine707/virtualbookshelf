@@ -167,6 +167,15 @@
   text-overflow: ellipsis;
 }
 
+/* Users can switch the generated label treatment off while keeping the
+   cover-derived spine art and physical spine dimensions intact. */
+html[data-spine-labels="off"] .generated-spine-text-lane,
+html[data-spine-labels="off"] .generated-spine-title,
+html[data-spine-labels="off"] .generated-spine-author,
+html[data-spine-labels="off"] .generated-spine-rule {
+  display: none !important;
+}
+
 .book.has-cover[data-generated-spine="1"]::before {
   width: 4px !important;
   opacity: .76 !important;
