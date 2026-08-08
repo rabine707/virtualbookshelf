@@ -227,17 +227,17 @@ function matchCandidate(
   if (!hasRequestedAuthor) {
     accepted = bestTitle.exact
       || bestTitle.adjacent
-      || bestTitle.coverage >= 0.7
-      || (bestTitle.keywordMatches >= 2 && bestTitle.coverage >= 0.6);
+      || bestTitle.coverage >= 0.5
+      || bestTitle.keywordMatches >= 2;
   } else if (authorScore >= 7) {
-    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.25;
+    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.keywordMatches >= 1 || bestTitle.coverage >= 0.1;
   } else if (authorScore >= 5) {
-    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.34;
+    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.keywordMatches >= 1 || bestTitle.coverage >= 0.2;
   } else if (authorScore >= 3) {
-    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.67;
+    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.5 || bestTitle.keywordMatches >= 2;
   }
 
-  if (hasRequestedAuthor && bestTitle.keywordCount <= 1 && authorScore < 5) accepted = false;
+  if (hasRequestedAuthor && bestTitle.keywordCount <= 1 && authorScore < 3) accepted = false;
   if (!bestTitle.exact && !bestTitle.adjacent && bestTitle.keywordMatches < 1) accepted = false;
   return { score, accepted };
 }
@@ -300,7 +300,7 @@ async function libraryThingIsbnsByTitle(title: string) {
   const returnedTitle = xml.match(/<title>([^<]+)<\/title>/i)?.[1]?.trim();
   if (returnedTitle) {
     const evidence = titleEvidence(searchTitle, returnedTitle);
-    if (!(evidence.exact || evidence.adjacent || evidence.coverage >= 0.67)) return [];
+    if (!(evidence.exact || evidence.adjacent || evidence.coverage >= 0.5 || evidence.keywordMatches >= 2)) return [];
   }
 
   const isbns = [...xml.matchAll(/<isbn>([^<]+)<\/isbn>/gi)]
@@ -332,13 +332,13 @@ async function libraryThingPopularCoversByTitle(title: string, author: string): 
       const evidence = titleVariants(title)
         .map((variant) => titleEvidence(variant, pageTitle))
         .sort((a, b) => b.score - a.score)[0];
-      if (!evidence || !(evidence.exact || evidence.adjacent || evidence.coverage >= 0.67)) return [];
+      if (!evidence || !(evidence.exact || evidence.adjacent || evidence.coverage >= 0.5 || evidence.keywordMatches >= 2)) return [];
     }
 
     const headerRegion = html.slice(0, 30000);
     const authorMatch = headerRegion.match(/\bby\s*<a[^>]*>([\s\S]*?)<\/a>/i)?.[1];
     const pageAuthor = authorMatch ? htmlText(authorMatch) : "";
-    if (author && pageAuthor && authorEvidence(author, [pageAuthor]) < 5) return [];
+    if (author && pageAuthor && authorEvidence(author, [pageAuthor]) < 3) return [];
 
     const start = html.search(/Popular Covers/i);
     if (start < 0) return [];
@@ -487,7 +487,7 @@ function uniqueRanked(options: CoverOption[]) {
       seen.add(key);
       return true;
     })
-    .slice(0, 40)
+    .slice(0, 60)
     .map(({ url, source }) => ({ url, source }));
 }
 
