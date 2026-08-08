@@ -242,12 +242,17 @@ export async function proxy(request: NextRequest) {
     const headers = new Headers(response.headers);
     headers.set("Cache-Control", "no-store");
 
+    // ISBN discovery is useful even when the downstream cover lookup has no artwork.
+    // Return 200 so the client reads and persists discoveredIsbn instead of discarding a 404 body.
     return NextResponse.json(
       { ...payload, discoveredIsbn },
-      { status: response.status, headers },
+      { status: 200, headers },
     );
   } catch {
-    return NextResponse.rewrite(destination);
+    return NextResponse.json(
+      { url: null, source: null, options: [], discoveredIsbn },
+      { status: 200, headers: { "Cache-Control": "no-store" } },
+    );
   }
 }
 
