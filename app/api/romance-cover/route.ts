@@ -119,6 +119,27 @@ function coverUrl(id: string) {
   return `https://s3.amazonaws.com/romance.io/books/large/${id}.jpg`;
 }
 
+function decodeHtml(value: string) {
+  return value
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">");
+}
+
+function htmlText(value: string) {
+  return decodeHtml(value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")).trim();
+}
+
+function acceptedMatch(title: string, author: string, candidateTitle?: string, candidateAuthors: string[] = []) {
+  const t = titleScore(title, candidateTitle);
+  const a = authorScore(author, candidateAuthors);
+  const score = t + a;
+  const accepted = (t >= 8 && (!author || a >= 3)) || (t >= 6 && a >= 5);
+  return { accepted: accepted && score >= 11, score };
+}
+
 function rankedMatches(books: RomanceIoSearchBook[], title: string, author: string): RankedMatch[] {
   const results: RankedMatch[] = [];
 
@@ -129,36 +150,42 @@ function rankedMatches(books: RomanceIoSearchBook[], title: string, author: stri
     const candidateAuthors = (book.authors || [])
       .map((entry) => entry.name || "")
       .filter(Boolean);
-    const t = titleScore(title, book.info?.title);
-    const a = authorScore(author, candidateAuthors);
-    const score = t + a;
-
-    // Keep this intentionally conservative. An exact/adjacent title plus a surname
-    // match is enough; looser title matches require a strong author match.
-    const accepted = (t >= 8 && (!author || a >= 3)) || (t >= 6 && a >= 5);
-    if (accepted && score >= 11) results.push({ id, score });
+    const match = acceptedMatch(title, author, book.info?.title, candidateAuthors);
+    if (match.accepted) results.push({ id, score: match.score });
   }
 
   return results.sort((a, b) => b.score - a.score);
 }
 
-async function searchRomanceIo(title: string, author: string) {
+async function fetchWithTimeout(url: string, timeoutMs: number, accept: string) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      signal: controller.signal,
+      cache: "no-store",
+      headers: {
+        Accept: accept,
+        "Accept-Language": "en-US,en;q=0.9",
+        "User-Agent": "Shelf-of-Fame cover lookup",
+      },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function searchRomanceIoJson(title: string, author: string): Promise<RankedMatch | null> {
   const searchText = [stripSeriesSuffix(title), author].filter(Boolean).join(" ").trim();
   if (!searchText) return null;
 
   try {
     const params = new URLSearchParams({ search: searchText });
-    const response = await fetch(`https://www.romance.io/json/search_books?${params.toString()}`, {
-      next: { revalidate: 86400 },
-      headers: {
-        Accept: "application/json",
-        "Accept-Language": "en-US,en;q=0.9",
-        "User-Agent": "Shelf-of-Fame cover lookup",
-      },
-    });
-
-    // Romance.io can rate-limit or block automated traffic. A provider miss should
-    // never make the Shelf of Fame cover picker fail.
+    const response = await fetchWithTimeout(
+      `https://www.romance.io/json/search_books?${params.toString()}`,
+      2800,
+      "application/json",
+    );
     if (!response.ok) return null;
 
     const data = await response.json() as RomanceIoSearchResponse;
@@ -167,6 +194,47 @@ async function searchRomanceIo(title: string, author: string) {
   } catch {
     return null;
   }
+}
+
+function matchesFromHtml(html: string, title: string, author: string): RankedMatch[] {
+  const results: RankedMatch[] = [];
+  const pattern = /<h3[^>]*>\s*<a[^>]*href=["']\/books\/([a-f0-9]{24})\/[^"']*["'][^>]*>([\s\S]*?)<\/a>[\s\S]{0,1800}?<h4[^>]*>[\s\S]{0,1200}?<a[^>]*href=["']\/authors\/[^"']+["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+  for (const match of html.matchAll(pattern)) {
+    const id = romanceIoId(match[1]);
+    if (!id) continue;
+    const candidateTitle = htmlText(match[2]);
+    const candidateAuthor = htmlText(match[3]);
+    const evidence = acceptedMatch(title, author, candidateTitle, candidateAuthor ? [candidateAuthor] : []);
+    if (evidence.accepted) results.push({ id, score: evidence.score });
+  }
+
+  return results.sort((a, b) => b.score - a.score);
+}
+
+async function searchRomanceIoHtml(title: string, author: string): Promise<RankedMatch | null> {
+  const query = [stripSeriesSuffix(title), author].filter(Boolean).join(" - ").trim();
+  if (!query) return null;
+
+  try {
+    const params = new URLSearchParams({ q: query });
+    const response = await fetchWithTimeout(
+      `https://www.romance.io/search?${params.toString()}`,
+      3800,
+      "text/html,application/xhtml+xml",
+    );
+    if (!response.ok) return null;
+    const html = await response.text();
+    return matchesFromHtml(html, title, author)[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+async function searchRomanceIo(title: string, author: string) {
+  const jsonMatch = await searchRomanceIoJson(title, author);
+  if (jsonMatch) return jsonMatch;
+  return searchRomanceIoHtml(title, author);
 }
 
 export async function GET(request: NextRequest) {
