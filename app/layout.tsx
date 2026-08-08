@@ -4,6 +4,7 @@ import "./spine-fix.css";
 import "./theme-dark-academia.css";
 import "./theme-dark-academia-v2.css";
 import "./theme-cinematic-dark.css";
+import "./theme-organic-dark.css";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import ThemeEnricher from "./ThemeEnricher";
 
