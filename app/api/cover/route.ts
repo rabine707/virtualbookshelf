@@ -48,6 +48,7 @@ type TitleEvidence = {
   adjacent: boolean;
   coverage: number;
   keywordCount: number;
+  keywordMatches: number;
 };
 
 type CoverOption = {
@@ -61,8 +62,8 @@ const responseHeaders = {
 };
 
 const TITLE_STOP_WORDS = new Set([
-  "a", "an", "and", "as", "at", "book", "by", "for", "from", "in", "into",
-  "novel", "of", "on", "or", "the", "to", "with",
+  "a", "an", "and", "as", "at", "book", "by", "edition", "for", "from", "in", "into",
+  "novel", "of", "on", "or", "series", "the", "to", "volume", "with",
 ]);
 
 function httpsImage(url?: string) {
@@ -110,15 +111,34 @@ function stripGoodreadsSeriesSuffix(title: string) {
   return cleaned || title.trim();
 }
 
+function addUsefulVariant(values: string[], candidate?: string) {
+  const value = candidate?.trim();
+  if (!value) return;
+  const keywords = titleKeywords(value);
+  if (!keywords.length) return;
+  values.push(value);
+}
+
 function titleVariants(title: string) {
   const original = title.trim();
-  const core = stripGoodreadsSeriesSuffix(original);
-  const variants = core && normalizeText(core) !== normalizeText(original)
-    ? [core, original]
-    : [original];
+  const seriesCleaned = stripGoodreadsSeriesSuffix(original);
+  const candidates: string[] = [];
+
+  addUsefulVariant(candidates, seriesCleaned);
+  addUsefulVariant(candidates, original);
+
+  for (const value of [seriesCleaned, original]) {
+    const subtitle = value.split(/\s*[:–—]\s*/)[0]?.trim();
+    if (subtitle && titleKeywords(subtitle).length >= 2) addUsefulVariant(candidates, subtitle);
+
+    const trailingParenthetical = value.replace(/\s*[\(\[][^\)\]]+[\)\]]\s*$/, "").trim();
+    if (trailingParenthetical && titleKeywords(trailingParenthetical).length >= 2) {
+      addUsefulVariant(candidates, trailingParenthetical);
+    }
+  }
 
   const seen = new Set<string>();
-  return variants.filter((variant) => {
+  return candidates.filter((variant) => {
     const key = normalizeText(variant);
     if (!key || seen.has(key)) return false;
     seen.add(key);
@@ -160,7 +180,7 @@ function titleEvidence(requestedTitle: string, candidateTitle?: string): TitleEv
   const wantedTitle = normalizeText(requestedTitle);
   const foundTitle = normalizeText(candidateTitle);
   if (!wantedTitle || !foundTitle) {
-    return { score: 0, exact: false, adjacent: false, coverage: 0, keywordCount: 0 };
+    return { score: 0, exact: false, adjacent: false, coverage: 0, keywordCount: 0, keywordMatches: 0 };
   }
 
   const wantedKeywords = titleKeywords(wantedTitle);
@@ -181,9 +201,10 @@ function titleEvidence(requestedTitle: string, candidateTitle?: string): TitleEv
   } else {
     score = coverage * 9;
     if (coverage >= 0.75) score += 1;
+    if (keywordMatches >= 2 && coverage >= 0.5) score += 0.5;
   }
 
-  return { score, exact, adjacent, coverage, keywordCount: wantedKeywords.length };
+  return { score, exact, adjacent, coverage, keywordCount: wantedKeywords.length, keywordMatches };
 }
 
 function matchCandidate(
@@ -204,16 +225,20 @@ function matchCandidate(
 
   let accepted = false;
   if (!hasRequestedAuthor) {
-    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.7;
+    accepted = bestTitle.exact
+      || bestTitle.adjacent
+      || bestTitle.coverage >= 0.7
+      || (bestTitle.keywordMatches >= 2 && bestTitle.coverage >= 0.6);
   } else if (authorScore >= 7) {
-    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.34;
+    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.25;
   } else if (authorScore >= 5) {
-    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.5;
+    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.34;
   } else if (authorScore >= 3) {
-    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.75;
+    accepted = bestTitle.exact || bestTitle.adjacent || bestTitle.coverage >= 0.67;
   }
 
   if (hasRequestedAuthor && bestTitle.keywordCount <= 1 && authorScore < 5) accepted = false;
+  if (!bestTitle.exact && !bestTitle.adjacent && bestTitle.keywordMatches < 1) accepted = false;
   return { score, accepted };
 }
 
@@ -275,7 +300,7 @@ async function libraryThingIsbnsByTitle(title: string) {
   const returnedTitle = xml.match(/<title>([^<]+)<\/title>/i)?.[1]?.trim();
   if (returnedTitle) {
     const evidence = titleEvidence(searchTitle, returnedTitle);
-    if (!(evidence.exact || evidence.adjacent || evidence.coverage >= 0.75)) return [];
+    if (!(evidence.exact || evidence.adjacent || evidence.coverage >= 0.67)) return [];
   }
 
   const isbns = [...xml.matchAll(/<isbn>([^<]+)<\/isbn>/gi)]
@@ -307,7 +332,7 @@ async function libraryThingPopularCoversByTitle(title: string, author: string): 
       const evidence = titleVariants(title)
         .map((variant) => titleEvidence(variant, pageTitle))
         .sort((a, b) => b.score - a.score)[0];
-      if (!evidence || !(evidence.exact || evidence.adjacent || evidence.coverage >= 0.75)) return [];
+      if (!evidence || !(evidence.exact || evidence.adjacent || evidence.coverage >= 0.67)) return [];
     }
 
     const headerRegion = html.slice(0, 30000);
@@ -390,7 +415,7 @@ async function openLibraryMatches(url: string, requestedTitle: string, author: s
 }
 
 async function openLibrarySearchByTitle(searchTitle: string, requestedTitle: string, author: string) {
-  const params = new URLSearchParams({ title: searchTitle, fields: "title,author_name,cover_i", limit: "30" });
+  const params = new URLSearchParams({ title: searchTitle, fields: "title,author_name,cover_i", limit: "40" });
   if (author) params.set("author", author);
   return openLibraryMatches(`https://openlibrary.org/search.json?${params.toString()}`, requestedTitle, author);
 }
@@ -398,7 +423,14 @@ async function openLibrarySearchByTitle(searchTitle: string, requestedTitle: str
 async function openLibraryKeywordSearch(searchTitle: string, requestedTitle: string, author: string) {
   const q = keywordSearchText(searchTitle, author);
   if (!q) return [];
-  const params = new URLSearchParams({ q, fields: "title,author_name,cover_i", limit: "30" });
+  const params = new URLSearchParams({ q, fields: "title,author_name,cover_i", limit: "40" });
+  return openLibraryMatches(`https://openlibrary.org/search.json?${params.toString()}`, requestedTitle, author);
+}
+
+async function openLibraryBareKeywordSearch(searchTitle: string, requestedTitle: string, author: string) {
+  const q = titleKeywords(searchTitle).slice(0, 5).join(" ");
+  if (!q) return [];
+  const params = new URLSearchParams({ q, fields: "title,author_name,cover_i", limit: "40" });
   return openLibraryMatches(`https://openlibrary.org/search.json?${params.toString()}`, requestedTitle, author);
 }
 
@@ -455,7 +487,7 @@ function uniqueRanked(options: CoverOption[]) {
       seen.add(key);
       return true;
     })
-    .slice(0, 30)
+    .slice(0, 40)
     .map(({ url, source }) => ({ url, source }));
 }
 
@@ -479,6 +511,7 @@ export async function GET(request: NextRequest) {
       for (const searchTitle of titleVariants(title)) {
         searches.push(openLibrarySearchByTitle(searchTitle, title, author));
         searches.push(openLibraryKeywordSearch(searchTitle, title, author));
+        searches.push(openLibraryBareKeywordSearch(searchTitle, title, author));
 
         const strictGoogleQuery = author
           ? `intitle:${searchTitle} inauthor:${author}`
@@ -488,6 +521,16 @@ export async function GET(request: NextRequest) {
 
         const keywordQuery = keywordSearchText(searchTitle, author);
         if (keywordQuery) searches.push(googleBooksCovers(keywordQuery, title, author));
+
+        const bareKeywords = titleKeywords(searchTitle).slice(0, 5).join(" ");
+        if (bareKeywords && normalizeText(bareKeywords) !== normalizeText(keywordQuery)) {
+          searches.push(googleBooksCovers(bareKeywords, title, author));
+        }
+
+        const authorLastName = textWords(author).at(-1);
+        if (authorLastName && bareKeywords) {
+          searches.push(googleBooksCovers(`${bareKeywords} inauthor:${authorLastName}`, title, author));
+        }
       }
     }
 
