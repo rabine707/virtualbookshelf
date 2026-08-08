@@ -4,6 +4,7 @@ type OpenLibraryDoc = {
   title?: string;
   author_name?: string[];
   isbn?: string[];
+  cover_i?: number;
 };
 
 type OpenLibraryResponse = {
@@ -20,6 +21,14 @@ type GoogleBook = {
     title?: string;
     authors?: string[];
     industryIdentifiers?: GoogleIdentifier[];
+    imageLinks?: {
+      smallThumbnail?: string;
+      thumbnail?: string;
+      small?: string;
+      medium?: string;
+      large?: string;
+      extraLarge?: string;
+    };
   };
 };
 
@@ -29,6 +38,12 @@ type GoogleBooksResponse = {
 
 type IsbnCandidate = {
   isbn: string;
+  score: number;
+};
+
+type CoverCandidate = {
+  url: string;
+  source: string;
   score: number;
 };
 
@@ -70,6 +85,23 @@ function stripSeriesSuffix(title: string) {
   return cleaned || title.trim();
 }
 
+function fallbackTitleVariants(title: string) {
+  const original = title.trim();
+  const seriesCleaned = stripSeriesSuffix(original);
+  const withoutBookNumber = seriesCleaned
+    .replace(/\s*[-–—:]\s*(?:book|volume|vol\.?|part)\s*(?:#|no\.?\s*)?\d+(?:\.\d+)?\s*$/i, "")
+    .trim();
+  const beforeColon = seriesCleaned.split(/\s*[:–—]\s*/)[0]?.trim() || "";
+  const values = [seriesCleaned, withoutBookNumber, beforeColon, original];
+  const seen = new Set<string>();
+  return values.filter((value) => {
+    const key = normalize(value);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function cleanIsbn(value?: string) {
   const cleaned = (value || "").replace(/[^0-9Xx]/g, "");
   return /^(?:\d{13}|\d{9}[\dXx])$/.test(cleaned) ? cleaned : null;
@@ -98,27 +130,31 @@ function authorScore(requestedAuthor: string, candidates: string[]) {
 }
 
 function titleScore(requestedTitle: string, candidateTitle?: string) {
-  const wanted = normalize(stripSeriesSuffix(requestedTitle));
   const found = normalize(candidateTitle);
-  if (!wanted || !found) return 0;
-  if (wanted === found) return 14;
-  if (wanted.includes(found) || found.includes(wanted)) return 11;
+  if (!found) return 0;
 
-  const wantedKeywords = titleWords(wanted);
-  const foundSet = new Set(titleWords(found));
-  const matches = wantedKeywords.filter((word) => foundSet.has(word)).length;
-  const coverage = wantedKeywords.length ? matches / wantedKeywords.length : 0;
-
-  if (coverage >= 0.85 && matches >= 2) return 9;
-  if (coverage >= 0.67 && matches >= 2) return 7;
-  if (coverage >= 0.5 && matches >= 2) return 5;
-  return 0;
+  let best = 0;
+  for (const variant of fallbackTitleVariants(requestedTitle)) {
+    const wanted = normalize(variant);
+    if (!wanted) continue;
+    if (wanted === found) best = Math.max(best, 14);
+    else if (wanted.includes(found) || found.includes(wanted)) best = Math.max(best, 11);
+    else {
+      const wantedKeywords = titleWords(wanted);
+      const foundSet = new Set(titleWords(found));
+      const matches = wantedKeywords.filter((word) => foundSet.has(word)).length;
+      const coverage = wantedKeywords.length ? matches / wantedKeywords.length : 0;
+      if (coverage >= 0.85 && matches >= 2) best = Math.max(best, 9);
+      else if (coverage >= 0.67 && matches >= 2) best = Math.max(best, 7);
+      else if (coverage >= 0.5 && matches >= 2) best = Math.max(best, 5);
+    }
+  }
+  return best;
 }
 
 function candidateScore(title: string, author: string, candidateTitle?: string, candidateAuthors: string[] = []) {
   const t = titleScore(title, candidateTitle);
   if (!t) return 0;
-
   const a = authorScore(author, candidateAuthors);
   if (author && a < 5) return 0;
   return t + a;
@@ -129,6 +165,12 @@ function googleIsbn(item: GoogleBook) {
   const isbn13 = ids.find((id) => id.type === "ISBN_13")?.identifier;
   const isbn10 = ids.find((id) => id.type === "ISBN_10")?.identifier;
   return cleanIsbn(isbn13) || cleanIsbn(isbn10);
+}
+
+function googleImage(item: GoogleBook) {
+  const images = item.volumeInfo?.imageLinks;
+  const url = images?.extraLarge || images?.large || images?.medium || images?.small || images?.thumbnail || images?.smallThumbnail;
+  return url?.replace(/^http:\/\//i, "https://") || null;
 }
 
 async function discoverFromGoogle(title: string, author: string): Promise<IsbnCandidate[]> {
@@ -145,7 +187,6 @@ async function discoverFromGoogle(title: string, author: string): Promise<IsbnCa
       const response = await fetch(`https://www.googleapis.com/books/v1/volumes?${params.toString()}`);
       if (!response.ok) continue;
       const data = await response.json() as GoogleBooksResponse;
-
       for (const item of data.items || []) {
         const isbn = googleIsbn(item);
         if (!isbn) continue;
@@ -153,10 +194,9 @@ async function discoverFromGoogle(title: string, author: string): Promise<IsbnCa
         if (score >= 13) results.push({ isbn, score: score + 0.25 });
       }
     } catch {
-      // A provider miss should not block the normal cover route.
+      // Provider misses should not block the normal cover route.
     }
   }
-
   return results;
 }
 
@@ -168,7 +208,6 @@ async function discoverFromOpenLibrary(title: string, author: string): Promise<I
       limit: "30",
     });
     if (author) params.set("author", author);
-
     const response = await fetch(`https://openlibrary.org/search.json?${params.toString()}`);
     if (!response.ok) return [];
     const data = await response.json() as OpenLibraryResponse;
@@ -177,15 +216,12 @@ async function discoverFromOpenLibrary(title: string, author: string): Promise<I
     for (const doc of data.docs || []) {
       const score = candidateScore(title, author, doc.title, doc.author_name || []);
       if (score < 13) continue;
-
       const preferred = (doc.isbn || [])
         .map(cleanIsbn)
         .filter((value): value is string => Boolean(value))
         .sort((a, b) => b.length - a.length)[0];
-
       if (preferred) results.push({ isbn: preferred, score });
     }
-
     return results;
   } catch {
     return [];
@@ -197,22 +233,110 @@ async function discoverIsbn(title: string, author: string) {
     discoverFromGoogle(title, author),
     discoverFromOpenLibrary(title, author),
   ]);
-
   const byIsbn = new Map<string, number>();
   for (const candidate of [...google, ...openLibrary]) {
     byIsbn.set(candidate.isbn, Math.max(candidate.score, byIsbn.get(candidate.isbn) || 0));
   }
-
   const ranked = [...byIsbn.entries()]
     .map(([isbn, score]) => ({ isbn, score }))
     .sort((a, b) => b.score - a.score);
-
   const best = ranked[0];
   if (!best) return null;
-
   const second = ranked[1];
   const confident = best.score >= 18 || (best.score >= 15 && (!second || best.score - second.score >= 2));
   return confident ? best.isbn : null;
+}
+
+async function fallbackGoogleCovers(title: string, author: string): Promise<CoverCandidate[]> {
+  const queries: string[] = [];
+  for (const variant of fallbackTitleVariants(title)) {
+    queries.push(author ? `intitle:${variant} inauthor:${author}` : `intitle:${variant}`);
+    queries.push(author ? `${variant} ${author}` : variant);
+  }
+
+  const results: CoverCandidate[] = [];
+  for (const query of [...new Set(queries)]) {
+    try {
+      const params = new URLSearchParams({ q: query, maxResults: "40", printType: "books" });
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?${params.toString()}`, { cache: "no-store" });
+      if (!response.ok) continue;
+      const data = await response.json() as GoogleBooksResponse;
+      for (const item of data.items || []) {
+        const image = googleImage(item);
+        if (!image) continue;
+        const score = candidateScore(title, author, item.volumeInfo?.title, item.volumeInfo?.authors || []);
+        if (score >= 11) results.push({ url: image, source: "Google Books fallback", score: score + 0.25 });
+      }
+    } catch {
+      // Keep trying other sources.
+    }
+  }
+  return results;
+}
+
+async function fallbackOpenLibraryCovers(title: string, author: string): Promise<CoverCandidate[]> {
+  const results: CoverCandidate[] = [];
+  for (const variant of fallbackTitleVariants(title)) {
+    try {
+      const q = [variant, author].filter(Boolean).join(" ");
+      const params = new URLSearchParams({ q, fields: "title,author_name,cover_i", limit: "50" });
+      const response = await fetch(`https://openlibrary.org/search.json?${params.toString()}`, { cache: "no-store" });
+      if (!response.ok) continue;
+      const data = await response.json() as OpenLibraryResponse;
+      for (const doc of data.docs || []) {
+        if (!doc.cover_i) continue;
+        const score = candidateScore(title, author, doc.title, doc.author_name || []);
+        if (score < 11) continue;
+        results.push({
+          url: `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`,
+          source: "Open Library fallback",
+          score,
+        });
+      }
+    } catch {
+      // Keep trying other variants.
+    }
+  }
+  return results;
+}
+
+async function fallbackCovers(title: string, author: string) {
+  const [google, openLibrary] = await Promise.all([
+    fallbackGoogleCovers(title, author),
+    fallbackOpenLibraryCovers(title, author),
+  ]);
+  const seen = new Set<string>();
+  return [...google, ...openLibrary]
+    .sort((a, b) => b.score - a.score)
+    .filter((item) => {
+      const key = item.url.replace(/&zoom=\d+/i, "");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 30)
+    .map(({ url, source }) => ({ url, source }));
+}
+
+async function fetchNormalCoverRoute(request: NextRequest) {
+  const destination = request.nextUrl.clone();
+  destination.searchParams.set("isbnDiscovery", "done");
+  const response = await fetch(destination, {
+    headers: { accept: "application/json" },
+    cache: "no-store",
+  });
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = await response.json() as Record<string, unknown>;
+  } catch {
+    payload = {};
+  }
+  return { response, payload };
+}
+
+function hasCoverPayload(payload: Record<string, unknown>) {
+  if (typeof payload.url === "string" && payload.url) return true;
+  return Array.isArray(payload.options) && payload.options.length > 0;
 }
 
 export async function proxy(request: NextRequest) {
@@ -224,7 +348,32 @@ export async function proxy(request: NextRequest) {
   const existingIsbn = cleanIsbn(params.get("isbn") || "");
   const bypass = params.get("isbnDiscovery") === "done";
 
-  if (bypass || existingIsbn || !title) return NextResponse.next();
+  if (bypass || !title) return NextResponse.next();
+
+  if (existingIsbn) {
+    try {
+      const { response, payload } = await fetchNormalCoverRoute(request);
+      if (hasCoverPayload(payload)) {
+        const headers = new Headers(response.headers);
+        headers.set("Cache-Control", "no-store");
+        return NextResponse.json(payload, { status: response.status, headers });
+      }
+
+      const options = await fallbackCovers(title, author);
+      if (options.length) {
+        return NextResponse.json(
+          { ...options[0], options, fallbackUsed: true },
+          { headers: { "Cache-Control": "no-store" } },
+        );
+      }
+
+      const headers = new Headers(response.headers);
+      headers.set("Cache-Control", "no-store");
+      return NextResponse.json(payload, { status: response.status, headers });
+    } catch {
+      return NextResponse.next();
+    }
+  }
 
   const discoveredIsbn = await discoverIsbn(title, author);
   if (!discoveredIsbn) return NextResponse.next();
@@ -241,7 +390,6 @@ export async function proxy(request: NextRequest) {
     const payload = await response.json() as Record<string, unknown>;
     const headers = new Headers(response.headers);
     headers.set("Cache-Control", "no-store");
-
     return NextResponse.json(
       { ...payload, discoveredIsbn },
       { status: response.status, headers },
