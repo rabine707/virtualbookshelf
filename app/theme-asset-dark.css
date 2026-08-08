@@ -1,0 +1,34 @@
+/* Asset-driven Dark Academia: real image dressing, CSS only for placement/light. */
+html[data-shelf-theme="dark-academia"] .asset-decor-set{
+  position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden;
+}
+html[data-shelf-theme="dark-academia"] .asset-decor{
+  position:absolute;bottom:20px;width:auto;max-width:155px;max-height:205px;
+  object-fit:contain;opacity:.84;filter:saturate(.78) brightness(.76) contrast(1.05) drop-shadow(0 10px 13px rgba(0,0,0,.55));
+  mix-blend-mode:normal;
+}
+html[data-shelf-theme="dark-academia"] .asset-layout-0 .asset-decor-primary{left:1%;max-width:142px}
+html[data-shelf-theme="dark-academia"] .asset-layout-1 .asset-decor-primary{right:1%;max-width:150px}
+html[data-shelf-theme="dark-academia"] .asset-layout-2 .asset-decor-primary{left:3%;max-width:130px;opacity:.72}
+html[data-shelf-theme="dark-academia"] .asset-layout-3 .asset-decor-primary{right:2%;max-width:138px;opacity:.78}
+html[data-shelf-theme="dark-academia"] .asset-layout-4 .asset-decor-primary{left:2%;max-width:148px}
+html[data-shelf-theme="dark-academia"] .asset-layout-5 .asset-decor-primary{right:3%;max-width:125px;opacity:.7}
+html[data-shelf-theme="dark-academia"] .asset-decor-secondary{max-width:94px;opacity:.5;right:2%}
+html[data-shelf-theme="dark-academia"] .asset-layout-1 .asset-decor-secondary{left:1%;right:auto}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+3) .asset-decor-set{display:none}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+1) .books{padding-left:16%!important;padding-right:4%!important}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+2) .books{padding-left:4%!important;padding-right:17%!important}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+4) .books{padding-left:11%!important;padding-right:5%!important}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+5) .books{padding-left:5%!important;padding-right:13%!important}
+html[data-shelf-theme="dark-academia"] .bookcase{background:linear-gradient(90deg,rgba(0,0,0,.56),transparent 15%,transparent 85%,rgba(0,0,0,.58)),radial-gradient(ellipse at 50% 18%,rgba(111,72,38,.055),transparent 40%),linear-gradient(180deg,#17130f 0%,#090806 100%)!important}
+html[data-shelf-theme="dark-academia"] .wood-shelf{filter:saturate(.72) brightness(.82);box-shadow:0 12px 22px rgba(0,0,0,.76),0 3px 5px rgba(0,0,0,.66)!important}
+@media(max-width:720px){
+ html[data-shelf-theme="dark-academia"] .asset-decor{max-width:88px;max-height:138px;bottom:20px;opacity:.64}
+ html[data-shelf-theme="dark-academia"] .asset-decor-secondary{display:none}
+ html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(2n) .asset-decor-set{display:none}
+ html[data-shelf-theme="dark-academia"] .asset-layout-0 .asset-decor-primary,html[data-shelf-theme="dark-academia"] .asset-layout-4 .asset-decor-primary{left:0}
+ html[data-shelf-theme="dark-academia"] .asset-layout-1 .asset-decor-primary,html[data-shelf-theme="dark-academia"] .asset-layout-3 .asset-decor-primary,html[data-shelf-theme="dark-academia"] .asset-layout-5 .asset-decor-primary{right:0}
+ html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(n) .books{padding-left:3%!important;padding-right:3%!important}
+ html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+1) .books{padding-left:10%!important}
+ html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+3) .books{padding-right:8%!important}
+}
