@@ -12,19 +12,35 @@ function applyTheme(theme: ShelfTheme) {
   window.localStorage.setItem(THEME_KEY, theme);
 }
 
+const ASSETS = [
+  "/themes/dark-academia/candle-flowers.webp",
+  "/themes/dark-academia/frame-bottles.webp",
+  "/themes/dark-academia/ivy-candle.webp",
+  "/themes/dark-academia/stacked-books.webp",
+];
+
 function ensureDecor() {
   const rows = [...document.querySelectorAll<HTMLElement>(".shelf-row")];
   rows.forEach((row, index) => {
-    if (row.querySelector(".shelf-decor-set")) return;
+    row.querySelectorAll(".shelf-decor-set").forEach((node) => node.remove());
     const set = document.createElement("div");
-    set.className = `shelf-decor-set decor-layout-${index % 4}`;
+    set.className = `shelf-decor-set asset-decor-set asset-layout-${index % 6}`;
     set.setAttribute("aria-hidden", "true");
-    set.innerHTML = [
-      '<span class="decor decor-candle"><i></i></span>',
-      '<span class="decor decor-bottle"><i></i></span>',
-      '<span class="decor decor-plant"><i></i><b></b></span>',
-      '<span class="decor decor-frame"><i></i></span>',
-    ].join("");
+
+    const first = document.createElement("img");
+    first.className = "asset-decor asset-decor-primary";
+    first.src = ASSETS[index % ASSETS.length];
+    first.alt = "";
+    set.appendChild(first);
+
+    if (index % 3 === 1) {
+      const second = document.createElement("img");
+      second.className = "asset-decor asset-decor-secondary";
+      second.src = ASSETS[(index + 2) % ASSETS.length];
+      second.alt = "";
+      set.appendChild(second);
+    }
+
     row.appendChild(set);
   });
 }
@@ -60,22 +76,8 @@ export default function ThemeEnricher() {
   return createPortal(
     <div className="theme-picker" role="group" aria-label="Bookshelf theme">
       <span className="theme-picker-label">Theme</span>
-      <button
-        type="button"
-        className={theme === "classic" ? "active" : ""}
-        onClick={() => choose("classic")}
-        aria-pressed={theme === "classic"}
-      >
-        Classic
-      </button>
-      <button
-        type="button"
-        className={theme === "dark-academia" ? "active" : ""}
-        onClick={() => choose("dark-academia")}
-        aria-pressed={theme === "dark-academia"}
-      >
-        Dark Academia
-      </button>
+      <button type="button" className={theme === "classic" ? "active" : ""} onClick={() => choose("classic")} aria-pressed={theme === "classic"}>Classic</button>
+      <button type="button" className={theme === "dark-academia" ? "active" : ""} onClick={() => choose("dark-academia")} aria-pressed={theme === "dark-academia"}>Dark Academia</button>
     </div>,
     toolbar,
   );
