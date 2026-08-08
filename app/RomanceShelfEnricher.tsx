@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 const LIBRARY_KEY = "shelf-of-fame-library-v1";
-const MISS_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+const MISS_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 const CONCURRENCY = 2;
 const REQUEST_GAP_MS = 500;
 
@@ -71,7 +71,6 @@ function wasRejected(book: StoredBook, url: string) {
 function needsRomanceLookup(book: StoredBook) {
   if (!book.title?.trim()) return false;
   if (isManuallyChosen(book)) return false;
-
   if (book.romanceioId && book.romanceioCoverUrl) return false;
 
   if (book.romanceioNoMatch && book.romanceioCheckedAt) {
@@ -81,14 +80,14 @@ function needsRomanceLookup(book: StoredBook) {
   return true;
 }
 
-function persistOutcome(title: string, author: string, result: RomanceLookup | null) {
+function persistOutcome(title: string, author: string, result: RomanceLookup) {
   const books = readLibrary();
   if (!books.length) return;
 
   const key = identity(title, author);
   const checkedAt = Date.now();
-  const url = result?.url || undefined;
-  const id = result?.discoveredRomanceioId || undefined;
+  const url = result.url || undefined;
+  const id = result.discoveredRomanceioId || undefined;
 
   const next = books.map((book) => {
     if (identity(book.title || "", book.author || "") !== key) return book;
@@ -201,12 +200,17 @@ function injectOpenModal(title: string, author: string, url: string) {
     cover.appendChild(image);
   }
   image.setAttribute("data-romance-shelf", "1");
-  image.src = url;
+  if (image.src !== url) image.src = url;
 }
 
 function injectSavedMatches(savedMatches: Map<string, SavedMatch>) {
-  for (const match of savedMatches.values()) {
-    const latestBook = readLibrary().find((book) => identity(book.title || "", book.author || "") === identity(match.title, match.author));
+  if (!savedMatches.size) return;
+  const latestBooks = new Map(
+    readLibrary().map((book) => [identity(book.title || "", book.author || ""), book]),
+  );
+
+  for (const [key, match] of savedMatches) {
+    const latestBook = latestBooks.get(key);
     if (latestBook && (isManuallyChosen(latestBook) || wasRejected(latestBook, match.url))) continue;
     injectShelfCover(match.title, match.author, match.url);
     injectOpenModal(match.title, match.author, match.url);
@@ -221,6 +225,7 @@ export default function RomanceShelfEnricher() {
   useEffect(() => {
     let stopped = false;
     let active = 0;
+    let refreshFrame = 0;
     const queued = new Set<string>();
     const completed = new Set<string>();
     const queue: StoredBook[] = [];
@@ -240,6 +245,14 @@ export default function RomanceShelfEnricher() {
       }
     }
 
+    function scheduleVisualRefresh() {
+      if (refreshFrame || stopped) return;
+      refreshFrame = window.requestAnimationFrame(() => {
+        refreshFrame = 0;
+        injectSavedMatches(savedMatches);
+      });
+    }
+
     async function processBook(book: StoredBook) {
       const title = book.title?.trim() || "";
       const author = book.author?.trim() || "";
@@ -255,23 +268,22 @@ export default function RomanceShelfEnricher() {
         if (book.romanceioId) params.set("romanceio", book.romanceioId);
 
         const response = await fetch(`/api/romance-cover?${params.toString()}`, { cache: "no-store" });
-        const result = response.ok ? await response.json() as RomanceLookup : null;
+        if (!response.ok) throw new Error(`Romance.io lookup returned ${response.status}`);
+        const result = await response.json() as RomanceLookup;
 
         persistOutcome(title, author, result);
 
-        if (result?.url) {
-          const match: SavedMatch = {
+        if (result.url) {
+          savedMatches.set(key, {
             title,
             author,
             id: result.discoveredRomanceioId || book.romanceioId,
             url: result.url,
-          };
-          savedMatches.set(key, match);
-          injectShelfCover(title, author, match.url);
-          injectOpenModal(title, author, match.url);
+          });
+          scheduleVisualRefresh();
         }
       } catch {
-        // Romance.io is opportunistic; a failed lookup stays eligible for a later session.
+        // Technical failures are not stored as misses, so a later session can retry.
       } finally {
         completed.add(key);
         queued.delete(key);
@@ -295,7 +307,7 @@ export default function RomanceShelfEnricher() {
     function enqueueMissing() {
       if (stopped) return;
       rememberExistingMatches();
-      injectSavedMatches(savedMatches);
+      scheduleVisualRefresh();
 
       const books = readLibrary();
       for (const book of books) {
@@ -311,12 +323,10 @@ export default function RomanceShelfEnricher() {
     const scanTimer = window.setInterval(enqueueMissing, 20000);
     const repairTimer = window.setInterval(() => {
       repairSavedMatches(savedMatches);
-      injectSavedMatches(savedMatches);
+      scheduleVisualRefresh();
     }, 5000);
 
-    const observer = new MutationObserver(() => {
-      injectSavedMatches(savedMatches);
-    });
+    const observer = new MutationObserver(scheduleVisualRefresh);
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
@@ -324,6 +334,7 @@ export default function RomanceShelfEnricher() {
       window.clearTimeout(initialTimer);
       window.clearInterval(scanTimer);
       window.clearInterval(repairTimer);
+      if (refreshFrame) window.cancelAnimationFrame(refreshFrame);
       observer.disconnect();
     };
   }, []);
