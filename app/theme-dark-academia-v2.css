@@ -1,0 +1,245 @@
+/* Dark Academia v2: keep decor visible, grounded on shelves, and less icon-like. */
+html[data-shelf-theme="dark-academia"] .shelf-row {
+  position: relative;
+  overflow: visible;
+}
+
+html[data-shelf-theme="dark-academia"] .shelf-decor-set {
+  z-index: 6;
+}
+
+html[data-shelf-theme="dark-academia"] .decor {
+  bottom: 23px;
+  opacity: 1;
+  transform-origin: bottom center;
+  filter:
+    drop-shadow(0 3px 2px rgba(0,0,0,.55))
+    drop-shadow(0 11px 10px rgba(0,0,0,.36));
+}
+
+/* Give the objects a reserved edge zone instead of hiding them behind books. */
+html[data-shelf-theme="dark-academia"] .decor-layout-0 .books,
+html[data-shelf-theme="dark-academia"] .decor-layout-2 .books {
+  padding-right: 88px;
+}
+
+html[data-shelf-theme="dark-academia"] .decor-layout-1 .books,
+html[data-shelf-theme="dark-academia"] .decor-layout-3 .books {
+  padding-left: 88px;
+}
+
+/* Candle: wax body, softened edge, visible wick and glow. */
+html[data-shelf-theme="dark-academia"] .decor-candle {
+  width: 24px;
+  height: 62px;
+  border-radius: 7px 7px 3px 3px;
+  border: 1px solid rgba(81,64,43,.28);
+  background:
+    radial-gradient(circle at 64% 16%, rgba(255,255,255,.48) 0 5%, transparent 6%),
+    linear-gradient(90deg, #8f7959 0%, #d7c49d 28%, #eee0bb 50%, #c2ad86 74%, #786447 100%);
+  box-shadow:
+    inset 2px 0 4px rgba(255,255,255,.16),
+    inset -3px 0 5px rgba(65,48,31,.28),
+    0 5px 5px rgba(0,0,0,.3);
+}
+
+html[data-shelf-theme="dark-academia"] .decor-candle::before {
+  left: 8px;
+  top: -20px;
+  width: 9px;
+  height: 20px;
+  border-radius: 55% 45% 60% 40%;
+  background:
+    radial-gradient(circle at 50% 72%, #fffbd1 0 15%, #f7d875 26%, #e9a94b 48%, rgba(217,104,35,.35) 66%, transparent 72%);
+  box-shadow:
+    0 0 12px rgba(255,220,128,.72),
+    0 0 26px rgba(236,168,79,.42),
+    0 0 46px rgba(225,132,55,.17);
+}
+
+html[data-shelf-theme="dark-academia"] .decor-candle::after {
+  top: 5px;
+  left: 3px;
+  right: 3px;
+  height: 8px;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 35% 30%, rgba(255,255,255,.3), transparent 36%),
+    linear-gradient(180deg, rgba(90,65,42,.35), rgba(255,255,255,.08));
+  box-shadow: none;
+}
+
+/* Apothecary bottle: glass highlights, liquid and paper label. */
+html[data-shelf-theme="dark-academia"] .decor-bottle {
+  width: 36px;
+  height: 58px;
+  border: 1px solid rgba(162,183,164,.28);
+  border-radius: 9px 9px 13px 13px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.11) 0 7%, transparent 8% 77%, rgba(0,0,0,.25) 78%),
+    linear-gradient(180deg, rgba(58,91,75,.72) 0 30%, rgba(31,59,48,.92) 31% 100%);
+  box-shadow:
+    inset 3px 0 4px rgba(220,240,225,.08),
+    inset -4px 0 5px rgba(0,0,0,.25),
+    0 5px 5px rgba(0,0,0,.32);
+}
+
+html[data-shelf-theme="dark-academia"] .decor-bottle::before {
+  left: 10px;
+  top: -18px;
+  width: 14px;
+  height: 20px;
+  border-radius: 4px 4px 1px 1px;
+  border: 1px solid rgba(125,111,85,.35);
+  background: linear-gradient(90deg, #24241e, #565141 52%, #1c1d19);
+  box-shadow: inset 0 2px rgba(255,255,255,.05);
+}
+
+html[data-shelf-theme="dark-academia"] .decor-bottle i {
+  left: 6px;
+  right: 6px;
+  top: 27px;
+  height: 15px;
+  border-radius: 2px;
+  border: 1px solid rgba(75,59,38,.45);
+  background:
+    linear-gradient(180deg, rgba(233,215,177,.78), rgba(176,153,112,.62));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.15);
+}
+
+/* Plant: layered leaves, actual pot rim and more natural asymmetry. */
+html[data-shelf-theme="dark-academia"] .decor-plant {
+  width: 66px;
+  height: 82px;
+}
+
+html[data-shelf-theme="dark-academia"] .decor-plant::after {
+  left: 18px;
+  bottom: 0;
+  width: 34px;
+  height: 29px;
+  border-radius: 3px 3px 11px 11px;
+  border-top: 4px solid #6f5640;
+  background:
+    linear-gradient(90deg, #33281f, #765942 38%, #8a674a 54%, #4a372a 100%);
+  box-shadow:
+    inset 2px 0 rgba(255,255,255,.05),
+    0 4px 5px rgba(0,0,0,.35);
+}
+
+html[data-shelf-theme="dark-academia"] .decor-plant::before,
+html[data-shelf-theme="dark-academia"] .decor-plant i,
+html[data-shelf-theme="dark-academia"] .decor-plant b {
+  box-shadow: inset 1px 0 rgba(255,255,255,.06);
+  background:
+    linear-gradient(145deg, rgba(102,126,88,.95), rgba(40,59,39,.96) 53%, rgba(20,32,23,.98));
+}
+
+html[data-shelf-theme="dark-academia"] .decor-plant::before {
+  left: 26px;
+  top: -1px;
+  width: 19px;
+  height: 54px;
+  transform: rotate(7deg);
+}
+
+html[data-shelf-theme="dark-academia"] .decor-plant i {
+  left: 10px;
+  top: 10px;
+  width: 22px;
+  height: 43px;
+  transform: rotate(-36deg);
+}
+
+html[data-shelf-theme="dark-academia"] .decor-plant b {
+  right: 5px;
+  top: 7px;
+  width: 23px;
+  height: 45px;
+  transform: rotate(38deg) scale(.94);
+}
+
+/* Frame: thicker wood, inset mat and subdued old print. */
+html[data-shelf-theme="dark-academia"] .decor-frame {
+  width: 58px;
+  height: 74px;
+  border: 6px solid #4a3627;
+  border-radius: 2px;
+  background: #171713;
+  box-shadow:
+    inset 0 0 0 1px rgba(212,178,124,.2),
+    0 6px 6px rgba(0,0,0,.4);
+}
+
+html[data-shelf-theme="dark-academia"] .decor-frame i {
+  inset: 7px 6px;
+  border: 3px solid #8a7657;
+  background:
+    radial-gradient(circle at 52% 31%, rgba(198,171,124,.56) 0 7%, transparent 8%),
+    radial-gradient(ellipse at 50% 66%, rgba(128,105,73,.45) 0 18%, transparent 19%),
+    linear-gradient(155deg, transparent 46%, rgba(170,140,94,.33) 47% 50%, transparent 51%),
+    linear-gradient(180deg, #2a2922, #10110e);
+  box-shadow: inset 0 0 11px rgba(0,0,0,.55);
+}
+
+/* Layout tuning: objects sit in front of the first/last book, not behind the row. */
+html[data-shelf-theme="dark-academia"] .decor-layout-0 .decor-candle { right: 3%; transform: scale(.95); }
+html[data-shelf-theme="dark-academia"] .decor-layout-0 .decor-plant { left: 1%; transform: scale(.92); }
+html[data-shelf-theme="dark-academia"] .decor-layout-0 .decor-bottle { right: 9%; left: auto; transform: scale(.9); }
+
+html[data-shelf-theme="dark-academia"] .decor-layout-1 .decor-frame { right: 2%; transform: rotate(1deg); }
+html[data-shelf-theme="dark-academia"] .decor-layout-1 .decor-candle { left: 2%; transform: scale(.92); }
+html[data-shelf-theme="dark-academia"] .decor-layout-1 .decor-bottle { left: 8%; right: auto; transform: scale(.88); }
+
+html[data-shelf-theme="dark-academia"] .decor-layout-2 .decor-plant { right: 1%; transform: scale(.9); }
+html[data-shelf-theme="dark-academia"] .decor-layout-2 .decor-bottle { right: 9%; left: auto; transform: scale(.9); }
+html[data-shelf-theme="dark-academia"] .decor-layout-2 .decor-candle { left: 2%; right: auto; transform: scale(.88); }
+
+html[data-shelf-theme="dark-academia"] .decor-layout-3 .decor-frame { left: 2%; transform: rotate(-1deg); }
+html[data-shelf-theme="dark-academia"] .decor-layout-3 .decor-candle { right: 2%; transform: scale(.9); }
+html[data-shelf-theme="dark-academia"] .decor-layout-3 .decor-plant { right: 7%; transform: scale(.82); }
+
+/* Stronger shelf-edge depth and warm practical-light bounce. */
+html[data-shelf-theme="dark-academia"] .wood-shelf {
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.04), transparent 13%, rgba(255,255,255,.018) 46%, transparent 72%),
+    linear-gradient(180deg, #443222 0%, #2b2017 21%, #17120e 58%, #0b0a08 100%);
+  box-shadow:
+    0 15px 19px rgba(0,0,0,.58),
+    0 2px 0 rgba(134,96,58,.18),
+    inset 0 2px rgba(255,255,255,.045),
+    inset 0 -2px rgba(0,0,0,.75);
+}
+
+html[data-shelf-theme="dark-academia"] .shelf-row::after {
+  content: "";
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  bottom: 19px;
+  height: 58px;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 100%, rgba(186,126,70,.08), transparent 69%);
+}
+
+@media (max-width: 720px) {
+  html[data-shelf-theme="dark-academia"] .decor-layout-0 .books,
+  html[data-shelf-theme="dark-academia"] .decor-layout-2 .books {
+    padding-right: 60px;
+  }
+
+  html[data-shelf-theme="dark-academia"] .decor-layout-1 .books,
+  html[data-shelf-theme="dark-academia"] .decor-layout-3 .books {
+    padding-left: 60px;
+  }
+
+  html[data-shelf-theme="dark-academia"] .decor {
+    bottom: 22px;
+  }
+
+  html[data-shelf-theme="dark-academia"] .decor-frame { transform: scale(.8) !important; }
+  html[data-shelf-theme="dark-academia"] .decor-plant { transform: scale(.76) !important; }
+  html[data-shelf-theme="dark-academia"] .decor-bottle { transform: scale(.78) !important; }
+  html[data-shelf-theme="dark-academia"] .decor-candle { transform: scale(.82) !important; }
+}
