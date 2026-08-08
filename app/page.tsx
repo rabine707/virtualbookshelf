@@ -13,6 +13,7 @@ type CoverResponse = {
   source: string | null;
   options?: CoverResult[];
   discoveredIsbn?: string;
+  discoveredRomanceioId?: string;
 };
 
 type CoverFeedback = {
@@ -34,6 +35,7 @@ type Book = {
   isbnSource?: string;
   isbnConfidence?: IdentifierConfidence;
   asin?: string;
+  romanceioId?: string;
   importSource?: string;
   color: string;
   preferredCover?: CoverResult;
@@ -42,7 +44,7 @@ type Book = {
 
 const STORAGE_KEY = "shelf-of-fame-library-v1";
 const COVER_DATA_VERSION_KEY = "shelf-of-fame-cover-data-version";
-const COVER_DATA_VERSION = "multi-cover-v8-identifier-provenance";
+const COVER_DATA_VERSION = "multi-cover-v9-romanceio";
 const palette = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
 const coverMemory = new Map<string, CoverResult | null>();
 const coverOptionsMemory = new Map<string, CoverResult[]>();
@@ -86,6 +88,15 @@ function coverRequestUrl(book: Book, includeLibraryThing = false) {
   if (isbn) params.set("isbn", isbn);
   if (includeLibraryThing) params.set("libraryThing", "1");
   return `/api/cover?${params.toString()}`;
+}
+
+function romanceCoverRequestUrl(book: Book) {
+  const params = new URLSearchParams({
+    title: book.title,
+    author: book.author,
+  });
+  if (book.romanceioId) params.set("romanceio", book.romanceioId);
+  return `/api/romance-cover?${params.toString()}`;
 }
 
 function uniqueCovers(covers: CoverResult[]) {
@@ -242,6 +253,7 @@ function mergeGoodreadsFeedback(current: Book[], imported: Book[]) {
       preferredCover: existing.preferredCover,
       coverFeedback: existing.coverFeedback,
       asin: existing.asin,
+      romanceioId: existing.romanceioId,
       importSource: existing.importSource?.includes("Audible") ? "Goodreads + Audible" : book.importSource,
     };
   });
@@ -265,6 +277,7 @@ function coverSourceLabel(source: string) {
   if (source === "Open Library") return "OL";
   if (source === "Google Books") return "Google";
   if (source === "LibraryThing") return "LT";
+  if (source === "Romance.io") return "Romance";
   if (source === "Audible") return "Audible";
   return source;
 }
@@ -583,12 +596,22 @@ export default function Home() {
     setDeepSearchLoading(true);
 
     try {
-      const response = await fetch(coverRequestUrl(selected, true), { cache: "no-store" });
-      const result: CoverResponse | null = response.ok ? await response.json() : null;
+      const [coverResponse, romanceResponse] = await Promise.all([
+        fetch(coverRequestUrl(selected, true), { cache: "no-store" }),
+        fetch(romanceCoverRequestUrl(selected), { cache: "no-store" }),
+      ]);
+      const result: CoverResponse | null = coverResponse.ok ? await coverResponse.json() : null;
+      const romanceResult: CoverResponse | null = romanceResponse.ok ? await romanceResponse.json() : null;
       const fetched = result?.options || (result?.url && result?.source ? [{ url: result.url, source: result.source }] : []);
-      const allOptions = allowedCovers(selected, preferred ? [preferred, ...before, ...fetched] : [...before, ...fetched]);
+      const romanceFetched = romanceResult?.options
+        || (romanceResult?.url && romanceResult?.source ? [{ url: romanceResult.url, source: romanceResult.source }] : []);
+      const allOptions = allowedCovers(
+        selected,
+        preferred ? [preferred, ...before, ...fetched, ...romanceFetched] : [...before, ...fetched, ...romanceFetched],
+      );
       const added = Math.max(0, allOptions.length - before.length);
       const foundIsbn = Boolean(result?.discoveredIsbn && !selectedIsbn);
+      const foundRomanceio = Boolean(romanceResult?.discoveredRomanceioId && !selected.romanceioId);
 
       coverOptionsMemory.set(key, allOptions);
       setCoverOptions(allOptions);
@@ -598,22 +621,36 @@ export default function Home() {
         setCover(allOptions[0]);
       }
 
+      let updated: Book = selected;
       if (foundIsbn && result?.discoveredIsbn) {
-        const updated = {
-          ...selected,
+        updated = {
+          ...updated,
           isbn: result.discoveredIsbn,
           isbnSource: "LibraryThing title/edition lookup",
           isbnConfidence: "medium" as const,
         };
+      }
+      if (foundRomanceio && romanceResult?.discoveredRomanceioId) {
+        updated = {
+          ...updated,
+          romanceioId: romanceResult.discoveredRomanceioId,
+        };
+      }
+      if (updated !== selected) {
         setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
         setSelected(updated);
       }
 
       setDeepSearchDone(true);
-      if (foundIsbn && result?.discoveredIsbn) {
+      const foundIdentifiers: string[] = [];
+      if (foundIsbn && result?.discoveredIsbn) foundIdentifiers.push(`ISBN ${result.discoveredIsbn}`);
+      if (foundRomanceio) foundIdentifiers.push("a Romance.io match");
+
+      if (foundIdentifiers.length) {
+        const identifierText = foundIdentifiers.join(" and ");
         showToast(added
-          ? `Found ISBN ${result.discoveredIsbn} via LibraryThing and ${added} more cover${added === 1 ? "" : "s"} for ${selected.title}.`
-          : `Found ISBN ${result.discoveredIsbn} via LibraryThing for ${selected.title}.`);
+          ? `Found ${identifierText} and ${added} more cover${added === 1 ? "" : "s"} for ${selected.title}.`
+          : `Found ${identifierText} for ${selected.title}.`);
       } else {
         showToast(added ? `Found ${added} more cover${added === 1 ? "" : "s"} for ${selected.title}.` : `No additional covers found for ${selected.title}.`);
       }
@@ -821,6 +858,7 @@ export default function Home() {
                 {selected.shelf ? <><dt>Goodreads shelf</dt><dd>{selected.shelf}</dd></> : null}
                 {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
                 {selected.asin ? <><dt>Audible ASIN</dt><dd>{selected.asin}</dd></> : null}
+                {selected.romanceioId ? <><dt>Romance.io ID</dt><dd>{selected.romanceioId}</dd></> : null}
                 <dt>ISBN</dt><dd>{selectedIsbn || "N/A"}</dd>
                 {selectedIsbn && selected.isbnSource ? <><dt>ISBN source</dt><dd>{selected.isbnSource}</dd></> : null}
                 {selectedIsbn && selected.isbnConfidence ? <><dt>ISBN confidence</dt><dd>{selected.isbnConfidence}</dd></> : null}
@@ -870,8 +908,8 @@ export default function Home() {
 
                 <p className="cover-picker-note">
                   {selectedIsbn
-                    ? `Identifier provenance is saved with this book${selected.isbnSource ? ` (${selected.isbnSource}, ${selected.isbnConfidence || "unknown"} confidence)` : ""}. Cover searches still fan out across title, author, ISBN, and edition matches.`
-                    : "ISBN: N/A. Shelf of Fame searches Google Books, Open Library, cleaned titles, keywords, author matches, and LibraryThing edition data. Auto-discovered ISBNs are stored with their source and confidence instead of being treated as equally verified."}
+                    ? `Identifier provenance is saved with this book${selected.isbnSource ? ` (${selected.isbnSource}, ${selected.isbnConfidence || "unknown"} confidence)` : ""}. Search more covers also checks additional editions, LibraryThing, and Romance.io.`
+                    : "No ISBN saved. Search more covers checks additional editions, LibraryThing, and Romance.io, and saves strong identifier matches for future searches."}
                 </p>
               </section>
             </div>
