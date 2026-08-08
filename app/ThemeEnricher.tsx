@@ -22,7 +22,12 @@ const ASSETS = [
 function ensureDecor() {
   const rows = [...document.querySelectorAll<HTMLElement>(".shelf-row")];
   rows.forEach((row, index) => {
-    row.querySelectorAll(".shelf-decor-set").forEach((node) => node.remove());
+    if (row.querySelector(".asset-decor-set")) return;
+
+    // Remove only legacy CSS decor once. Do not remove our own asset layer,
+    // otherwise the MutationObserver would continuously rebuild the DOM.
+    row.querySelectorAll(".shelf-decor-set:not(.asset-decor-set)").forEach((node) => node.remove());
+
     const set = document.createElement("div");
     set.className = `shelf-decor-set asset-decor-set asset-layout-${index % 6}`;
     set.setAttribute("aria-hidden", "true");
@@ -57,9 +62,15 @@ export default function ThemeEnricher() {
     setTheme(initial);
     applyTheme(initial);
 
+    let scheduled = false;
     const sync = () => {
-      setToolbar(document.querySelector(".toolbar"));
-      ensureDecor();
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        setToolbar(document.querySelector(".toolbar"));
+        ensureDecor();
+      });
     };
 
     sync();
@@ -71,6 +82,7 @@ export default function ThemeEnricher() {
   function choose(next: ShelfTheme) {
     setTheme(next);
     applyTheme(next);
+    ensureDecor();
   }
 
   if (!toolbar) return null;
