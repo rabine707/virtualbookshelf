@@ -8,11 +8,13 @@ import "./theme-organic-dark.css";
 import "./theme-mobile-hotfix.css";
 import "./theme-asset-dark.css";
 import "./modal-cover-hotfix.css";
+import "./web-cover-search.css";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import CoverDecisionSafety from "./CoverDecisionSafety";
 import CoverSelectionEnricher from "./CoverSelectionEnricher";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import ThemeEnricher from "./ThemeEnricher";
+import WebCoverEnricher from "./WebCoverEnricher";
 
 export const metadata: Metadata = {
   title: "Virtual Bookshelf",
@@ -26,6 +28,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {children}
         <CoverDecisionSafety />
         <CoverSelectionEnricher />
+        <WebCoverEnricher />
         <RomanceShelfEnricher />
         <AudibleCoverEnricher />
         <ThemeEnricher />
