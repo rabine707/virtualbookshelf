@@ -12,11 +12,10 @@ function splitBookIdentity(button: HTMLButtonElement) {
   };
 }
 
-function spineWidthFor(title: string) {
-  // Keep the shelf recognizably book-like while allowing longer/heavier books
-  // to feel a little thicker. The range is intentionally restrained.
-  const words = title.split(/\s+/).filter(Boolean).length;
-  return Math.max(54, Math.min(70, 54 + words * 2));
+function titleScale(title: string) {
+  if (title.length > 36) return "compact";
+  if (title.length > 23) return "medium";
+  return "normal";
 }
 
 function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
@@ -31,21 +30,39 @@ function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
   const spine = document.createElement("span");
   spine.className = "generated-spine";
   spine.dataset.source = src;
+  spine.dataset.titleScale = titleScale(title);
   spine.setAttribute("aria-hidden", "true");
 
-  const art = document.createElement("img");
-  art.className = "generated-spine-art";
-  art.src = src;
-  art.alt = "";
-  art.decoding = "async";
-  art.loading = "lazy";
+  // Build a spine-specific composition instead of displaying the rectangular
+  // cover directly. Three independently positioned copies create a narrow
+  // artwork strip that keeps color and recognizable details without looking
+  // like a squeezed front cover.
+  const backdrop = document.createElement("img");
+  backdrop.className = "generated-spine-art generated-spine-art-backdrop";
+  backdrop.src = src;
+  backdrop.alt = "";
+  backdrop.decoding = "async";
+  backdrop.loading = "lazy";
+
+  const centerArt = document.createElement("img");
+  centerArt.className = "generated-spine-art generated-spine-art-center";
+  centerArt.src = src;
+  centerArt.alt = "";
+  centerArt.decoding = "async";
+  centerArt.loading = "lazy";
+
+  const accentArt = document.createElement("img");
+  accentArt.className = "generated-spine-art generated-spine-art-accent";
+  accentArt.src = src;
+  accentArt.alt = "";
+  accentArt.decoding = "async";
+  accentArt.loading = "lazy";
 
   const wash = document.createElement("span");
   wash.className = "generated-spine-wash";
 
-  const ornamentTop = document.createElement("span");
-  ornamentTop.className = "generated-spine-ornament generated-spine-ornament-top";
-  ornamentTop.textContent = "◆";
+  const topRule = document.createElement("span");
+  topRule.className = "generated-spine-rule generated-spine-rule-top";
 
   const titleNode = document.createElement("span");
   titleNode.className = "generated-spine-title";
@@ -55,14 +72,14 @@ function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
   authorNode.className = "generated-spine-author";
   authorNode.textContent = author;
 
-  const ornamentBottom = document.createElement("span");
-  ornamentBottom.className = "generated-spine-ornament generated-spine-ornament-bottom";
-  ornamentBottom.textContent = "◆";
+  const bottomRule = document.createElement("span");
+  bottomRule.className = "generated-spine-rule generated-spine-rule-bottom";
 
-  spine.append(art, wash, ornamentTop, titleNode, authorNode, ornamentBottom);
+  spine.append(backdrop, centerArt, accentArt, wash, topRule, titleNode, authorNode, bottomRule);
   button.appendChild(spine);
   button.dataset.generatedSpine = "1";
-  button.style.setProperty("--generated-spine-width", `${spineWidthFor(title)}px`);
+  button.style.setProperty("--generated-spine-width", "48px");
+  button.style.setProperty("--generated-spine-height", "204px");
 }
 
 function wireBook(button: HTMLButtonElement) {
@@ -71,6 +88,7 @@ function wireBook(button: HTMLButtonElement) {
     button.querySelector(".generated-spine")?.remove();
     delete button.dataset.generatedSpine;
     button.style.removeProperty("--generated-spine-width");
+    button.style.removeProperty("--generated-spine-height");
     return;
   }
 
