@@ -233,7 +233,22 @@ export async function proxy(request: NextRequest) {
   destination.searchParams.set("isbn", discoveredIsbn);
   destination.searchParams.set("isbnDiscovery", "done");
 
-  return NextResponse.rewrite(destination);
+  try {
+    const response = await fetch(destination, {
+      headers: { accept: "application/json" },
+      cache: "no-store",
+    });
+    const payload = await response.json() as Record<string, unknown>;
+    const headers = new Headers(response.headers);
+    headers.set("Cache-Control", "no-store");
+
+    return NextResponse.json(
+      { ...payload, discoveredIsbn },
+      { status: response.status, headers },
+    );
+  } catch {
+    return NextResponse.rewrite(destination);
+  }
 }
 
 export const config = {
