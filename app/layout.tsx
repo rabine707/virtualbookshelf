@@ -19,6 +19,7 @@ import CoverSearchCleanup from "./CoverSearchCleanup";
 import CoverSelectionEnricher from "./CoverSelectionEnricher";
 import MobileTapFix from "./MobileTapFix";
 import PageRefreshButton from "./PageRefreshButton";
+import RemoveAudibleImport from "./RemoveAudibleImport";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import SavedCoverChoices from "./SavedCoverChoices";
 import SpineArtEnricher from "./SpineArtEnricher";
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <SpineArtEnricher />
         <MobileTapFix />
         <PageRefreshButton />
+        <RemoveAudibleImport />
         <ThemeEnricher />
       </body>
     </html>
