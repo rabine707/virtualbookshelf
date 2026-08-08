@@ -10,12 +10,15 @@ import "./theme-asset-dark.css";
 import "./modal-cover-hotfix.css";
 import "./web-cover-search.css";
 import "./saved-cover-choices.css";
+import "./spine-image-aspect.css";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import CoverAutoClose from "./CoverAutoClose";
 import CoverDecisionSafety from "./CoverDecisionSafety";
+import CoverSearchCleanup from "./CoverSearchCleanup";
 import CoverSelectionEnricher from "./CoverSelectionEnricher";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import SavedCoverChoices from "./SavedCoverChoices";
+import SpineAspectEnricher from "./SpineAspectEnricher";
 import ThemeEnricher from "./ThemeEnricher";
 import WebCoverEnricher from "./WebCoverEnricher";
 
@@ -31,11 +34,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {children}
         <CoverAutoClose />
         <CoverDecisionSafety />
+        <CoverSearchCleanup />
         <CoverSelectionEnricher />
         <SavedCoverChoices />
         <WebCoverEnricher />
         <RomanceShelfEnricher />
         <AudibleCoverEnricher />
+        <SpineAspectEnricher />
         <ThemeEnricher />
       </body>
     </html>
