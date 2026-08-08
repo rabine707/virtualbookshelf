@@ -2,24 +2,20 @@
 
 import { useEffect } from "react";
 
-const MAX_WIDTH = 114;
-const MAX_HEIGHT = 204;
+const BOOK_HEIGHT = 204;
+const MIN_WIDTH = 54;
+const MAX_WIDTH = 204;
 
 function fitImage(image: HTMLImageElement) {
   const book = image.closest<HTMLElement>("button.book");
   if (!book || !image.naturalWidth || !image.naturalHeight) return;
 
   const ratio = image.naturalWidth / image.naturalHeight;
-  let width = MAX_WIDTH;
-  let height = width / ratio;
+  const width = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, BOOK_HEIGHT * ratio));
 
-  if (height > MAX_HEIGHT) {
-    height = MAX_HEIGHT;
-    width = height * ratio;
-  }
-
-  book.style.setProperty("--image-book-width", `${Math.max(42, width).toFixed(1)}px`);
-  book.style.setProperty("--image-book-height", `${Math.max(76, height).toFixed(1)}px`);
+  book.style.setProperty("--image-book-width", `${width.toFixed(1)}px`);
+  book.style.setProperty("--image-book-height", `${BOOK_HEIGHT}px`);
+  book.style.setProperty("--image-aspect-ratio", `${image.naturalWidth} / ${image.naturalHeight}`);
   book.dataset.imageAspect = "1";
 }
 
