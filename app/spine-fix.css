@@ -1,31 +1,49 @@
-/* Final visual layer for artwork spines + bookshelf depth.
+/* Final visual layer for cleaner book spines + a more realistic walnut bookcase.
    Loaded after globals.css so these rules intentionally tune the shelf without
    changing the component markup. */
+
+:root {
+  --walnut-light: #8a5a39;
+  --walnut-mid: #684128;
+  --walnut-deep: #45291a;
+  --walnut-dark: #2e1a11;
+}
 
 .bookcase {
   position: relative;
   isolation: isolate;
-  perspective: 1400px;
-  padding: 24px 28px 30px;
-  border-width: 18px;
-  border-bottom-width: 26px;
+  padding: 24px 28px 32px;
+  border: 20px solid transparent;
+  border-bottom-width: 27px;
+  border-radius: 14px 14px 6px 6px;
   background:
-    radial-gradient(ellipse at 50% 4%, rgba(255,255,255,.24), transparent 36%),
-    linear-gradient(90deg,
-      rgba(55,31,18,.20) 0%,
-      rgba(255,255,255,.03) 8%,
-      transparent 18%,
-      transparent 82%,
-      rgba(43,24,14,.18) 100%),
-    linear-gradient(180deg, #eadbc5 0%, #d2b795 100%);
+    radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.18), transparent 36%) padding-box,
+    repeating-linear-gradient(
+      92deg,
+      rgba(87,61,40,.035) 0 1px,
+      transparent 1px 7px,
+      rgba(255,255,255,.025) 7px 8px,
+      transparent 8px 16px
+    ) padding-box,
+    linear-gradient(180deg, #e8dcc8 0%, #d6c3a7 100%) padding-box,
+    radial-gradient(ellipse at 16% 38%, rgba(31,15,7,.18) 0 2px, transparent 3px 18px) border-box,
+    radial-gradient(ellipse at 78% 66%, rgba(31,15,7,.14) 0 2px, transparent 3px 20px) border-box,
+    repeating-linear-gradient(
+      2deg,
+      rgba(38,20,11,.22) 0 1px,
+      rgba(255,255,255,.025) 1px 2px,
+      transparent 2px 6px,
+      rgba(29,14,7,.12) 6px 7px,
+      transparent 7px 13px
+    ) border-box,
+    linear-gradient(90deg, #51301e 0%, #775033 17%, #624027 48%, #7e5335 76%, #4b2b1b 100%) border-box;
   box-shadow:
-    inset 20px 0 26px rgba(52,30,18,.18),
-    inset -20px 0 26px rgba(52,30,18,.18),
-    inset 0 18px 24px rgba(80,48,29,.15),
-    inset 0 -14px 22px rgba(65,38,22,.12),
-    inset 0 0 0 5px rgba(255,255,255,.09),
-    0 25px 42px rgba(66,41,25,.25),
-    0 7px 0 #56351f;
+    inset 17px 0 22px rgba(52,30,18,.16),
+    inset -17px 0 22px rgba(52,30,18,.16),
+    inset 0 16px 20px rgba(80,48,29,.12),
+    inset 0 -12px 20px rgba(65,38,22,.10),
+    0 24px 40px rgba(55,32,20,.24),
+    0 5px 0 #382116;
 }
 
 .bookcase::before {
@@ -34,12 +52,13 @@
   z-index: 0;
   pointer-events: none;
   inset: 0;
+  border-radius: 2px;
   background:
-    linear-gradient(180deg, rgba(37,21,12,.13), transparent 12%),
-    linear-gradient(90deg, rgba(31,18,11,.16), transparent 7%, transparent 93%, rgba(31,18,11,.16));
+    linear-gradient(180deg, rgba(35,19,11,.10), transparent 11%),
+    linear-gradient(90deg, rgba(31,18,11,.15), transparent 6%, transparent 94%, rgba(31,18,11,.15));
   box-shadow:
-    inset 0 0 34px rgba(53,30,17,.14),
-    inset 0 -22px 24px rgba(72,43,25,.10);
+    inset 0 0 26px rgba(53,30,17,.11),
+    inset 0 -18px 22px rgba(72,43,25,.07);
 }
 
 .bookcase::after {
@@ -47,13 +66,24 @@
   position: absolute;
   z-index: 3;
   pointer-events: none;
-  left: 12px;
-  right: 12px;
-  bottom: -14px;
+  left: 8px;
+  right: 8px;
+  bottom: -17px;
   height: 18px;
   border-radius: 0 0 7px 7px;
-  background: linear-gradient(180deg, #684028 0%, #432719 100%);
-  box-shadow: 0 10px 16px rgba(45,26,15,.24), inset 0 2px rgba(255,255,255,.08);
+  background:
+    repeating-linear-gradient(
+      1deg,
+      rgba(255,255,255,.035) 0 1px,
+      transparent 1px 5px,
+      rgba(20,10,5,.12) 5px 6px,
+      transparent 6px 10px
+    ),
+    linear-gradient(180deg, #5b3723 0%, #342015 100%);
+  box-shadow:
+    0 10px 16px rgba(45,26,15,.24),
+    inset 0 2px rgba(255,255,255,.08),
+    inset 0 -2px rgba(0,0,0,.18);
 }
 
 .shelf-row {
@@ -77,8 +107,8 @@
   left: 3%;
   right: 3%;
   bottom: 0;
-  height: 28px;
-  background: radial-gradient(ellipse at center bottom, rgba(39,22,13,.27), transparent 70%);
+  height: 25px;
+  background: radial-gradient(ellipse at center bottom, rgba(37,21,12,.22), transparent 72%);
   filter: blur(2px);
 }
 
@@ -88,15 +118,15 @@
   height: 204px;
   min-height: 204px;
   max-height: 204px;
-  border: 1px solid rgba(41,24,14,.22);
-  border-top-color: rgba(255,255,255,.18);
+  border: 1px solid rgba(41,24,14,.20);
+  border-top-color: rgba(255,255,255,.17);
   border-radius: 6px 5px 3px 6px;
   transform: rotate(var(--lean));
   transform-style: flat;
   box-shadow:
-    4px 5px 10px rgba(38,22,13,.24),
+    3px 5px 9px rgba(38,22,13,.22),
     inset 1px 0 rgba(255,255,255,.10),
-    inset -2px 0 rgba(0,0,0,.08);
+    inset -2px 0 rgba(0,0,0,.07);
 }
 
 .book-style-0,
@@ -108,11 +138,11 @@
 
 .book.has-cover {
   outline: none;
-  border-color: rgba(39,22,13,.28);
+  border-color: rgba(39,22,13,.25);
   box-shadow:
-    4px 6px 11px rgba(40,23,13,.27),
-    inset 5px 0 8px rgba(0,0,0,.10),
-    inset -3px 0 5px rgba(0,0,0,.08),
+    4px 6px 10px rgba(40,23,13,.25),
+    inset 5px 0 8px rgba(0,0,0,.09),
+    inset -3px 0 5px rgba(0,0,0,.07),
     inset 1px 0 rgba(255,255,255,.12);
 }
 
@@ -126,28 +156,15 @@
   height: auto;
   opacity: 1;
   border-radius: 5px 0 0 5px;
-  background:
-    linear-gradient(90deg,
-      rgba(9,5,3,.28) 0%,
-      rgba(255,255,255,.10) 48%,
-      transparent 100%);
+  background: linear-gradient(90deg, rgba(9,5,3,.25) 0%, rgba(255,255,255,.09) 48%, transparent 100%);
   box-shadow: inset 1px 0 rgba(255,255,255,.08);
 }
 
 .book.has-cover::after {
-  opacity: .34;
+  opacity: .31;
   background:
-    linear-gradient(90deg,
-      rgba(11,6,4,.16) 0%,
-      rgba(255,255,255,.04) 10%,
-      transparent 18%,
-      transparent 84%,
-      rgba(10,6,4,.24) 100%),
-    linear-gradient(180deg,
-      rgba(255,255,255,.06) 0%,
-      transparent 12%,
-      transparent 87%,
-      rgba(15,8,5,.15) 100%);
+    linear-gradient(90deg, rgba(11,6,4,.14) 0%, rgba(255,255,255,.04) 10%, transparent 18%, transparent 84%, rgba(10,6,4,.22) 100%),
+    linear-gradient(180deg, rgba(255,255,255,.05) 0%, transparent 12%, transparent 87%, rgba(15,8,5,.13) 100%);
   box-shadow: inset 0 1px rgba(255,255,255,.08);
 }
 
@@ -165,7 +182,7 @@
 .book:hover {
   transform: translateY(-8px) rotate(var(--lean));
   box-shadow:
-    6px 11px 16px rgba(38,22,13,.28),
+    5px 10px 15px rgba(38,22,13,.27),
     inset 1px 0 rgba(255,255,255,.10),
     inset -2px 0 rgba(0,0,0,.08);
 }
@@ -173,7 +190,7 @@
 .book.has-cover:hover,
 .book.has-cover:focus-visible {
   box-shadow:
-    6px 12px 18px rgba(38,22,13,.30),
+    5px 11px 17px rgba(38,22,13,.29),
     inset 5px 0 8px rgba(0,0,0,.10),
     inset -3px 0 5px rgba(0,0,0,.08);
 }
@@ -186,25 +203,28 @@
 .wood-shelf {
   position: relative;
   z-index: 2;
-  height: 29px;
-  margin-inline: -3px;
-  border: 1px solid rgba(55,31,18,.34);
-  border-radius: 3px 3px 8px 8px;
-  transform: perspective(650px) rotateX(-4deg);
-  transform-origin: top center;
+  height: 26px;
+  margin-inline: -4px;
+  border: 1px solid rgba(44,24,13,.42);
+  border-radius: 2px 2px 5px 5px;
+  transform: none;
   background:
-    linear-gradient(90deg, rgba(255,255,255,.05), transparent 14%, transparent 82%, rgba(0,0,0,.13)),
-    linear-gradient(180deg,
-      #b17b50 0%,
-      #95613c 12%,
-      #805033 33%,
-      #654029 55%,
-      #4c2d1c 100%);
+    radial-gradient(ellipse at 22% 45%, rgba(36,18,8,.30) 0 1px, transparent 2px 17px),
+    radial-gradient(ellipse at 72% 64%, rgba(35,18,9,.22) 0 1px, transparent 2px 19px),
+    repeating-linear-gradient(
+      1deg,
+      rgba(31,15,8,.18) 0 1px,
+      rgba(255,255,255,.025) 1px 2px,
+      transparent 2px 5px,
+      rgba(25,12,6,.10) 5px 6px,
+      transparent 6px 11px
+    ),
+    linear-gradient(180deg, #825435 0%, #71462d 17%, #603a25 52%, #4b2c1c 100%);
   box-shadow:
-    0 12px 15px rgba(45,26,15,.34),
-    0 4px 2px rgba(45,26,15,.16),
-    inset 0 3px rgba(255,255,255,.18),
-    inset 0 -4px rgba(0,0,0,.18);
+    0 10px 13px rgba(45,26,15,.29),
+    0 3px 2px rgba(45,26,15,.12),
+    inset 0 2px rgba(255,255,255,.12),
+    inset 0 -3px rgba(0,0,0,.18);
 }
 
 .wood-shelf::before {
@@ -214,21 +234,29 @@
   right: -2px;
   top: -7px;
   height: 8px;
-  border-radius: 3px 3px 0 0;
-  background: linear-gradient(180deg, #bb895d 0%, #8d5b3a 100%);
+  border-radius: 2px 2px 0 0;
+  background:
+    repeating-linear-gradient(
+      1deg,
+      rgba(39,20,10,.12) 0 1px,
+      transparent 1px 6px,
+      rgba(255,255,255,.035) 6px 7px,
+      transparent 7px 11px
+    ),
+    linear-gradient(180deg, #986849 0%, #775033 100%);
   box-shadow:
-    inset 0 2px rgba(255,255,255,.18),
-    0 -1px rgba(67,39,23,.18);
+    inset 0 2px rgba(255,255,255,.16),
+    0 -1px rgba(67,39,23,.20);
 }
 
 .wood-shelf::after {
   content: "";
   position: absolute;
-  left: 2%;
-  right: 2%;
-  bottom: -11px;
-  height: 12px;
-  background: linear-gradient(180deg, rgba(42,24,14,.24), transparent);
+  left: 1.5%;
+  right: 1.5%;
+  bottom: -10px;
+  height: 11px;
+  background: linear-gradient(180deg, rgba(38,21,12,.22), transparent);
   filter: blur(2px);
   pointer-events: none;
 }
@@ -253,13 +281,13 @@
 @media (max-width: 720px) {
   .bookcase {
     padding: 14px 8px 24px;
-    border-width: 11px;
-    border-bottom-width: 18px;
+    border-width: 12px;
+    border-bottom-width: 19px;
     box-shadow:
-      inset 10px 0 16px rgba(52,30,18,.16),
-      inset -10px 0 16px rgba(52,30,18,.16),
-      inset 0 12px 18px rgba(80,48,29,.12),
-      0 18px 30px rgba(66,41,25,.22);
+      inset 10px 0 16px rgba(52,30,18,.14),
+      inset -10px 0 16px rgba(52,30,18,.14),
+      inset 0 12px 18px rgba(80,48,29,.10),
+      0 18px 30px rgba(66,41,25,.20);
   }
 
   .books {
@@ -277,6 +305,6 @@
   }
 
   .wood-shelf {
-    height: 25px;
+    height: 24px;
   }
 }
