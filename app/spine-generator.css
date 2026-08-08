@@ -1,0 +1,25 @@
+.generate-spine-button {
+  margin-top: 4px;
+  min-height: 48px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.generate-spine-status {
+  min-height: 18px;
+  margin-top: -2px;
+  padding: 0 4px;
+  color: rgba(239,229,211,.68);
+  font: 600 11px/1.35 Arial, sans-serif;
+}
+
+.generate-spine-button:disabled {
+  opacity: .64;
+  cursor: wait;
+}
+
+.generated-spine-art-ai {
+  object-fit: cover !important;
+  object-position: 50% 50% !important;
+  filter: saturate(1.02) contrast(1.025) brightness(.96) !important;
+}
