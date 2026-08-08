@@ -63,51 +63,69 @@ export async function GET(request: Request) {
     const dataUrl = `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
     const safeDataUrl = xmlEscape(dataUrl);
 
-    // This is a real, dedicated spine canvas rather than a front-cover element
-    // being squeezed by CSS. Multiple crops of the approved cover are recomposed
-    // into one 4:17 artwork, which also gives us a stable asset shape for a later
-    // AI/outpainting pass without changing the shelf renderer again.
+    // Keep the approved cover recognizable. A sharp center crop provides the
+    // printed artwork while only the outer bleed is softened to extend the image
+    // naturally to the physical 4:17 spine ratio.
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${SPINE_WIDTH}" height="${SPINE_HEIGHT}" viewBox="0 0 ${SPINE_WIDTH} ${SPINE_HEIGHT}">
   <defs>
-    <filter id="blur" x="-30%" y="-10%" width="160%" height="120%">
-      <feGaussianBlur stdDeviation="30"/>
-      <feColorMatrix type="saturate" values="1.18"/>
+    <filter id="softBleed" x="-35%" y="-12%" width="170%" height="124%">
+      <feGaussianBlur stdDeviation="10"/>
+      <feColorMatrix type="saturate" values="1.08"/>
     </filter>
     <linearGradient id="edgeShade" x1="0" x2="1">
-      <stop offset="0" stop-color="#000" stop-opacity=".55"/>
-      <stop offset=".08" stop-color="#fff" stop-opacity=".10"/>
-      <stop offset=".20" stop-color="#000" stop-opacity="0"/>
-      <stop offset=".78" stop-color="#000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000" stop-opacity=".58"/>
+      <stop offset="0" stop-color="#000" stop-opacity=".52"/>
+      <stop offset=".055" stop-color="#fff" stop-opacity=".11"/>
+      <stop offset=".15" stop-color="#000" stop-opacity="0"/>
+      <stop offset=".84" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".56"/>
     </linearGradient>
     <linearGradient id="topBottom" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#000" stop-opacity=".28"/>
-      <stop offset=".13" stop-color="#000" stop-opacity="0"/>
-      <stop offset=".82" stop-color="#000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000" stop-opacity=".36"/>
+      <stop offset="0" stop-color="#000" stop-opacity=".20"/>
+      <stop offset=".10" stop-color="#000" stop-opacity="0"/>
+      <stop offset=".88" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".30"/>
     </linearGradient>
-    <clipPath id="centerClip"><rect x="34" y="0" width="232" height="1275" rx="8"/></clipPath>
-    <clipPath id="accentClip"><rect x="238" y="0" width="44" height="1275"/></clipPath>
+    <linearGradient id="paperSheen" x1="0" x2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".025"/>
+      <stop offset=".45" stop-color="#fff" stop-opacity=".07"/>
+      <stop offset=".62" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".06"/>
+    </linearGradient>
+    <clipPath id="sharpClip"><rect x="20" y="0" width="260" height="1275" rx="7"/></clipPath>
   </defs>
 
   <rect width="300" height="1275" fill="#17120f"/>
-  <image href="${safeDataUrl}" x="-330" y="-65" width="960" height="1405" preserveAspectRatio="xMidYMid slice" filter="url(#blur)" opacity=".93"/>
-  <g clip-path="url(#centerClip)">
-    <image href="${safeDataUrl}" x="34" y="0" width="232" height="1275" preserveAspectRatio="xMidYMid slice" opacity=".83"/>
+
+  <!-- Soft edge extension only. This is intentionally subtle so the spine no
+       longer reads as frosted glass. -->
+  <image href="${safeDataUrl}" x="-250" y="-28" width="800" height="1331"
+    preserveAspectRatio="xMidYMid slice" filter="url(#softBleed)" opacity=".62"/>
+
+  <!-- Primary printed artwork: sharp, high contrast and recognizable. -->
+  <g clip-path="url(#sharpClip)">
+    <image href="${safeDataUrl}" x="20" y="0" width="260" height="1275"
+      preserveAspectRatio="xMidYMid slice" opacity="1"/>
   </g>
-  <g clip-path="url(#accentClip)" opacity=".35">
-    <image href="${safeDataUrl}" x="-10" y="0" width="330" height="1275" preserveAspectRatio="xMaxYMid slice"/>
-  </g>
+
+  <!-- Narrow side bleeds sampled from alternate cover positions add more of the
+       original palette without obscuring the main artwork. -->
+  <image href="${safeDataUrl}" x="0" y="0" width="28" height="1275"
+    preserveAspectRatio="xMinYMid slice" opacity=".72"/>
+  <image href="${safeDataUrl}" x="272" y="0" width="28" height="1275"
+    preserveAspectRatio="xMaxYMid slice" opacity=".72"/>
+
+  <rect width="300" height="1275" fill="url(#paperSheen)"/>
   <rect width="300" height="1275" fill="url(#edgeShade)"/>
   <rect width="300" height="1275" fill="url(#topBottom)"/>
-  <rect x="3" y="2" width="294" height="1271" rx="12" fill="none" stroke="#fff" stroke-opacity=".10" stroke-width="3"/>
+  <rect x="3" y="2" width="294" height="1271" rx="12" fill="none"
+    stroke="#fff" stroke-opacity=".10" stroke-width="3"/>
 </svg>`;
 
     return new Response(svg, {
       headers: {
         "Content-Type": "image/svg+xml; charset=utf-8",
-        "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000",
+        "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
       },
     });
   } catch {
