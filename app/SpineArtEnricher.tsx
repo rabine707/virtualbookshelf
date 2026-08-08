@@ -2,35 +2,58 @@
 
 import { useEffect } from "react";
 
+const DB_NAME = "shelf-of-fame-art";
+const STORE_NAME = "generated-spines";
+const DB_VERSION = 1;
+
+function openDb() {
+  return new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getGeneratedSpine(coverUrl: string) {
+  try {
+    const db = await openDb();
+    const value = await new Promise<string | undefined>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const request = tx.objectStore(STORE_NAME).get(coverUrl);
+      request.onsuccess = () => resolve(typeof request.result === "string" ? request.result : undefined);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    return value;
+  } catch {
+    return undefined;
+  }
+}
+
 function splitBookIdentity(button: HTMLButtonElement) {
   const raw = button.title || "";
   const splitAt = raw.lastIndexOf(" — ");
   if (splitAt < 0) return { title: raw, author: "" };
-  return {
-    title: raw.slice(0, splitAt).trim(),
-    author: raw.slice(splitAt + 3).trim(),
-  };
+  return { title: raw.slice(0, splitAt).trim(), author: raw.slice(splitAt + 3).trim() };
 }
 
 function spineDisplayTitle(title: string) {
   let cleaned = title.trim();
   cleaned = cleaned.replace(/\s*[\(\[][^\)\]]*(?:book|volume|vol\.?|series|#)\s*[^\)\]]*[\)\]]\s*$/i, "").trim();
-
   if (cleaned.length > 28) {
     const primary = cleaned.split(/\s+(?:—|–|-|:)\s+|:\s+/)[0]?.trim();
     if (primary && primary.length >= 5) cleaned = primary;
   }
-
   if (cleaned.length > 34) cleaned = `${cleaned.slice(0, 31).trim()}…`;
   return cleaned || title.trim();
 }
 
 function spineDisplayAuthor(author: string) {
-  const cleaned = author
-    .replace(/\s*\([^\)]*\)\s*$/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
+  const cleaned = author.replace(/\s*\([^\)]*\)\s*$/g, "").replace(/\s+/g, " ").trim();
   if (cleaned.length <= 22) return cleaned;
   const parts = cleaned.split(" ").filter(Boolean);
   if (parts.length > 2) return `${parts[0]} ${parts[parts.length - 1]}`;
@@ -50,7 +73,6 @@ function generatedSpineUrl(coverUrl: string) {
 function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
   const src = sourceImage.currentSrc || sourceImage.src;
   if (!src) return;
-
   const existing = button.querySelector<HTMLElement>(".generated-spine");
   if (existing?.dataset.source === src) return;
   existing?.remove();
@@ -75,23 +97,26 @@ function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
     art.classList.add("generated-spine-art-fallback");
   }, { once: true });
 
+  getGeneratedSpine(src).then((saved) => {
+    if (!saved || !art.isConnected) return;
+    art.src = saved;
+    art.classList.add("generated-spine-art-ai");
+    art.classList.remove("generated-spine-art-fallback");
+    button.dataset.aiSpine = "1";
+  });
+
   const wash = document.createElement("span");
   wash.className = "generated-spine-wash";
-
   const textLane = document.createElement("span");
   textLane.className = "generated-spine-text-lane";
-
   const topRule = document.createElement("span");
   topRule.className = "generated-spine-rule generated-spine-rule-top";
-
   const titleNode = document.createElement("span");
   titleNode.className = "generated-spine-title";
   titleNode.textContent = title;
-
   const authorNode = document.createElement("span");
   authorNode.className = "generated-spine-author";
   authorNode.textContent = author;
-
   const bottomRule = document.createElement("span");
   bottomRule.className = "generated-spine-rule generated-spine-rule-bottom";
 
@@ -107,11 +132,11 @@ function wireBook(button: HTMLButtonElement) {
   if (!image) {
     button.querySelector(".generated-spine")?.remove();
     delete button.dataset.generatedSpine;
+    delete button.dataset.aiSpine;
     button.style.removeProperty("--generated-spine-width");
     button.style.removeProperty("--generated-spine-height");
     return;
   }
-
   const refresh = () => buildSpine(button, image);
   if (image.dataset.spineArtWired !== "1") {
     image.dataset.spineArtWired = "1";
@@ -124,7 +149,6 @@ function wireBook(button: HTMLButtonElement) {
 export default function SpineArtEnricher() {
   useEffect(() => {
     let raf = 0;
-
     const scan = () => {
       if (raf) return;
       raf = window.requestAnimationFrame(() => {
@@ -133,20 +157,32 @@ export default function SpineArtEnricher() {
       });
     };
 
-    const observer = new MutationObserver(scan);
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["src", "class"],
-    });
+    const onGenerated = (event: Event) => {
+      const detail = (event as CustomEvent<{ coverUrl: string; image: string }>).detail;
+      if (!detail) return;
+      for (const button of document.querySelectorAll<HTMLButtonElement>("button.book")) {
+        const cover = button.querySelector<HTMLImageElement>(".book-cover-art");
+        const src = cover?.currentSrc || cover?.src;
+        if (src !== detail.coverUrl) continue;
+        const art = button.querySelector<HTMLImageElement>(".generated-spine-art-dedicated");
+        if (art) {
+          art.src = detail.image;
+          art.classList.add("generated-spine-art-ai");
+          art.classList.remove("generated-spine-art-fallback");
+          button.dataset.aiSpine = "1";
+        }
+      }
+    };
 
+    const observer = new MutationObserver(scan);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "class"] });
+    window.addEventListener("shelf-spine-generated", onGenerated);
     scan();
     return () => {
       observer.disconnect();
+      window.removeEventListener("shelf-spine-generated", onGenerated);
       if (raf) window.cancelAnimationFrame(raf);
     };
   }, []);
-
   return null;
 }
