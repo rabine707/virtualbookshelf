@@ -1,17 +1,293 @@
-/* Keep cover artwork proportional inside the narrow book-spine window.
-   The old styling deliberately oversized the image (132% x 114%) and then
-   scaled it again, which made the artwork feel stretched/zoomed on mobile. */
+/* Final visual layer for artwork spines + bookshelf depth.
+   Loaded after globals.css so these rules intentionally tune the shelf without
+   changing the component markup. */
+
+.bookcase {
+  position: relative;
+  isolation: isolate;
+  perspective: 1400px;
+  padding: 24px 28px 30px;
+  border-width: 18px;
+  border-bottom-width: 26px;
+  background:
+    radial-gradient(ellipse at 50% 4%, rgba(255,255,255,.24), transparent 36%),
+    linear-gradient(90deg,
+      rgba(55,31,18,.20) 0%,
+      rgba(255,255,255,.03) 8%,
+      transparent 18%,
+      transparent 82%,
+      rgba(43,24,14,.18) 100%),
+    linear-gradient(180deg, #eadbc5 0%, #d2b795 100%);
+  box-shadow:
+    inset 20px 0 26px rgba(52,30,18,.18),
+    inset -20px 0 26px rgba(52,30,18,.18),
+    inset 0 18px 24px rgba(80,48,29,.15),
+    inset 0 -14px 22px rgba(65,38,22,.12),
+    inset 0 0 0 5px rgba(255,255,255,.09),
+    0 25px 42px rgba(66,41,25,.25),
+    0 7px 0 #56351f;
+}
+
+.bookcase::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(37,21,12,.13), transparent 12%),
+    linear-gradient(90deg, rgba(31,18,11,.16), transparent 7%, transparent 93%, rgba(31,18,11,.16));
+  box-shadow:
+    inset 0 0 34px rgba(53,30,17,.14),
+    inset 0 -22px 24px rgba(72,43,25,.10);
+}
+
+.bookcase::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  left: 12px;
+  right: 12px;
+  bottom: -14px;
+  height: 18px;
+  border-radius: 0 0 7px 7px;
+  background: linear-gradient(180deg, #684028 0%, #432719 100%);
+  box-shadow: 0 10px 16px rgba(45,26,15,.24), inset 0 2px rgba(255,255,255,.08);
+}
+
+.shelf-row {
+  z-index: 1;
+  margin-bottom: 18px;
+  transform-style: preserve-3d;
+}
+
+.books {
+  position: relative;
+  z-index: 2;
+  min-height: 228px;
+  gap: 9px;
+  padding: 20px 16px 2px;
+  perspective: 850px;
+  transform-style: preserve-3d;
+}
+
+.books::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  left: 3%;
+  right: 3%;
+  bottom: 0;
+  height: 32px;
+  background: radial-gradient(ellipse at center bottom, rgba(39,22,13,.34), transparent 68%);
+  filter: blur(2px);
+}
+
+.book {
+  --yaw: 0deg;
+  width: clamp(78px, calc(var(--book-width) + 14px), 114px);
+  min-width: 78px;
+  border: 1px solid rgba(41,24,14,.24);
+  border-top-color: rgba(255,255,255,.18);
+  border-radius: 8px 5px 3px 8px;
+  transform: perspective(720px) rotateY(var(--yaw)) rotate(var(--lean));
+  transform-style: preserve-3d;
+  box-shadow:
+    5px 7px 12px rgba(38,22,13,.28),
+    9px 3px 9px rgba(38,22,13,.10),
+    inset 2px 0 rgba(255,255,255,.12),
+    inset -3px 0 rgba(0,0,0,.11),
+    inset 0 2px rgba(255,255,255,.07),
+    inset 0 -2px rgba(0,0,0,.09);
+}
+
+.book-style-0 { --yaw: -1.4deg; }
+.book-style-1 { --yaw: .8deg; }
+.book-style-2 { --yaw: -0.5deg; }
+.book-style-3 { --yaw: 1.25deg; }
+
+.book.has-cover {
+  outline: none;
+  border-color: rgba(39,22,13,.34);
+  box-shadow:
+    6px 8px 13px rgba(40,23,13,.31),
+    10px 3px 10px rgba(40,23,13,.11),
+    inset 9px 0 12px rgba(0,0,0,.15),
+    inset -5px 0 7px rgba(0,0,0,.13),
+    inset 2px 0 rgba(255,255,255,.16),
+    inset 0 2px rgba(255,255,255,.08),
+    inset 0 -2px rgba(0,0,0,.11);
+}
+
+.book.has-cover::before {
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: auto;
+  width: 11px;
+  height: auto;
+  opacity: 1;
+  border-radius: 7px 0 0 7px;
+  background:
+    linear-gradient(90deg,
+      rgba(9,5,3,.48) 0%,
+      rgba(22,13,8,.31) 22%,
+      rgba(255,255,255,.16) 48%,
+      rgba(255,255,255,.04) 70%,
+      transparent 100%);
+  box-shadow:
+    inset 1px 0 rgba(255,255,255,.10),
+    2px 0 4px rgba(0,0,0,.10);
+}
+
+.book.has-cover::after {
+  opacity: .68;
+  background:
+    linear-gradient(90deg,
+      rgba(11,6,4,.24) 0%,
+      rgba(255,255,255,.07) 10%,
+      transparent 19%,
+      transparent 80%,
+      rgba(10,6,4,.42) 100%),
+    linear-gradient(180deg,
+      rgba(255,255,255,.12) 0%,
+      rgba(255,255,255,.02) 3%,
+      transparent 15%,
+      transparent 83%,
+      rgba(15,8,5,.24) 100%);
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.12),
+    inset 0 -2px rgba(0,0,0,.16);
+}
+
 .book-cover-art {
   inset: 0;
   width: 100%;
   height: 100%;
   max-width: none;
   object-fit: cover;
-  object-position: center center;
+  object-position: 50% 50%;
   transform: none;
+  filter: saturate(1.04) contrast(1.035) brightness(.985);
+}
+
+.book:hover {
+  transform: perspective(720px) translateY(-10px) translateZ(14px) rotateY(calc(var(--yaw) * .45)) rotate(var(--lean));
+  box-shadow:
+    9px 15px 22px rgba(38,22,13,.30),
+    12px 4px 12px rgba(38,22,13,.12),
+    inset 2px 0 rgba(255,255,255,.12),
+    inset -3px 0 rgba(0,0,0,.10);
+}
+
+.book.has-cover:hover,
+.book.has-cover:focus-visible {
+  box-shadow:
+    10px 17px 24px rgba(38,22,13,.32),
+    13px 4px 13px rgba(38,22,13,.13),
+    inset 9px 0 12px rgba(0,0,0,.15),
+    inset -5px 0 7px rgba(0,0,0,.13);
 }
 
 .book.has-cover:hover .book-cover-art,
 .book.has-cover:focus-visible .book-cover-art {
-  transform: scale(1.025);
+  transform: scale(1.018);
+}
+
+.wood-shelf {
+  position: relative;
+  z-index: 2;
+  height: 29px;
+  margin-inline: -3px;
+  border: 1px solid rgba(55,31,18,.34);
+  border-radius: 3px 3px 8px 8px;
+  transform: perspective(650px) rotateX(-4deg);
+  transform-origin: top center;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.05), transparent 14%, transparent 82%, rgba(0,0,0,.13)),
+    linear-gradient(180deg,
+      #b17b50 0%,
+      #95613c 12%,
+      #805033 33%,
+      #654029 55%,
+      #4c2d1c 100%);
+  box-shadow:
+    0 12px 15px rgba(45,26,15,.34),
+    0 4px 2px rgba(45,26,15,.16),
+    inset 0 3px rgba(255,255,255,.18),
+    inset 0 -4px rgba(0,0,0,.18);
+}
+
+.wood-shelf::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: -7px;
+  height: 8px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, #bb895d 0%, #8d5b3a 100%);
+  box-shadow:
+    inset 0 2px rgba(255,255,255,.18),
+    0 -1px rgba(67,39,23,.18);
+}
+
+.wood-shelf::after {
+  content: "";
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  bottom: -11px;
+  height: 12px;
+  background: linear-gradient(180deg, rgba(42,24,14,.24), transparent);
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.cover {
+  box-shadow:
+    12px 14px 26px rgba(61,39,25,.26),
+    -2px 3px 5px rgba(61,39,25,.08),
+    inset 10px 0 12px rgba(0,0,0,.08),
+    inset -2px 0 rgba(255,255,255,.08);
+}
+
+.cover-image {
+  object-fit: contain;
+  object-position: center;
+}
+
+.cover-option img {
+  object-fit: contain;
+}
+
+@media (max-width: 720px) {
+  .bookcase {
+    padding: 14px 8px 24px;
+    border-width: 11px;
+    border-bottom-width: 18px;
+    box-shadow:
+      inset 10px 0 16px rgba(52,30,18,.16),
+      inset -10px 0 16px rgba(52,30,18,.16),
+      inset 0 12px 18px rgba(80,48,29,.12),
+      0 18px 30px rgba(66,41,25,.22);
+  }
+
+  .books {
+    min-height: 222px;
+    gap: 7px;
+    padding: 17px 8px 2px;
+  }
+
+  .book {
+    min-width: 76px;
+    width: clamp(76px, calc(var(--book-width) + 10px), 106px);
+  }
+
+  .wood-shelf {
+    height: 25px;
+  }
 }
