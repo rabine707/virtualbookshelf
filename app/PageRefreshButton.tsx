@@ -16,8 +16,22 @@ export default function PageRefreshButton() {
       button.innerHTML = '<span class="page-refresh-icon" aria-hidden="true">↻</span><span class="page-refresh-label">Refresh</span>';
       button.addEventListener("click", () => window.location.reload());
 
-      const count = toolbar.querySelector(".count-pill");
-      toolbar.insertBefore(button, count || null);
+      // Keep refresh attached to the bookshelf controls rather than letting it
+      // become a stranded item in the toolbar grid on narrow mobile screens.
+      const count = toolbar.querySelector<HTMLElement>(".count-pill");
+      if (count) {
+        let actions = toolbar.querySelector<HTMLElement>(".toolbar-actions");
+        if (!actions) {
+          actions = document.createElement("div");
+          actions.className = "toolbar-actions";
+          toolbar.insertBefore(actions, count);
+          actions.append(button, count);
+        } else {
+          actions.insertBefore(button, actions.firstChild);
+        }
+      } else {
+        toolbar.appendChild(button);
+      }
     };
 
     mount();
