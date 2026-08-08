@@ -27,13 +27,15 @@ function ensureDecor() {
     set.className = `shelf-decor-set asset-decor-set asset-layout-${index % 6}`;
     set.setAttribute("aria-hidden", "true");
 
-    const first = document.createElement("img");
-    first.className = "asset-decor asset-decor-primary";
-    first.src = ASSETS[index % ASSETS.length];
-    first.alt = "";
-    set.appendChild(first);
+    if (index % 4 !== 2) {
+      const first = document.createElement("img");
+      first.className = "asset-decor asset-decor-primary";
+      first.src = ASSETS[index % ASSETS.length];
+      first.alt = "";
+      set.appendChild(first);
+    }
 
-    if (index % 3 === 1) {
+    if (index % 6 === 1) {
       const second = document.createElement("img");
       second.className = "asset-decor asset-decor-secondary";
       second.src = ASSETS[(index + 2) % ASSETS.length];
