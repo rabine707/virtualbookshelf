@@ -16,6 +16,7 @@ import CoverAutoClose from "./CoverAutoClose";
 import CoverDecisionSafety from "./CoverDecisionSafety";
 import CoverSearchCleanup from "./CoverSearchCleanup";
 import CoverSelectionEnricher from "./CoverSelectionEnricher";
+import MobileTapFix from "./MobileTapFix";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import SavedCoverChoices from "./SavedCoverChoices";
 import SpineAspectEnricher from "./SpineAspectEnricher";
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <RomanceShelfEnricher />
         <AudibleCoverEnricher />
         <SpineAspectEnricher />
+        <MobileTapFix />
         <ThemeEnricher />
       </body>
     </html>
