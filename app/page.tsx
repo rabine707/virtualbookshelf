@@ -23,13 +23,15 @@ type Book = {
   year?: string;
   shelf?: string;
   isbn?: string;
+  asin?: string;
+  importSource?: string;
   color: string;
   preferredCover?: CoverResult;
 };
 
 const STORAGE_KEY = "shelf-of-fame-library-v1";
 const COVER_DATA_VERSION_KEY = "shelf-of-fame-cover-data-version";
-const COVER_DATA_VERSION = "multi-cover-v5-title-isbn-discovery";
+const COVER_DATA_VERSION = "multi-cover-v6-audible-import";
 const palette = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
 const coverMemory = new Map<string, CoverResult | null>();
 const coverOptionsMemory = new Map<string, CoverResult[]>();
@@ -102,8 +104,103 @@ function normalizeGoodreadsRow(row: Record<string, string>, index: number): Book
     year,
     shelf,
     isbn,
+    importSource: "Goodreads",
     color: palette[index % palette.length],
   };
+}
+
+function audibleValue(row: Record<string, string>, wantedKey: string) {
+  const wanted = wantedKey.toLowerCase();
+  for (const [rawKey, rawValue] of Object.entries(row)) {
+    const key = rawKey.replace(/^\uFEFF/, "").trim().toLowerCase();
+    if (key === wanted) return rawValue?.trim() || "";
+  }
+  return "";
+}
+
+function safeCoverUrl(value?: string) {
+  const url = (value || "").trim();
+  if (!/^https?:\/\//i.test(url)) return undefined;
+  return url.replace(/^http:\/\//i, "https://");
+}
+
+function canonicalImportTitle(title: string) {
+  let cleaned = title.trim();
+  for (let pass = 0; pass < 3; pass += 1) {
+    const match = cleaned.match(/\s*[\(\[]([^\)\]]+)[\)\]]\s*$/);
+    if (!match) break;
+    const metadata = match[1];
+    const looksLikeSeries = /#\s*\d+(?:\.\d+)?\b/i.test(metadata)
+      || /\b(?:book|volume|vol\.?|part)\s*(?:#|no\.?\s*)?\d+(?:\.\d+)?\b/i.test(metadata);
+    if (!looksLikeSeries) break;
+    cleaned = cleaned.slice(0, match.index).trim();
+  }
+  return cleaned || title.trim();
+}
+
+function importIdentity(book: Book) {
+  const title = canonicalImportTitle(book.title).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const author = book.author.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return `${title}::${author}`;
+}
+
+function normalizeAudibleRow(row: Record<string, string>, index: number): Book | null {
+  const title = audibleValue(row, "title");
+  if (!title) return null;
+
+  const author = audibleValue(row, "authors") || "Unknown author";
+  const asin = audibleValue(row, "asin") || undefined;
+  const releaseDate = audibleValue(row, "release_date");
+  const year = releaseDate.match(/\b(19|20)\d{2}\b/)?.[0];
+  const coverUrl = safeCoverUrl(audibleValue(row, "cover_url"));
+
+  return {
+    id: asin ? `audible:${asin}` : `audible:${title}-${author}-${index}`,
+    title,
+    author,
+    year,
+    asin,
+    importSource: "Audible",
+    color: palette[index % palette.length],
+    preferredCover: coverUrl ? { url: coverUrl, source: "Audible" } : undefined,
+  };
+}
+
+function looksLikeSampleShelf(books: Book[]) {
+  return books.length === sampleBooks.length && books.every((book, index) => book.id === sampleBooks[index]?.id);
+}
+
+function mergeAudibleBooks(current: Book[], imported: Book[]) {
+  const next = [...current];
+  const indexByIdentity = new Map(next.map((book, index) => [importIdentity(book), index]));
+
+  for (const audibleBook of imported) {
+    const key = importIdentity(audibleBook);
+    const existingIndex = indexByIdentity.get(key);
+
+    if (existingIndex === undefined) {
+      indexByIdentity.set(key, next.length);
+      next.push(audibleBook);
+      continue;
+    }
+
+    const existing = next[existingIndex];
+    const sources = new Set(
+      `${existing.importSource || ""},${audibleBook.importSource || ""}`
+        .split(",")
+        .map((source) => source.trim())
+        .filter(Boolean),
+    );
+
+    next[existingIndex] = {
+      ...existing,
+      asin: existing.asin || audibleBook.asin,
+      importSource: [...sources].join(" + ") || existing.importSource,
+      preferredCover: existing.preferredCover || audibleBook.preferredCover,
+    };
+  }
+
+  return next;
 }
 
 function isStoredBook(value: unknown): value is Book {
@@ -124,6 +221,7 @@ function coverSourceLabel(source: string) {
   if (source === "Open Library") return "OL";
   if (source === "Google Books") return "Google";
   if (source === "LibraryThing") return "LT";
+  if (source === "Audible") return "Audible";
   return source;
 }
 
@@ -246,7 +344,8 @@ export default function Home() {
   const [deepSearchDone, setDeepSearchDone] = useState(false);
   const [importMessage, setImportMessage] = useState("");
   const [storageReady, setStorageReady] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
+  const goodreadsInput = useRef<HTMLInputElement>(null);
+  const audibleInput = useRef<HTMLInputElement>(null);
   const toastTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -409,7 +508,7 @@ export default function Home() {
     }
   }
 
-  function importCsv(event: ChangeEvent<HTMLInputElement>) {
+  function importGoodreadsCsv(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -430,7 +529,35 @@ export default function Home() {
         coverOptionsMemory.clear();
         window.localStorage.setItem(COVER_DATA_VERSION_KEY, COVER_DATA_VERSION);
         setBooks(imported);
-        showToast(`Imported ${imported.length} books. Saved on this browser.`);
+        showToast(`Imported ${imported.length} Goodreads books. Saved on this browser.`);
+      },
+    });
+
+    event.target.value = "";
+  }
+
+  function importAudibleCsv(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const imported = results.data
+          .map(normalizeAudibleRow)
+          .filter((book): book is Book => Boolean(book));
+
+        if (!imported.length) {
+          showToast("I couldn't find Audible titles in that CSV. Use the audible-cli library export CSV.");
+          return;
+        }
+
+        setBooks((current) => {
+          const base = looksLikeSampleShelf(current) ? [] : current;
+          return mergeAudibleBooks(base, imported);
+        });
+        showToast(`Processed ${imported.length} Audible titles and merged them into your shelf.`);
       },
     });
 
@@ -445,8 +572,18 @@ export default function Home() {
           <h1>Shelf of Fame</h1>
           <p className="subhead">Turn the books you’ve read into a shelf worth showing off.</p>
         </div>
-        <button className="primary" onClick={() => fileInput.current?.click()}>Import Goodreads</button>
-        <input ref={fileInput} type="file" accept=".csv,text/csv" hidden onChange={importCsv} />
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button className="primary" onClick={() => goodreadsInput.current?.click()}>Import Goodreads</button>
+          <button
+            className="primary"
+            onClick={() => audibleInput.current?.click()}
+            title="Use: audible library export --format csv --output audible-library.csv"
+          >
+            Import Audible CSV
+          </button>
+        </div>
+        <input ref={goodreadsInput} type="file" accept=".csv,text/csv" hidden onChange={importGoodreadsCsv} />
+        <input ref={audibleInput} type="file" accept=".csv,text/csv" hidden onChange={importAudibleCsv} />
       </header>
 
       <section className="toolbar" aria-label="Bookshelf controls">
@@ -533,6 +670,8 @@ export default function Home() {
                 {selected.rating ? <><dt>Your rating</dt><dd>{"★".repeat(Math.min(selected.rating, 5))}</dd></> : null}
                 {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
                 {selected.shelf ? <><dt>Goodreads shelf</dt><dd>{selected.shelf}</dd></> : null}
+                {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
+                {selected.asin ? <><dt>Audible ASIN</dt><dd>{selected.asin}</dd></> : null}
                 {selectedIsbn ? <><dt>ISBN</dt><dd>{selectedIsbn}</dd></> : null}
                 {cover?.source ? <><dt>Cover source</dt><dd>{cover.source}</dd></> : null}
               </dl>
@@ -578,7 +717,7 @@ export default function Home() {
                 <p className="cover-picker-note">
                   {selectedIsbn
                     ? "Open Library and Google are checked automatically. Search more covers checks LibraryThing for additional editions only when you ask."
-                    : "No ISBN came over from Goodreads. Search more covers asks LibraryThing to identify the book from its cleaned title, then checks the editions it finds."}
+                    : "No ISBN is stored for this book. Search more covers asks LibraryThing to identify it from its cleaned title, then checks the editions it finds."}
                 </p>
               </section>
             </div>
