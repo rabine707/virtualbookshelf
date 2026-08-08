@@ -2,20 +2,6 @@
 
 import { useEffect } from "react";
 
-function absoluteUrl(value?: string | null) {
-  if (!value) return "";
-  try {
-    return new URL(value, window.location.href).href;
-  } catch {
-    return value;
-  }
-}
-
-function findCorrectCoverButton(modal: Element) {
-  return [...modal.querySelectorAll<HTMLButtonElement>("button")]
-    .find((button) => /correct cover|applied to shelf/i.test(button.textContent?.trim() || "")) || null;
-}
-
 function updatePickerHints(root: ParentNode = document) {
   for (const option of root.querySelectorAll<HTMLButtonElement>(".cover-option")) {
     const source = option.querySelector("span")?.textContent?.trim() || "this source";
@@ -28,39 +14,23 @@ export default function CoverSelectionEnricher() {
   useEffect(() => {
     let stopped = false;
 
-    function applySelectedOption(option: HTMLButtonElement, modal: Element, targetUrl: string, attempt = 0) {
-      if (stopped || !document.body.contains(option) || !document.body.contains(modal)) return;
-
-      const activeUrl = absoluteUrl(modal.querySelector<HTMLImageElement>(".cover-image")?.src);
-      if (activeUrl === targetUrl) {
-        const correctButton = findCorrectCoverButton(modal);
-        if (!correctButton || correctButton.disabled) return;
-
-        correctButton.click();
-        const original = correctButton.textContent || "✓ Correct cover";
-        correctButton.textContent = "✓ Applied to shelf";
-        window.setTimeout(() => {
-          if (document.body.contains(correctButton)) correctButton.textContent = original;
-        }, 1800);
-        return;
-      }
-
-      if (attempt >= 8) return;
-      window.requestAnimationFrame(() => applySelectedOption(option, modal, targetUrl, attempt + 1));
-    }
-
     function handleClick(event: MouseEvent) {
       const target = event.target;
       if (!(target instanceof Element)) return;
       const option = target.closest<HTMLButtonElement>(".cover-option");
-      if (!option) return;
+      if (!option || option.disabled) return;
 
-      const modal = option.closest(".modal");
-      const targetImage = option.querySelector<HTMLImageElement>("img");
-      if (!modal || !targetImage?.src) return;
-
-      const targetUrl = absoluteUrl(targetImage.src);
-      window.requestAnimationFrame(() => applySelectedOption(option, modal, targetUrl));
+      // page.tsx previews on a normal click and saves on double-click.
+      // Mobile users should never need a double tap, so after React handles
+      // the preview click, synthesize the existing confirmation event.
+      window.setTimeout(() => {
+        if (stopped || !document.body.contains(option)) return;
+        option.dispatchEvent(new MouseEvent("dblclick", {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        }));
+      }, 80);
     }
 
     const observer = new MutationObserver((records) => {
