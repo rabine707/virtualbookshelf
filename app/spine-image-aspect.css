@@ -1,0 +1,14 @@
+/* Covered books use the source artwork's natural aspect ratio instead of a random spine size. */
+.book.has-cover[data-image-aspect="1"] {
+  width: var(--image-book-width) !important;
+  min-width: var(--image-book-width) !important;
+  max-width: var(--image-book-width) !important;
+  height: var(--image-book-height) !important;
+  min-height: var(--image-book-height) !important;
+  max-height: var(--image-book-height) !important;
+}
+
+.book.has-cover[data-image-aspect="1"] .book-cover-art {
+  object-fit: contain !important;
+  object-position: center center !important;
+}
