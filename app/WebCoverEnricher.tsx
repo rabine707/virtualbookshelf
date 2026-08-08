@@ -193,27 +193,7 @@ async function search(modal: Element, panel: HTMLElement, mode: "covers" | "alte
   }
 }
 
-function hideLegacySearchControls(modal: Element) {
-  const picker = modal.querySelector<HTMLElement>(".cover-picker");
-  if (!picker) return;
-
-  for (const button of picker.querySelectorAll<HTMLButtonElement>("button")) {
-    const text = button.textContent?.replace(/\s+/g, " ").trim() || "";
-    if (/^(Search more covers|Searching more editions…|More editions searched)$/i.test(text)) {
-      button.hidden = true;
-      button.setAttribute("aria-hidden", "true");
-    }
-  }
-
-  const note = picker.querySelector<HTMLElement>(".cover-picker-note");
-  if (note) {
-    note.hidden = true;
-    note.setAttribute("aria-hidden", "true");
-  }
-}
-
 function buildPanel(modal: Element) {
-  hideLegacySearchControls(modal);
   if (modal.querySelector("[data-web-cover-panel]")) return;
   const picker = modal.querySelector<HTMLElement>(".cover-picker");
   if (!picker) return;
