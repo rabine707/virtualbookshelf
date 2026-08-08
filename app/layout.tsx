@@ -9,6 +9,7 @@ import "./theme-mobile-hotfix.css";
 import "./theme-asset-dark.css";
 import "./modal-cover-hotfix.css";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
+import CoverSelectionEnricher from "./CoverSelectionEnricher";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import ThemeEnricher from "./ThemeEnricher";
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         {children}
+        <CoverSelectionEnricher />
         <RomanceShelfEnricher />
         <AudibleCoverEnricher />
         <ThemeEnricher />
