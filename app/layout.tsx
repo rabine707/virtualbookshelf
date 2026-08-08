@@ -11,12 +11,14 @@ import "./modal-cover-hotfix.css";
 import "./web-cover-search.css";
 import "./saved-cover-choices.css";
 import "./generated-spines.css";
+import "./page-refresh.css";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import CoverAutoClose from "./CoverAutoClose";
 import CoverDecisionSafety from "./CoverDecisionSafety";
 import CoverSearchCleanup from "./CoverSearchCleanup";
 import CoverSelectionEnricher from "./CoverSelectionEnricher";
 import MobileTapFix from "./MobileTapFix";
+import PageRefreshButton from "./PageRefreshButton";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import SavedCoverChoices from "./SavedCoverChoices";
 import SpineArtEnricher from "./SpineArtEnricher";
@@ -43,6 +45,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <AudibleCoverEnricher />
         <SpineArtEnricher />
         <MobileTapFix />
+        <PageRefreshButton />
         <ThemeEnricher />
       </body>
     </html>
