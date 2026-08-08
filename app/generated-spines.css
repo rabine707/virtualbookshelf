@@ -1,11 +1,12 @@
-/* Procedural shelf spines: use the real cover as color/art source, then rebuild it into a narrow spine. */
+/* Dedicated shelf spines generated from the real cover art. */
 .book.has-cover[data-generated-spine="1"] {
-  width: var(--generated-spine-width, 60px) !important;
-  min-width: var(--generated-spine-width, 60px) !important;
-  max-width: var(--generated-spine-width, 60px) !important;
-  height: 204px !important;
-  min-height: 204px !important;
-  max-height: 204px !important;
+  width: var(--generated-spine-width, 48px) !important;
+  min-width: var(--generated-spine-width, 48px) !important;
+  max-width: var(--generated-spine-width, 48px) !important;
+  height: var(--generated-spine-height, 204px) !important;
+  min-height: var(--generated-spine-height, 204px) !important;
+  max-height: var(--generated-spine-height, 204px) !important;
+  aspect-ratio: 4 / 17 !important;
   padding: 0 !important;
   writing-mode: horizontal-tb !important;
   overflow: hidden;
@@ -25,92 +26,146 @@
   display: block;
   overflow: hidden;
   border-radius: inherit;
-  background: #201913;
+  background: #18120f;
+  isolation: isolate;
 }
 
 .generated-spine-art {
   position: absolute;
-  inset: -12px -28px;
-  width: calc(100% + 56px);
-  height: calc(100% + 24px);
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.generated-spine-art-backdrop {
+  inset: -16px -72px;
+  width: calc(100% + 144px);
+  height: calc(100% + 32px);
   object-fit: cover;
   object-position: 50% 50%;
-  filter: blur(4px) saturate(1.08) contrast(1.08) brightness(.68);
+  filter: blur(7px) saturate(1.18) contrast(1.1) brightness(.55);
   transform: scale(1.06);
+  opacity: .92;
+}
+
+/* A sharp central sliver preserves recognizable cover motifs without turning
+   the spine into a horizontally squeezed front cover. */
+.generated-spine-art-center {
+  top: 0;
+  bottom: 0;
+  left: 9px;
+  width: 30px;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  filter: saturate(1.05) contrast(1.05) brightness(.76);
+  opacity: .72;
+}
+
+/* Thin offset slice gives the generated art some asymmetry and depth. */
+.generated-spine-art-accent {
+  top: 0;
+  right: 3px;
+  width: 8px;
+  height: 100%;
+  object-fit: cover;
+  object-position: 72% 50%;
+  filter: saturate(1.12) contrast(1.16) brightness(.64);
+  opacity: .56;
+  mix-blend-mode: screen;
 }
 
 .generated-spine-wash {
   position: absolute;
   inset: 0;
+  z-index: 2;
   background:
-    linear-gradient(90deg, rgba(0,0,0,.46) 0%, rgba(255,255,255,.08) 8%, transparent 18%, transparent 80%, rgba(0,0,0,.42) 100%),
-    linear-gradient(180deg, rgba(0,0,0,.28), transparent 16%, transparent 82%, rgba(0,0,0,.38));
+    linear-gradient(90deg, rgba(0,0,0,.52) 0%, rgba(255,255,255,.10) 7%, transparent 18%, transparent 77%, rgba(0,0,0,.50) 100%),
+    linear-gradient(180deg, rgba(0,0,0,.42) 0%, transparent 19%, transparent 79%, rgba(0,0,0,.52) 100%);
   box-shadow:
-    inset 1px 0 rgba(255,255,255,.14),
-    inset -2px 0 rgba(0,0,0,.22);
+    inset 1px 0 rgba(255,255,255,.16),
+    inset -2px 0 rgba(0,0,0,.34),
+    inset 0 1px rgba(255,255,255,.08),
+    inset 0 -1px rgba(0,0,0,.25);
 }
+
+.generated-spine-rule {
+  position: absolute;
+  z-index: 3;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: rgba(255,248,236,.62);
+  box-shadow: 0 1px rgba(0,0,0,.4);
+}
+
+.generated-spine-rule-top { top: 12px; }
+.generated-spine-rule-bottom { bottom: 12px; }
 
 .generated-spine-title {
   position: absolute;
+  z-index: 4;
   left: 50%;
-  top: 50%;
-  width: 174px;
+  top: 48%;
+  width: 166px;
   transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center;
-  color: #fff8ec;
+  color: #fffaf1;
   text-align: center;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 13px;
-  line-height: 1.05;
+  font-size: 12px;
+  line-height: 1;
   font-weight: 700;
-  letter-spacing: .035em;
-  text-shadow: 0 1px 2px rgba(0,0,0,.95), 0 0 8px rgba(0,0,0,.85);
+  letter-spacing: .025em;
+  text-shadow: 0 1px 2px rgba(0,0,0,.96), 0 0 7px rgba(0,0,0,.9);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.generated-spine[data-title-scale="medium"] .generated-spine-title {
+  font-size: 10.5px;
+  letter-spacing: .012em;
+}
+
+.generated-spine[data-title-scale="compact"] .generated-spine-title {
+  font-size: 9px;
+  letter-spacing: 0;
+}
+
 .generated-spine-author {
   position: absolute;
+  z-index: 4;
   left: 50%;
-  bottom: 8px;
+  bottom: 28px;
+  width: 106px;
   transform: translateX(-50%) rotate(90deg);
   transform-origin: center;
-  color: rgba(255,248,236,.92);
-  font: 700 7px/1 Arial, sans-serif;
-  letter-spacing: .08em;
+  color: rgba(255,250,241,.9);
+  text-align: center;
+  font: 700 6.5px/1 Arial, sans-serif;
+  letter-spacing: .055em;
   text-transform: uppercase;
-  text-shadow: 0 1px 2px rgba(0,0,0,.9);
+  text-shadow: 0 1px 2px rgba(0,0,0,.94);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-.generated-spine-ornament {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  color: rgba(255,248,236,.7);
-  font-size: 7px;
-  line-height: 1;
-  text-shadow: 0 1px 2px rgba(0,0,0,.85);
-}
-
-.generated-spine-ornament-top { top: 10px; }
-.generated-spine-ornament-bottom { bottom: 10px; }
 
 .book.has-cover[data-generated-spine="1"]::before {
-  width: 5px !important;
-  opacity: .72 !important;
+  width: 4px !important;
+  opacity: .76 !important;
   z-index: 7 !important;
 }
 
 .book.has-cover[data-generated-spine="1"]::after {
   z-index: 8 !important;
-  opacity: .18 !important;
+  opacity: .15 !important;
 }
 
-.book.has-cover[data-generated-spine="1"]:hover .generated-spine-art,
-.book.has-cover[data-generated-spine="1"]:focus-visible .generated-spine-art {
-  filter: blur(3px) saturate(.95) contrast(1.08) brightness(.54);
+.book.has-cover[data-generated-spine="1"]:hover .generated-spine-art-backdrop,
+.book.has-cover[data-generated-spine="1"]:focus-visible .generated-spine-art-backdrop {
+  filter: blur(6px) saturate(1.04) contrast(1.1) brightness(.46);
 }
 
 .book.has-cover[data-generated-spine="1"]:hover .generated-spine-title,
@@ -120,13 +175,27 @@
 
 @media (max-width: 720px) {
   .book.has-cover[data-generated-spine="1"] {
-    height: 198px !important;
-    min-height: 198px !important;
-    max-height: 198px !important;
+    --generated-spine-width: 44px !important;
+    --generated-spine-height: 190px !important;
+    aspect-ratio: 22 / 95 !important;
   }
 
   .generated-spine-title {
-    width: 168px;
-    font-size: 12px;
+    width: 154px;
+    font-size: 11px;
+  }
+
+  .generated-spine[data-title-scale="medium"] .generated-spine-title {
+    font-size: 9.5px;
+  }
+
+  .generated-spine[data-title-scale="compact"] .generated-spine-title {
+    font-size: 8.25px;
+  }
+
+  .generated-spine-author {
+    bottom: 27px;
+    width: 98px;
+    font-size: 6px;
   }
 }
