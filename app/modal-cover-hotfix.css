@@ -1,0 +1,49 @@
+/* Keep cover feedback and search controls inside their own modal columns. */
+.modal {
+  align-items: start;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.cover-column,
+.details {
+  min-width: 0;
+}
+
+.details {
+  align-self: start;
+}
+
+.cover-column [aria-label="Cover feedback"] {
+  min-width: 0;
+}
+
+.cover-column [aria-label="Cover feedback"] .primary {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 8px;
+  white-space: normal;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.cover-picker > .primary {
+  max-width: 220px;
+  width: 100%;
+  white-space: normal;
+}
+
+.cover-picker-note {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .cover-column [aria-label="Cover feedback"] > div {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cover-picker > .primary {
+    max-width: none;
+  }
+}
