@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./spine-fix.css";
+import "./theme-dark-academia.css";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
+import ThemeEnricher from "./ThemeEnricher";
 
 export const metadata: Metadata = {
   title: "Virtual Bookshelf",
@@ -14,6 +16,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         {children}
         <AudibleCoverEnricher />
+        <ThemeEnricher />
       </body>
     </html>
   );
