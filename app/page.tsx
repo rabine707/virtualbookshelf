@@ -21,6 +21,8 @@ type CoverFeedback = {
   wrongEdition?: string[];
 };
 
+type IdentifierConfidence = "high" | "medium" | "low";
+
 type Book = {
   id: string;
   title: string;
@@ -29,6 +31,8 @@ type Book = {
   year?: string;
   shelf?: string;
   isbn?: string;
+  isbnSource?: string;
+  isbnConfidence?: IdentifierConfidence;
   asin?: string;
   importSource?: string;
   color: string;
@@ -38,7 +42,7 @@ type Book = {
 
 const STORAGE_KEY = "shelf-of-fame-library-v1";
 const COVER_DATA_VERSION_KEY = "shelf-of-fame-cover-data-version";
-const COVER_DATA_VERSION = "multi-cover-v7-broad-feedback";
+const COVER_DATA_VERSION = "multi-cover-v8-identifier-provenance";
 const palette = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
 const coverMemory = new Map<string, CoverResult | null>();
 const coverOptionsMemory = new Map<string, CoverResult[]>();
@@ -50,7 +54,7 @@ const sampleBooks: Book[] = [
   { id: "4", title: "Lights Out", author: "Navessa Allen", rating: 5, color: palette[3] },
   { id: "5", title: "Blood of Hercules", author: "Jasmine Mas", rating: 4, color: palette[0] },
   { id: "6", title: "Dungeon Crawler Carl", author: "Matt Dinniman", rating: 4, color: palette[5] },
-  { id: "7", title: "Warlock", author: "Daniel Kensington", rating: 5, color: palette[7] },
+  { id: "7", title: "Warlock", author: "Daniel Kensington", rating: 5, isbn: "9781948500500", isbnSource: "Goodreads", isbnConfidence: "high", color: palette[7] },
   { id: "8", title: "Coven King", author: "Virgil Knightley", rating: 4, color: palette[1] },
   { id: "9", title: "Quicksilver", author: "Callie Hart", rating: 5, color: palette[4] },
   { id: "10", title: "The Ritual", author: "Shantel Tessier", rating: 4, color: palette[6] },
@@ -123,6 +127,8 @@ function normalizeGoodreadsRow(row: Record<string, string>, index: number): Book
     year,
     shelf,
     isbn,
+    isbnSource: isbn ? "Goodreads export" : undefined,
+    isbnConfidence: isbn ? "high" : undefined,
     importSource: "Goodreads",
     color: palette[index % palette.length],
   };
@@ -227,9 +233,12 @@ function mergeGoodreadsFeedback(current: Book[], imported: Book[]) {
   return imported.map((book) => {
     const existing = byIdentity.get(importIdentity(book));
     if (!existing) return book;
+    const importedHasIsbn = Boolean(book.isbn);
     return {
       ...book,
       isbn: book.isbn || existing.isbn,
+      isbnSource: importedHasIsbn ? book.isbnSource : existing.isbnSource,
+      isbnConfidence: importedHasIsbn ? book.isbnConfidence : existing.isbnConfidence,
       preferredCover: existing.preferredCover,
       coverFeedback: existing.coverFeedback,
       asin: existing.asin,
@@ -471,7 +480,12 @@ export default function Home() {
         setCover(next);
 
         if (result?.discoveredIsbn && !isbnForBook(selected)) {
-          const updated = { ...selected, isbn: result.discoveredIsbn };
+          const updated = {
+            ...selected,
+            isbn: result.discoveredIsbn,
+            isbnSource: "LibraryThing title/edition lookup",
+            isbnConfidence: "medium" as const,
+          };
           setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
           setSelected(updated);
         }
@@ -585,7 +599,12 @@ export default function Home() {
       }
 
       if (foundIsbn && result?.discoveredIsbn) {
-        const updated = { ...selected, isbn: result.discoveredIsbn };
+        const updated = {
+          ...selected,
+          isbn: result.discoveredIsbn,
+          isbnSource: "LibraryThing title/edition lookup",
+          isbnConfidence: "medium" as const,
+        };
         setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
         setSelected(updated);
       }
@@ -593,8 +612,8 @@ export default function Home() {
       setDeepSearchDone(true);
       if (foundIsbn && result?.discoveredIsbn) {
         showToast(added
-          ? `Found ISBN ${result.discoveredIsbn} and ${added} more cover${added === 1 ? "" : "s"} for ${selected.title}.`
-          : `Found ISBN ${result.discoveredIsbn} for ${selected.title}.`);
+          ? `Found ISBN ${result.discoveredIsbn} via LibraryThing and ${added} more cover${added === 1 ? "" : "s"} for ${selected.title}.`
+          : `Found ISBN ${result.discoveredIsbn} via LibraryThing for ${selected.title}.`);
       } else {
         showToast(added ? `Found ${added} more cover${added === 1 ? "" : "s"} for ${selected.title}.` : `No additional covers found for ${selected.title}.`);
       }
@@ -803,6 +822,8 @@ export default function Home() {
                 {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
                 {selected.asin ? <><dt>Audible ASIN</dt><dd>{selected.asin}</dd></> : null}
                 <dt>ISBN</dt><dd>{selectedIsbn || "N/A"}</dd>
+                {selectedIsbn && selected.isbnSource ? <><dt>ISBN source</dt><dd>{selected.isbnSource}</dd></> : null}
+                {selectedIsbn && selected.isbnConfidence ? <><dt>ISBN confidence</dt><dd>{selected.isbnConfidence}</dd></> : null}
                 {cover?.source ? <><dt>Cover source</dt><dd>{cover.source}</dd></> : null}
                 {selected.coverFeedback?.rejected?.length ? <><dt>Rejected covers</dt><dd>{selected.coverFeedback.rejected.length}</dd></> : null}
                 {selected.coverFeedback?.wrongEdition?.length ? <><dt>Wrong editions</dt><dd>{selected.coverFeedback.wrongEdition.length}</dd></> : null}
@@ -849,8 +870,8 @@ export default function Home() {
 
                 <p className="cover-picker-note">
                   {selectedIsbn
-                    ? "Shelf of Fame now searches broad title and author variations automatically. Mark a cover correct, wrong, or the wrong edition to teach this shelf what to keep and what to stop suggesting."
-                    : "ISBN: N/A. Shelf of Fame automatically searches Google Books, Open Library, cleaned titles, keywords, author matches, and LibraryThing edition data. If it confidently finds an ISBN, it will save it to this book."}
+                    ? `Identifier provenance is saved with this book${selected.isbnSource ? ` (${selected.isbnSource}, ${selected.isbnConfidence || "unknown"} confidence)` : ""}. Cover searches still fan out across title, author, ISBN, and edition matches.`
+                    : "ISBN: N/A. Shelf of Fame searches Google Books, Open Library, cleaned titles, keywords, author matches, and LibraryThing edition data. Auto-discovered ISBNs are stored with their source and confidence instead of being treated as equally verified."}
                 </p>
               </section>
             </div>
