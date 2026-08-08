@@ -229,6 +229,7 @@ function mergeGoodreadsFeedback(current: Book[], imported: Book[]) {
     if (!existing) return book;
     return {
       ...book,
+      isbn: book.isbn || existing.isbn,
       preferredCover: existing.preferredCover,
       coverFeedback: existing.coverFeedback,
       asin: existing.asin,
@@ -468,6 +469,12 @@ export default function Home() {
         const next = preferred || safeCached || allOptions[0] || null;
         coverMemory.set(key, next);
         setCover(next);
+
+        if (result?.discoveredIsbn && !isbnForBook(selected)) {
+          const updated = { ...selected, isbn: result.discoveredIsbn };
+          setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
+          setSelected(updated);
+        }
       })
       .catch(() => undefined)
       .finally(() => {
@@ -567,6 +574,7 @@ export default function Home() {
       const fetched = result?.options || (result?.url && result?.source ? [{ url: result.url, source: result.source }] : []);
       const allOptions = allowedCovers(selected, preferred ? [preferred, ...before, ...fetched] : [...before, ...fetched]);
       const added = Math.max(0, allOptions.length - before.length);
+      const foundIsbn = Boolean(result?.discoveredIsbn && !selectedIsbn);
 
       coverOptionsMemory.set(key, allOptions);
       setCoverOptions(allOptions);
@@ -576,14 +584,20 @@ export default function Home() {
         setCover(allOptions[0]);
       }
 
-      if (result?.discoveredIsbn && !selectedIsbn) {
+      if (foundIsbn && result?.discoveredIsbn) {
         const updated = { ...selected, isbn: result.discoveredIsbn };
         setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
         setSelected(updated);
       }
 
       setDeepSearchDone(true);
-      showToast(added ? `Found ${added} more cover${added === 1 ? "" : "s"} for ${selected.title}.` : `No additional covers found for ${selected.title}.`);
+      if (foundIsbn && result?.discoveredIsbn) {
+        showToast(added
+          ? `Found ISBN ${result.discoveredIsbn} and ${added} more cover${added === 1 ? "" : "s"} for ${selected.title}.`
+          : `Found ISBN ${result.discoveredIsbn} for ${selected.title}.`);
+      } else {
+        showToast(added ? `Found ${added} more cover${added === 1 ? "" : "s"} for ${selected.title}.` : `No additional covers found for ${selected.title}.`);
+      }
     } catch {
       showToast(`Couldn't finish the deeper cover search for ${selected.title}.`);
     } finally {
@@ -788,7 +802,7 @@ export default function Home() {
                 {selected.shelf ? <><dt>Goodreads shelf</dt><dd>{selected.shelf}</dd></> : null}
                 {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
                 {selected.asin ? <><dt>Audible ASIN</dt><dd>{selected.asin}</dd></> : null}
-                {selectedIsbn ? <><dt>ISBN</dt><dd>{selectedIsbn}</dd></> : null}
+                <dt>ISBN</dt><dd>{selectedIsbn || "N/A"}</dd>
                 {cover?.source ? <><dt>Cover source</dt><dd>{cover.source}</dd></> : null}
                 {selected.coverFeedback?.rejected?.length ? <><dt>Rejected covers</dt><dd>{selected.coverFeedback.rejected.length}</dd></> : null}
                 {selected.coverFeedback?.wrongEdition?.length ? <><dt>Wrong editions</dt><dd>{selected.coverFeedback.wrongEdition.length}</dd></> : null}
@@ -836,7 +850,7 @@ export default function Home() {
                 <p className="cover-picker-note">
                   {selectedIsbn
                     ? "Shelf of Fame now searches broad title and author variations automatically. Mark a cover correct, wrong, or the wrong edition to teach this shelf what to keep and what to stop suggesting."
-                    : "No ISBN is stored for this book, so Shelf of Fame searches cleaned titles, keywords, author matches, and LibraryThing edition data. Your pass/fail choices are saved with the book."}
+                    : "ISBN: N/A. Shelf of Fame automatically searches Google Books, Open Library, cleaned titles, keywords, author matches, and LibraryThing edition data. If it confidently finds an ISBN, it will save it to this book."}
                 </p>
               </section>
             </div>
