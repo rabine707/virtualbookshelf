@@ -1,0 +1,63 @@
+/* Mobile hotfix: contain cinematic lighting/decor so it never spills across the page. */
+html[data-shelf-theme="dark-academia"] .bookcase,
+html[data-shelf-theme="dark-academia"] .shelf-row{
+  isolation:isolate;
+}
+
+/* Keep all shelf lighting inside each shelf row. */
+html[data-shelf-theme="dark-academia"] .shelf-row::before,
+html[data-shelf-theme="dark-academia"] .shelf-row::after{
+  overflow:hidden;
+  border-radius:0;
+}
+
+@media(max-width:720px){
+  /* The previous practical-light pseudo elements became huge tan beams on iPhone portrait. */
+  html[data-shelf-theme="dark-academia"] .shelf-row::before,
+  html[data-shelf-theme="dark-academia"] .shelf-row::after{
+    display:none!important;
+  }
+
+  /* Keep the photographic vignette small and fully inside the bookcase. */
+  html[data-shelf-theme="dark-academia"] .shelf-decor-set{
+    overflow:hidden!important;
+    inset:0!important;
+    z-index:2!important;
+  }
+  html[data-shelf-theme="dark-academia"] .decor-candle{
+    width:88px!important;
+    height:138px!important;
+    max-width:88px!important;
+    max-height:138px!important;
+    left:-3px!important;
+    right:auto!important;
+    bottom:20px!important;
+    opacity:.6!important;
+    filter:saturate(.65) brightness(.62) contrast(1.06) drop-shadow(0 8px 9px rgba(0,0,0,.48))!important;
+  }
+  html[data-shelf-theme="dark-academia"] .decor-layout-1 .decor-candle,
+  html[data-shelf-theme="dark-academia"] .decor-layout-3 .decor-candle{
+    left:auto!important;
+    right:-3px!important;
+  }
+
+  /* Only one vignette in the first three rows; no visible repeating pattern. */
+  html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(n+2):nth-child(-n+4) .decor-candle{
+    display:none!important;
+  }
+
+  /* Remove accidental page-level light spill from old theme pseudo elements. */
+  html[data-shelf-theme="dark-academia"] body::after,
+  html[data-shelf-theme="dark-academia"] .bookcase::after{
+    display:none!important;
+  }
+
+  /* Let the shelf itself provide atmosphere instead of large overlays. */
+  html[data-shelf-theme="dark-academia"] .bookcase{
+    overflow:hidden!important;
+    background:
+      linear-gradient(90deg,rgba(0,0,0,.5),transparent 12%,transparent 88%,rgba(0,0,0,.52)),
+      radial-gradient(ellipse at 50% 8%,rgba(112,76,43,.055),transparent 30%),
+      linear-gradient(180deg,#15120f 0%,#090806 100%)!important;
+  }
+}
