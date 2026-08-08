@@ -6,10 +6,16 @@ import { createPortal } from "react-dom";
 type ShelfTheme = "classic" | "dark-academia";
 
 const THEME_KEY = "shelf-of-fame-theme-v1";
+const SPINE_LABELS_KEY = "shelf-of-fame-spine-labels-v1";
 
 function applyTheme(theme: ShelfTheme) {
   document.documentElement.dataset.shelfTheme = theme;
   window.localStorage.setItem(THEME_KEY, theme);
+}
+
+function applySpineLabels(enabled: boolean) {
+  document.documentElement.dataset.spineLabels = enabled ? "on" : "off";
+  window.localStorage.setItem(SPINE_LABELS_KEY, enabled ? "on" : "off");
 }
 
 const ASSETS = [
@@ -54,6 +60,7 @@ function ensureDecor() {
 
 export default function ThemeEnricher() {
   const [theme, setTheme] = useState<ShelfTheme>("classic");
+  const [spineLabels, setSpineLabels] = useState(true);
   const [toolbar, setToolbar] = useState<Element | null>(null);
 
   useEffect(() => {
@@ -61,6 +68,11 @@ export default function ThemeEnricher() {
     const initial: ShelfTheme = saved === "dark-academia" ? "dark-academia" : "classic";
     setTheme(initial);
     applyTheme(initial);
+
+    const savedLabels = window.localStorage.getItem(SPINE_LABELS_KEY);
+    const labelsEnabled = savedLabels !== "off";
+    setSpineLabels(labelsEnabled);
+    applySpineLabels(labelsEnabled);
 
     let scheduled = false;
     const sync = () => {
@@ -85,13 +97,29 @@ export default function ThemeEnricher() {
     ensureDecor();
   }
 
+  function toggleSpineLabels() {
+    const next = !spineLabels;
+    setSpineLabels(next);
+    applySpineLabels(next);
+  }
+
   if (!toolbar) return null;
 
   return createPortal(
-    <div className="theme-picker" role="group" aria-label="Bookshelf theme">
+    <div className="theme-picker" role="group" aria-label="Bookshelf appearance">
       <span className="theme-picker-label">Theme</span>
       <button type="button" className={theme === "classic" ? "active" : ""} onClick={() => choose("classic")} aria-pressed={theme === "classic"}>Classic</button>
       <button type="button" className={theme === "dark-academia" ? "active" : ""} onClick={() => choose("dark-academia")} aria-pressed={theme === "dark-academia"}>Dark Academia</button>
+      <span className="theme-picker-label spine-labels-label">Spines</span>
+      <button
+        type="button"
+        className={spineLabels ? "active" : ""}
+        onClick={toggleSpineLabels}
+        aria-pressed={spineLabels}
+        aria-label={`Spine labels ${spineLabels ? "on" : "off"}. Tap to turn ${spineLabels ? "off" : "on"}.`}
+      >
+        Labels {spineLabels ? "On" : "Off"}
+      </button>
     </div>,
     toolbar,
   );
