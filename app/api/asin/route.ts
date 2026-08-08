@@ -8,6 +8,8 @@ type AudibleProduct = {
   asin?: string;
   title?: string;
   authors?: AudibleContributor[];
+  product_images?: Record<string, string>;
+  image_url?: string;
 };
 
 type AudibleCatalogResponse = {
@@ -70,12 +72,39 @@ function validAsin(value?: string) {
   return /^[A-Z0-9]{10}$/.test(asin) ? asin : null;
 }
 
+function safeImage(value?: string) {
+  const url = (value || "").trim();
+  if (!/^https?:\/\//i.test(url)) return null;
+  return url.replace(/^http:\/\//i, "https://");
+}
+
+function audibleCover(product: AudibleProduct) {
+  const images = product.product_images || {};
+  const preferredKeys = ["500", "1000", "1200", "2400", "square", "large", "medium"];
+
+  for (const key of preferredKeys) {
+    const direct = safeImage(images[key]);
+    if (direct) return direct;
+  }
+
+  const candidates = Object.entries(images)
+    .map(([key, value]) => ({ key, url: safeImage(value) }))
+    .filter((item): item is { key: string; url: string } => Boolean(item.url))
+    .sort((a, b) => {
+      const aSize = Number(a.key.replace(/\D/g, "")) || 0;
+      const bSize = Number(b.key.replace(/\D/g, "")) || 0;
+      return bSize - aSize;
+    });
+
+  return candidates[0]?.url || safeImage(product.image_url);
+}
+
 export async function GET(request: NextRequest) {
   const title = request.nextUrl.searchParams.get("title")?.trim() || "";
   const author = request.nextUrl.searchParams.get("author")?.trim() || "";
 
   if (!title) {
-    return NextResponse.json({ asin: null }, { status: 400, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ asin: null, coverUrl: null }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
   try {
@@ -83,7 +112,7 @@ export async function GET(request: NextRequest) {
       title,
       num_results: "12",
       products_sort_by: "Relevance",
-      response_groups: "contributors,product_desc",
+      response_groups: "contributors,product_desc,product_extended_attrs",
     });
     if (author) params.set("author", author);
 
@@ -96,7 +125,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      return NextResponse.json({ asin: null }, { status: 200, headers: { "Cache-Control": "no-store" } });
+      return NextResponse.json({ asin: null, coverUrl: null }, { status: 200, headers: { "Cache-Control": "no-store" } });
     }
 
     const data = await response.json() as AudibleCatalogResponse;
@@ -105,9 +134,9 @@ export async function GET(request: NextRequest) {
         const asin = validAsin(product.asin);
         const t = titleScore(title, product.title);
         const a = authorScore(author, (product.authors || []).map((entry) => entry.name || ""));
-        return { asin, score: t + a, titleScore: t, authorScore: a };
+        return { asin, coverUrl: audibleCover(product), score: t + a, titleScore: t, authorScore: a };
       })
-      .filter((item): item is { asin: string; score: number; titleScore: number; authorScore: number } => Boolean(item.asin))
+      .filter((item): item is { asin: string; coverUrl: string | null; score: number; titleScore: number; authorScore: number } => Boolean(item.asin))
       .sort((a, b) => b.score - a.score);
 
     const best = ranked[0];
@@ -120,10 +149,12 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.json(
-      confident && best ? { asin: best.asin } : { asin: null },
+      confident && best
+        ? { asin: best.asin, coverUrl: best.coverUrl, coverSource: best.coverUrl ? "Audible" : null }
+        : { asin: null, coverUrl: null, coverSource: null },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch {
-    return NextResponse.json({ asin: null }, { status: 200, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ asin: null, coverUrl: null, coverSource: null }, { status: 200, headers: { "Cache-Control": "no-store" } });
   }
 }
