@@ -7,6 +7,7 @@ import "./theme-cinematic-dark.css";
 import "./theme-organic-dark.css";
 import "./theme-mobile-hotfix.css";
 import "./theme-asset-dark.css";
+import "./modal-cover-hotfix.css";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import ThemeEnricher from "./ThemeEnricher";
 
