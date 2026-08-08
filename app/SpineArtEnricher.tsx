@@ -12,9 +12,41 @@ function splitBookIdentity(button: HTMLButtonElement) {
   };
 }
 
+function spineDisplayTitle(title: string) {
+  let cleaned = title.trim();
+
+  // Remove trailing series/edition metadata that is useful in a catalog but
+  // makes a physical spine unreadable at this scale.
+  cleaned = cleaned.replace(/\s*[\(\[][^\)\]]*(?:book|volume|vol\.?|series|#)\s*[^\)\]]*[\)\]]\s*$/i, "").trim();
+
+  // Long Goodreads/Audible titles often contain a subtitle after a colon or
+  // dash. Prefer the main title when the complete string would crowd a spine.
+  if (cleaned.length > 28) {
+    const primary = cleaned.split(/\s+(?:—|–|-|:)\s+|:\s+/)[0]?.trim();
+    if (primary && primary.length >= 5) cleaned = primary;
+  }
+
+  if (cleaned.length > 34) cleaned = `${cleaned.slice(0, 31).trim()}…`;
+  return cleaned || title.trim();
+}
+
+function spineDisplayAuthor(author: string) {
+  const cleaned = author
+    .replace(/\s*\([^\)]*\)\s*$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (cleaned.length <= 22) return cleaned;
+
+  // Keep first + last name for long multi-name/byline strings where possible.
+  const parts = cleaned.split(" ").filter(Boolean);
+  if (parts.length > 2) return `${parts[0]} ${parts[parts.length - 1]}`;
+  return `${cleaned.slice(0, 20).trim()}…`;
+}
+
 function titleScale(title: string) {
-  if (title.length > 36) return "compact";
-  if (title.length > 23) return "medium";
+  if (title.length > 27) return "compact";
+  if (title.length > 18) return "medium";
   return "normal";
 }
 
@@ -26,17 +58,15 @@ function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
   if (existing?.dataset.source === src) return;
   existing?.remove();
 
-  const { title, author } = splitBookIdentity(button);
+  const identity = splitBookIdentity(button);
+  const title = spineDisplayTitle(identity.title);
+  const author = spineDisplayAuthor(identity.author);
   const spine = document.createElement("span");
   spine.className = "generated-spine";
   spine.dataset.source = src;
   spine.dataset.titleScale = titleScale(title);
   spine.setAttribute("aria-hidden", "true");
 
-  // Build a spine-specific composition instead of displaying the rectangular
-  // cover directly. Three independently positioned copies create a narrow
-  // artwork strip that keeps color and recognizable details without looking
-  // like a squeezed front cover.
   const backdrop = document.createElement("img");
   backdrop.className = "generated-spine-art generated-spine-art-backdrop";
   backdrop.src = src;
@@ -61,6 +91,11 @@ function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
   const wash = document.createElement("span");
   wash.className = "generated-spine-wash";
 
+  // A dedicated darkened lane suppresses lettering already printed on the
+  // cropped front cover so our spine typography never has to fight it.
+  const textLane = document.createElement("span");
+  textLane.className = "generated-spine-text-lane";
+
   const topRule = document.createElement("span");
   topRule.className = "generated-spine-rule generated-spine-rule-top";
 
@@ -75,7 +110,7 @@ function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
   const bottomRule = document.createElement("span");
   bottomRule.className = "generated-spine-rule generated-spine-rule-bottom";
 
-  spine.append(backdrop, centerArt, accentArt, wash, topRule, titleNode, authorNode, bottomRule);
+  spine.append(backdrop, centerArt, accentArt, wash, textLane, topRule, titleNode, authorNode, bottomRule);
   button.appendChild(spine);
   button.dataset.generatedSpine = "1";
   button.style.setProperty("--generated-spine-width", "48px");
