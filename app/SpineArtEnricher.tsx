@@ -6,6 +6,8 @@ const DB_NAME = "shelf-of-fame-art";
 const STORE_NAME = "generated-spines";
 const DB_VERSION = 1;
 
+type SpinePosition = "left" | "center" | "right";
+
 function openDb() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -66,8 +68,19 @@ function titleScale(title: string) {
   return "normal";
 }
 
-function generatedSpineUrl(coverUrl: string) {
-  return `/api/spine?v=2&cover=${encodeURIComponent(coverUrl)}`;
+function generatedSpineUrl(coverUrl: string, position: SpinePosition = "center") {
+  return `/api/spine?v=3&position=${position}&cover=${encodeURIComponent(coverUrl)}`;
+}
+
+function storedPosition(image: string): SpinePosition | "custom" {
+  try {
+    const url = new URL(image, window.location.origin);
+    const value = url.searchParams.get("position");
+    if (value === "left" || value === "center" || value === "right") return value;
+  } catch {
+    // Older saved AI/data URL spines remain valid custom artwork.
+  }
+  return "custom";
 }
 
 function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
@@ -100,9 +113,9 @@ function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
   getGeneratedSpine(src).then((saved) => {
     if (!saved || !art.isConnected) return;
     art.src = saved;
-    art.classList.add("generated-spine-art-ai");
+    art.classList.add("generated-spine-art-picked");
     art.classList.remove("generated-spine-art-fallback");
-    button.dataset.aiSpine = "1";
+    button.dataset.spineCrop = storedPosition(saved);
   });
 
   const wash = document.createElement("span");
@@ -123,8 +136,8 @@ function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
   spine.append(art, wash, textLane, topRule, titleNode, authorNode, bottomRule);
   button.appendChild(spine);
   button.dataset.generatedSpine = "1";
-  button.style.setProperty("--generated-spine-width", "48px");
-  button.style.setProperty("--generated-spine-height", "204px");
+  button.style.setProperty("--generated-spine-width", "44px");
+  button.style.setProperty("--generated-spine-height", "220px");
 }
 
 function wireBook(button: HTMLButtonElement) {
@@ -132,7 +145,7 @@ function wireBook(button: HTMLButtonElement) {
   if (!image) {
     button.querySelector(".generated-spine")?.remove();
     delete button.dataset.generatedSpine;
-    delete button.dataset.aiSpine;
+    delete button.dataset.spineCrop;
     button.style.removeProperty("--generated-spine-width");
     button.style.removeProperty("--generated-spine-height");
     return;
@@ -158,7 +171,7 @@ export default function SpineArtEnricher() {
     };
 
     const onGenerated = (event: Event) => {
-      const detail = (event as CustomEvent<{ coverUrl: string; image: string }>).detail;
+      const detail = (event as CustomEvent<{ coverUrl: string; image: string; position?: SpinePosition }>).detail;
       if (!detail) return;
       for (const button of document.querySelectorAll<HTMLButtonElement>("button.book")) {
         const cover = button.querySelector<HTMLImageElement>(".book-cover-art");
@@ -167,9 +180,9 @@ export default function SpineArtEnricher() {
         const art = button.querySelector<HTMLImageElement>(".generated-spine-art-dedicated");
         if (art) {
           art.src = detail.image;
-          art.classList.add("generated-spine-art-ai");
+          art.classList.add("generated-spine-art-picked");
           art.classList.remove("generated-spine-art-fallback");
-          button.dataset.aiSpine = "1";
+          button.dataset.spineCrop = detail.position || storedPosition(detail.image);
         }
       }
     };

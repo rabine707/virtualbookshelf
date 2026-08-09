@@ -1,12 +1,12 @@
-/* Dedicated shelf spines generated from the approved cover art. */
+/* Dedicated 1:5 shelf spines built from the approved cover art. */
 .book.has-cover[data-generated-spine="1"] {
-  width: var(--generated-spine-width, 48px) !important;
-  min-width: var(--generated-spine-width, 48px) !important;
-  max-width: var(--generated-spine-width, 48px) !important;
-  height: var(--generated-spine-height, 204px) !important;
-  min-height: var(--generated-spine-height, 204px) !important;
-  max-height: var(--generated-spine-height, 204px) !important;
-  aspect-ratio: 4 / 17 !important;
+  width: var(--generated-spine-width, 44px) !important;
+  min-width: var(--generated-spine-width, 44px) !important;
+  max-width: var(--generated-spine-width, 44px) !important;
+  height: var(--generated-spine-height, 220px) !important;
+  min-height: var(--generated-spine-height, 220px) !important;
+  max-height: var(--generated-spine-height, 220px) !important;
+  aspect-ratio: 1 / 5 !important;
   padding: 0 !important;
   writing-mode: horizontal-tb !important;
   overflow: hidden;
@@ -37,21 +37,25 @@
   user-select: none;
 }
 
-/* /api/spine returns an actual 4:17 asset, so the browser is no longer
-   squeezing a 2:3 front cover into the physical spine box. */
+/* /api/spine returns an actual 1:5 crop, so nothing is stretched into place. */
 .generated-spine-art-dedicated {
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
-  filter: saturate(1.04) contrast(1.03) brightness(.94);
+  filter: saturate(1.04) contrast(1.04) brightness(.96);
 }
 
 .generated-spine-art-dedicated.generated-spine-art-fallback {
   object-fit: cover;
   object-position: 50% 50%;
-  filter: saturate(1.02) contrast(1.03) brightness(.64);
+  filter: saturate(1.02) contrast(1.03) brightness(.70);
+}
+
+.generated-spine-art-picked {
+  object-fit: cover !important;
+  object-position: 50% 50% !important;
 }
 
 .generated-spine-wash {
@@ -59,91 +63,74 @@
   inset: 0;
   z-index: 2;
   background:
-    linear-gradient(90deg, rgba(0,0,0,.50) 0%, rgba(255,255,255,.09) 7%, transparent 18%, transparent 77%, rgba(0,0,0,.48) 100%),
-    linear-gradient(180deg, rgba(0,0,0,.28) 0%, transparent 16%, transparent 82%, rgba(0,0,0,.38) 100%);
+    linear-gradient(90deg, rgba(0,0,0,.34) 0%, rgba(255,255,255,.07) 7%, transparent 18%, transparent 80%, rgba(0,0,0,.36) 100%),
+    linear-gradient(180deg, rgba(0,0,0,.13) 0%, transparent 11%, transparent 87%, rgba(0,0,0,.22) 100%);
   box-shadow:
-    inset 1px 0 rgba(255,255,255,.16),
-    inset -2px 0 rgba(0,0,0,.38),
-    inset 0 1px rgba(255,255,255,.08),
-    inset 0 -1px rgba(0,0,0,.30);
+    inset 1px 0 rgba(255,255,255,.12),
+    inset -2px 0 rgba(0,0,0,.32),
+    inset 0 1px rgba(255,255,255,.06),
+    inset 0 -1px rgba(0,0,0,.24);
 }
 
-.generated-spine-text-lane {
-  position: absolute;
-  z-index: 3;
-  left: 7px;
-  right: 7px;
-  top: 20px;
-  bottom: 30px;
-  border-radius: 8px;
-  background:
-    linear-gradient(90deg, rgba(8,6,5,.64), rgba(14,10,8,.45) 38%, rgba(14,10,8,.45) 62%, rgba(8,6,5,.64)),
-    linear-gradient(180deg, rgba(0,0,0,.14), rgba(0,0,0,.34));
-  box-shadow:
-    inset 1px 0 rgba(255,255,255,.04),
-    inset -1px 0 rgba(0,0,0,.28),
-    0 0 10px rgba(0,0,0,.14);
-  backdrop-filter: blur(1.5px);
-}
-
+/* Text is intentionally independent from the artwork. The old dark text lane
+   is gone; outlined type stays readable directly on top of the cover crop. */
+.generated-spine-text-lane,
 .generated-spine-rule {
-  position: absolute;
-  z-index: 4;
-  left: 11px;
-  right: 11px;
-  height: 1px;
-  background: rgba(255,248,236,.38);
-  box-shadow: 0 1px rgba(0,0,0,.35);
+  display: none;
 }
-
-.generated-spine-rule-top { top: 12px; }
-.generated-spine-rule-bottom { bottom: 12px; }
 
 .generated-spine-title {
   position: absolute;
   z-index: 5;
   left: 50%;
-  top: 47%;
-  width: 150px;
+  top: 46%;
+  width: 176px;
   transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center;
-  color: #fffaf1;
+  color: #ffe978;
   text-align: center;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1;
-  font-weight: 700;
-  letter-spacing: .018em;
-  text-shadow: 0 1px 2px rgba(0,0,0,.98), 0 0 5px rgba(0,0,0,.92);
+  font-weight: 800;
+  letter-spacing: .008em;
+  -webkit-text-stroke: .65px rgba(20,13,7,.96);
+  paint-order: stroke fill;
+  text-shadow:
+    0 1px 1px rgba(0,0,0,.98),
+    0 0 3px rgba(0,0,0,.95),
+    0 0 7px rgba(0,0,0,.72);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .generated-spine[data-title-scale="medium"] .generated-spine-title {
-  font-size: 9.75px;
-  letter-spacing: .008em;
+  font-size: 11px;
+  letter-spacing: 0;
 }
 
 .generated-spine[data-title-scale="compact"] .generated-spine-title {
-  font-size: 8.5px;
-  letter-spacing: 0;
+  font-size: 9.4px;
+  letter-spacing: -.01em;
 }
 
 .generated-spine-author {
   position: absolute;
   z-index: 5;
   left: 50%;
-  bottom: 31px;
-  width: 84px;
+  bottom: 33px;
+  width: 96px;
   transform: translateX(-50%) rotate(90deg);
   transform-origin: center;
-  color: rgba(255,250,241,.72);
+  color: rgba(255,255,255,.96);
   text-align: center;
-  font: 600 5.25px/1 Arial, sans-serif;
+  font: 700 5.6px/1 Arial, sans-serif;
   letter-spacing: .045em;
   text-transform: uppercase;
-  text-shadow: 0 1px 2px rgba(0,0,0,.92);
+  -webkit-text-stroke: .28px rgba(0,0,0,.92);
+  paint-order: stroke fill;
+  text-shadow: 0 1px 2px rgba(0,0,0,.98), 0 0 4px rgba(0,0,0,.88);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -158,62 +145,48 @@ html[data-spine-labels="off"] .generated-spine-rule {
 
 .book.has-cover[data-generated-spine="1"]::before {
   width: 4px !important;
-  opacity: .76 !important;
+  opacity: .68 !important;
   z-index: 7 !important;
 }
 
 .book.has-cover[data-generated-spine="1"]::after {
   z-index: 8 !important;
-  opacity: .15 !important;
+  opacity: .12 !important;
 }
 
 .book.has-cover[data-generated-spine="1"]:hover .generated-spine-art-dedicated,
 .book.has-cover[data-generated-spine="1"]:focus-visible .generated-spine-art-dedicated {
-  filter: saturate(.98) contrast(1.05) brightness(.78);
-}
-
-.book.has-cover[data-generated-spine="1"]:hover .generated-spine-text-lane,
-.book.has-cover[data-generated-spine="1"]:focus-visible .generated-spine-text-lane {
-  background:
-    linear-gradient(90deg, rgba(5,4,3,.72), rgba(10,8,6,.55) 38%, rgba(10,8,6,.55) 62%, rgba(5,4,3,.72)),
-    linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,.46));
+  filter: saturate(1.01) contrast(1.06) brightness(.78);
 }
 
 .book.has-cover[data-generated-spine="1"]:hover .generated-spine-title,
 .book.has-cover[data-generated-spine="1"]:focus-visible .generated-spine-title {
-  color: #fff;
+  color: #fff2a0;
 }
 
 @media (max-width: 720px) {
   .book.has-cover[data-generated-spine="1"] {
-    --generated-spine-width: 44px !important;
-    --generated-spine-height: 190px !important;
-    aspect-ratio: 22 / 95 !important;
-  }
-
-  .generated-spine-text-lane {
-    left: 6px;
-    right: 6px;
-    top: 18px;
-    bottom: 28px;
+    --generated-spine-width: 40px !important;
+    --generated-spine-height: 200px !important;
+    aspect-ratio: 1 / 5 !important;
   }
 
   .generated-spine-title {
-    width: 142px;
-    font-size: 10.25px;
+    width: 160px;
+    font-size: 11.2px;
   }
 
   .generated-spine[data-title-scale="medium"] .generated-spine-title {
-    font-size: 9px;
+    font-size: 9.8px;
   }
 
   .generated-spine[data-title-scale="compact"] .generated-spine-title {
-    font-size: 7.9px;
+    font-size: 8.4px;
   }
 
   .generated-spine-author {
-    bottom: 29px;
-    width: 78px;
-    font-size: 4.9px;
+    bottom: 30px;
+    width: 86px;
+    font-size: 5.05px;
   }
 }

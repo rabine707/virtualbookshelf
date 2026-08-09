@@ -9,17 +9,185 @@
   min-height: 18px;
   margin-top: -2px;
   padding: 0 4px;
-  color: rgba(239,229,211,.68);
+  color: rgba(239,229,211,.76);
   font: 600 11px/1.35 Arial, sans-serif;
 }
 
-.generate-spine-button:disabled {
-  opacity: .64;
+.spine-crop-editor {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding: 14px 12px 12px;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  background: #080808;
+  color: #fff;
+  box-shadow: 0 16px 32px rgba(0,0,0,.24);
+}
+
+.spine-crop-heading {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: Arial, sans-serif;
+}
+
+.spine-crop-heading strong {
+  font-size: 13px;
+  letter-spacing: .01em;
+}
+
+.spine-crop-heading span {
+  color: rgba(255,255,255,.66);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.spine-crop-preview {
+  position: relative;
+  width: 72px;
+  height: 360px;
+  aspect-ratio: 1 / 5;
+  overflow: hidden;
+  border: 3px solid rgba(76,132,105,.85);
+  border-radius: 11px;
+  background: #111;
+  box-shadow: 0 18px 36px rgba(0,0,0,.42), inset 1px 0 rgba(255,255,255,.12), inset -2px 0 rgba(0,0,0,.28);
+}
+
+.spine-crop-preview::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,.28), transparent 18%, transparent 80%, rgba(0,0,0,.32));
+  pointer-events: none;
+}
+
+.spine-crop-preview img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.spine-crop-preview-title {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 46%;
+  width: 286px;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center;
+  color: #ffe978;
+  text-align: center;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1;
+  -webkit-text-stroke: 1px rgba(18,12,6,.98);
+  paint-order: stroke fill;
+  text-shadow: 0 1px 2px #000, 0 0 5px #000, 0 0 10px rgba(0,0,0,.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spine-crop-preview-author {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 50px;
+  width: 142px;
+  transform: translateX(-50%) rotate(90deg);
+  transform-origin: center;
+  color: #fff;
+  text-align: center;
+  font: 800 8px/1 Arial, sans-serif;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  -webkit-text-stroke: .4px #000;
+  paint-order: stroke fill;
+  text-shadow: 0 1px 2px #000, 0 0 4px #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spine-crop-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.spine-crop-action {
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #f7f5ef;
+  box-shadow: 0 5px 15px rgba(0,0,0,.26);
+  font: 400 34px/1 Arial, sans-serif;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.spine-crop-action:active {
+  transform: scale(.95);
+}
+
+.spine-crop-reject { color: #e53935; }
+.spine-crop-cycle { color: #279642; font-size: 31px; }
+.spine-crop-accept { color: #279642; font-size: 31px; }
+
+.spine-crop-action:disabled {
+  opacity: .55;
   cursor: wait;
 }
 
-.generated-spine-art-ai {
-  object-fit: cover !important;
-  object-position: 50% 50% !important;
-  filter: saturate(1.02) contrast(1.025) brightness(.96) !important;
+.spine-crop-editor-status {
+  min-height: 16px;
+  color: rgba(255,255,255,.58);
+  text-align: center;
+  font: 600 10px/1.3 Arial, sans-serif;
+}
+
+@media (max-width: 720px) {
+  .spine-crop-editor {
+    padding: 12px 10px;
+  }
+
+  .spine-crop-preview {
+    width: 64px;
+    height: 320px;
+  }
+
+  .spine-crop-preview-title {
+    width: 254px;
+    font-size: 17px;
+  }
+
+  .spine-crop-preview-author {
+    bottom: 44px;
+    width: 126px;
+    font-size: 7.2px;
+  }
+
+  .spine-crop-actions {
+    gap: 16px;
+  }
+
+  .spine-crop-action {
+    width: 56px;
+    height: 56px;
+  }
 }
