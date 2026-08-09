@@ -1,3 +1,5 @@
+import { fetchPublicImage, RemoteImageError } from "../../../lib/remote-image";
+
 type GeminiPart = {
   text?: string;
   inlineData?: {
@@ -22,8 +24,19 @@ type GeminiResponse = {
   };
 };
 
-function base64FromArrayBuffer(buffer: ArrayBuffer) {
-  return Buffer.from(buffer).toString("base64");
+const MAX_TITLE_CHARS = 200;
+const MAX_AUTHOR_CHARS = 120;
+const MAX_COVER_URL_CHARS = 2_048;
+
+export const runtime = "nodejs";
+
+function promptText(value: unknown, maxChars: number) {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxChars);
 }
 
 export async function POST(request: Request) {
@@ -35,17 +48,23 @@ export async function POST(request: Request) {
     }, { status: 503 });
   }
 
-  let body: { cover?: string; title?: string; author?: string };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const cover = body.cover?.trim();
-  const title = body.title?.trim() || "this book";
-  const author = body.author?.trim() || "";
-  if (!cover || !/^https?:\/\//i.test(cover)) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return Response.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  const payload = body as Record<string, unknown>;
+  const cover = typeof payload.cover === "string" ? payload.cover.trim() : "";
+  const title = promptText(payload.title, MAX_TITLE_CHARS) || "this book";
+  const author = promptText(payload.author, MAX_AUTHOR_CHARS);
+
+  if (!cover || cover.length > MAX_COVER_URL_CHARS || !/^https?:\/\//i.test(cover)) {
     return Response.json({ error: "A valid confirmed cover is required." }, { status: 400 });
   }
 
@@ -60,21 +79,7 @@ export async function POST(request: Request) {
   ].join(" ");
 
   try {
-    const coverResponse = await fetch(cover, {
-      cache: "no-store",
-      headers: { "User-Agent": "ShelfOfFame/1.0" },
-    });
-    if (!coverResponse.ok) {
-      return Response.json({ error: "Could not load the confirmed cover for Gemini." }, { status: 502 });
-    }
-
-    const contentType = coverResponse.headers.get("content-type")?.split(";")[0]?.trim() || "image/jpeg";
-    if (!contentType.startsWith("image/")) {
-      return Response.json({ error: "The confirmed cover URL did not return an image." }, { status: 400 });
-    }
-
-    const coverBytes = await coverResponse.arrayBuffer();
-    const coverBase64 = base64FromArrayBuffer(coverBytes);
+    const confirmedCover = await fetchPublicImage(cover);
 
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1/models/gemini-3.1-flash-image:generateContent",
@@ -90,8 +95,8 @@ export async function POST(request: Request) {
               { text: prompt },
               {
                 inline_data: {
-                  mime_type: contentType,
-                  data: coverBase64,
+                  mime_type: confirmedCover.contentType,
+                  data: confirmedCover.base64,
                 },
               },
             ],
@@ -136,6 +141,10 @@ export async function POST(request: Request) {
       intendedSpineCrop: "1:4",
     });
   } catch (error) {
+    if (error instanceof RemoteImageError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
+
     return Response.json({
       error: error instanceof Error ? error.message : "Could not reach the Gemini image generator.",
     }, { status: 502 });

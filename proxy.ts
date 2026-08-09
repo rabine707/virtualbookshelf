@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceApiRateLimit } from "./lib/rate-limit";
 
 type OpenLibraryDoc = {
   title?: string;
@@ -331,6 +332,9 @@ async function discoverIsbn(title: string, author: string) {
 }
 
 export async function proxy(request: NextRequest) {
+  const rateLimited = enforceApiRateLimit(request);
+  if (rateLimited) return rateLimited;
+
   if (request.nextUrl.pathname !== "/api/cover") return NextResponse.next();
 
   const params = request.nextUrl.searchParams;
@@ -381,5 +385,11 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/cover",
+  matcher: [
+    "/api/generate-spine",
+    "/api/web-covers",
+    "/api/cover",
+    "/api/romance-cover",
+    "/api/asin",
+  ],
 };
