@@ -162,18 +162,8 @@ export default function QoLEnricher() {
     });
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "data-generated-spine"] });
 
-    const onBookClick = (event: MouseEvent) => {
-      const button = (event.target as Element | null)?.closest<HTMLButtonElement>(".book");
-      if (!button || bypass.current || button.closest(".qol-sheet")) return;
-      event.preventDefault();
-      event.stopPropagation();
-      setActive(bookInfo(button));
-    };
-    document.addEventListener("click", onBookClick, true);
-
     return () => {
       observer.disconnect();
-      document.removeEventListener("click", onBookClick, true);
       cancelBulk.current = true;
     };
   }, []);
