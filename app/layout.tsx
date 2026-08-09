@@ -17,6 +17,7 @@ import "./saved-cover-choices.css";
 import "./generated-spines.css";
 import "./page-refresh.css";
 import "./spine-generator.css";
+import "./spine-community.css";
 import "./qol.css";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import CoverAutoClose from "./CoverAutoClose";
@@ -30,6 +31,7 @@ import RemoveAudibleImport from "./RemoveAudibleImport";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import SavedCoverChoices from "./SavedCoverChoices";
 import SpineArtEnricher from "./SpineArtEnricher";
+import SpineCommunityEnricher from "./SpineCommunityEnricher";
 import SpineGenerator from "./SpineGenerator";
 import ThemeEnricher from "./ThemeEnricher";
 import WebCoverEnricher from "./WebCoverEnricher";
@@ -54,6 +56,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <AudibleCoverEnricher />
         <SpineArtEnricher />
         <SpineGenerator />
+        <SpineCommunityEnricher />
         <MobileTapFix />
         <PageRefreshButton />
         <RemoveAudibleImport />
