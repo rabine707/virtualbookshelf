@@ -22,25 +22,7 @@ import "./identifier-editor.css";
 import "./book-hub.css";
 import "./decor-store.css";
 import "./qol.css";
-import AudibleCoverEnricher from "./AudibleCoverEnricher";
-import BookHubEnricher from "./BookHubEnricher";
-import CoverAutoClose from "./CoverAutoClose";
-import CoverDecisionSafety from "./CoverDecisionSafety";
-import CoverSearchCleanup from "./CoverSearchCleanup";
-import CoverSelectionEnricher from "./CoverSelectionEnricher";
-import DecorStoreEnricher from "./DecorStoreEnricher";
-import IdentifierEditor from "./IdentifierEditor";
-import MobileTapFix from "./MobileTapFix";
-import PageRefreshButton from "./PageRefreshButton";
-import QoLEnricher from "./QoLEnricher";
-import RemoveAudibleImport from "./RemoveAudibleImport";
-import RomanceShelfEnricher from "./RomanceShelfEnricher";
-import SavedCoverChoices from "./SavedCoverChoices";
-import SpineArtEnricher from "./SpineArtEnricher";
-import SpineCommunityEnricher from "./SpineCommunityEnricher";
-import SpineGenerator from "./SpineGenerator";
-import ThemeEnricher from "./ThemeEnricher";
-import WebCoverEnricher from "./WebCoverEnricher";
+import ClientEnhancers from "./ClientEnhancers";
 
 export const metadata: Metadata = {
   title: "Virtual Bookshelf",
@@ -52,25 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         {children}
-        <CoverAutoClose />
-        <CoverDecisionSafety />
-        <CoverSearchCleanup />
-        <CoverSelectionEnricher />
-        <SavedCoverChoices />
-        <WebCoverEnricher />
-        <RomanceShelfEnricher />
-        <AudibleCoverEnricher />
-        <SpineArtEnricher />
-        <SpineGenerator />
-        <SpineCommunityEnricher />
-        <IdentifierEditor />
-        <BookHubEnricher />
-        <DecorStoreEnricher />
-        <MobileTapFix />
-        <PageRefreshButton />
-        <RemoveAudibleImport />
-        <ThemeEnricher />
-        <QoLEnricher />
+        <ClientEnhancers />
       </body>
     </html>
   );
