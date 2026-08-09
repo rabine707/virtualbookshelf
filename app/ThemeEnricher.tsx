@@ -20,10 +20,8 @@ const THEMES: { id: ShelfTheme; label: string; subtitle: string; icon: string }[
 
 const THEME_ASSETS: Record<Exclude<ShelfTheme, "classic">, string[]> = {
   "dark-academia": [
-    "/themes/dark-academia/lux-candle-botanical.svg",
-    "/themes/dark-academia/lux-apothecary-frame.svg",
-    "/themes/dark-academia/lux-ivy-bust.svg",
-    "/themes/dark-academia/lux-vintage-books.svg",
+    "/themes/dark-academia/cinematic-candle-ivy.webp",
+    "/themes/dark-academia/cinematic-globe-candle.webp",
   ],
   botanical: ["/themes/botanical/botanical-shelf.svg"],
   fantasy: ["/themes/fantasy/fantasy-shelf.svg"],
@@ -74,8 +72,8 @@ function syncDecor(theme: ShelfTheme, force = false) {
     first.loading = "lazy";
     set.appendChild(first);
 
-    if (theme === "dark-academia" && index % 6 === 1 && assets.length > 1) {
-      const secondIndex = (index + 2) % assets.length;
+    if (theme === "dark-academia" && index % 3 === 1 && assets.length > 1) {
+      const secondIndex = (index + 1) % assets.length;
       const second = document.createElement("img");
       second.className = `asset-decor asset-decor-secondary asset-kind-${secondIndex}`;
       second.src = assets[secondIndex];
