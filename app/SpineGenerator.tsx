@@ -5,6 +5,7 @@ import { useEffect } from "react";
 const DB_NAME = "shelf-of-fame-art";
 const STORE_NAME = "generated-spines";
 const DB_VERSION = 1;
+const SPINE_PROVIDER = "Gemini";
 
 function openDb() {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -72,7 +73,7 @@ export default function SpineGenerator() {
         busy = true;
         button.disabled = true;
         button.textContent = "✦ Generating…";
-        status.textContent = "Gemini is recomposing the confirmed cover into narrow spine artwork…";
+        status.textContent = `${SPINE_PROVIDER} is recomposing the confirmed cover into narrow spine artwork…`;
 
         try {
           const response = await fetch("/api/generate-spine", {
@@ -91,7 +92,7 @@ export default function SpineGenerator() {
           window.dispatchEvent(new CustomEvent("shelf-spine-generated", {
             detail: { coverUrl: current.cover, image: result.image },
           }));
-          status.textContent = "Gemini spine saved on this device.";
+          status.textContent = `${SPINE_PROVIDER} spine saved on this device.`;
           button.textContent = "↻ Regenerate spine art";
         } catch (error) {
           status.textContent = error instanceof Error ? error.message : "Spine generation failed.";
