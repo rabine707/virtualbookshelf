@@ -1,34 +1,207 @@
-/* Asset-driven Dark Academia: real image dressing, CSS only for placement/light. */
+/* Asset-driven Dark Academia: richer shelf dressing and more integrated decor. */
 html[data-shelf-theme="dark-academia"] .asset-decor-set{
-  position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden;
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:5;
+  overflow:hidden;
 }
+
+html[data-shelf-theme="dark-academia"] .asset-decor-set::before{
+  content:"";
+  position:absolute;
+  left:1.5%;
+  right:1.5%;
+  bottom:19px;
+  height:44px;
+  z-index:-1;
+  background:radial-gradient(ellipse at 50% 100%,rgba(205,145,78,.12) 0%,rgba(111,72,39,.055) 35%,transparent 72%);
+  filter:blur(4px);
+}
+
 html[data-shelf-theme="dark-academia"] .asset-decor{
-  position:absolute;bottom:20px;width:auto;max-width:155px;max-height:205px;
-  object-fit:contain;opacity:.84;filter:saturate(.78) brightness(.76) contrast(1.05) drop-shadow(0 10px 13px rgba(0,0,0,.55));
-  mix-blend-mode:normal;
+  position:absolute;
+  bottom:21px;
+  width:auto;
+  max-width:164px;
+  max-height:214px;
+  object-fit:contain;
+  opacity:.88;
+  transform-origin:bottom center;
+  filter:
+    saturate(.72)
+    sepia(.08)
+    brightness(.74)
+    contrast(1.12)
+    drop-shadow(0 2px 1px rgba(0,0,0,.58))
+    drop-shadow(0 11px 12px rgba(0,0,0,.48));
 }
-html[data-shelf-theme="dark-academia"] .asset-layout-0 .asset-decor-primary{left:1%;max-width:142px}
-html[data-shelf-theme="dark-academia"] .asset-layout-1 .asset-decor-primary{right:1%;max-width:150px}
-html[data-shelf-theme="dark-academia"] .asset-layout-2 .asset-decor-primary{left:3%;max-width:130px;opacity:.72}
-html[data-shelf-theme="dark-academia"] .asset-layout-3 .asset-decor-primary{right:2%;max-width:138px;opacity:.78}
-html[data-shelf-theme="dark-academia"] .asset-layout-4 .asset-decor-primary{left:2%;max-width:148px}
-html[data-shelf-theme="dark-academia"] .asset-layout-5 .asset-decor-primary{right:3%;max-width:125px;opacity:.7}
-html[data-shelf-theme="dark-academia"] .asset-decor-secondary{max-width:94px;opacity:.5;right:2%}
-html[data-shelf-theme="dark-academia"] .asset-layout-1 .asset-decor-secondary{left:1%;right:auto}
+
+html[data-shelf-theme="dark-academia"] .asset-decor-primary::after{
+  content:"";
+}
+
+html[data-shelf-theme="dark-academia"] .asset-layout-0 .asset-decor-primary{left:1.5%;max-width:148px;transform:rotate(-1.2deg)}
+html[data-shelf-theme="dark-academia"] .asset-layout-1 .asset-decor-primary{right:1.2%;max-width:156px;transform:rotate(1deg)}
+html[data-shelf-theme="dark-academia"] .asset-layout-2 .asset-decor-primary{left:2.8%;max-width:136px;opacity:.76;transform:rotate(.6deg)}
+html[data-shelf-theme="dark-academia"] .asset-layout-3 .asset-decor-primary{right:1.8%;max-width:145px;opacity:.82;transform:rotate(-.8deg)}
+html[data-shelf-theme="dark-academia"] .asset-layout-4 .asset-decor-primary{left:1.8%;max-width:154px;transform:rotate(.7deg)}
+html[data-shelf-theme="dark-academia"] .asset-layout-5 .asset-decor-primary{right:2.8%;max-width:132px;opacity:.74;transform:rotate(-.5deg)}
+
+html[data-shelf-theme="dark-academia"] .asset-decor-secondary{
+  max-width:96px;
+  max-height:150px;
+  opacity:.48;
+  right:2.4%;
+  filter:
+    saturate(.62)
+    sepia(.08)
+    brightness(.63)
+    contrast(1.1)
+    blur(.15px)
+    drop-shadow(0 8px 9px rgba(0,0,0,.48));
+}
+html[data-shelf-theme="dark-academia"] .asset-layout-1 .asset-decor-secondary{left:1.2%;right:auto}
+
 html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+3) .asset-decor-set{display:none}
 html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+1) .books{padding-left:16%!important;padding-right:4%!important}
 html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+2) .books{padding-left:4%!important;padding-right:17%!important}
 html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+4) .books{padding-left:11%!important;padding-right:5%!important}
 html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(6n+5) .books{padding-left:5%!important;padding-right:13%!important}
-html[data-shelf-theme="dark-academia"] .bookcase{background:linear-gradient(90deg,rgba(0,0,0,.56),transparent 15%,transparent 85%,rgba(0,0,0,.58)),radial-gradient(ellipse at 50% 18%,rgba(111,72,38,.055),transparent 40%),linear-gradient(180deg,#17130f 0%,#090806 100%)!important}
-html[data-shelf-theme="dark-academia"] .wood-shelf{filter:saturate(.72) brightness(.82);box-shadow:0 12px 22px rgba(0,0,0,.76),0 3px 5px rgba(0,0,0,.66)!important}
+
+/* Recess the interior so each row reads like a real built-in shelf bay. */
+html[data-shelf-theme="dark-academia"] .bookcase{
+  position:relative;
+  overflow:hidden;
+  border-color:#2d2118!important;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.28) 2.5%,transparent 12%,transparent 88%,rgba(0,0,0,.3) 97.5%,rgba(0,0,0,.74) 100%),
+    repeating-linear-gradient(93deg,rgba(255,255,255,.012) 0 1px,transparent 1px 23px),
+    radial-gradient(ellipse at 52% 8%,rgba(157,101,54,.09),transparent 34%),
+    linear-gradient(180deg,#18130f 0%,#0b0907 52%,#070604 100%)!important;
+  box-shadow:
+    inset 0 0 0 1px rgba(205,159,103,.08),
+    inset 18px 0 30px rgba(0,0,0,.32),
+    inset -18px 0 30px rgba(0,0,0,.34),
+    inset 0 18px 34px rgba(0,0,0,.28),
+    0 24px 42px rgba(0,0,0,.4)!important;
+}
+
+html[data-shelf-theme="dark-academia"] .bookcase::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:1;
+  background:
+    linear-gradient(90deg,transparent 0 6%,rgba(229,175,106,.018) 28%,rgba(229,175,106,.025) 52%,rgba(229,175,106,.014) 76%,transparent 94%),
+    repeating-linear-gradient(2deg,transparent 0 30px,rgba(255,255,255,.008) 31px,transparent 33px);
+  mix-blend-mode:screen;
+}
+
+html[data-shelf-theme="dark-academia"] .shelf-row{
+  position:relative;
+  isolation:isolate;
+}
+
+html[data-shelf-theme="dark-academia"] .shelf-row::before{
+  content:"";
+  position:absolute;
+  left:2%;
+  right:2%;
+  top:4px;
+  bottom:19px;
+  z-index:-1;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% 19%,rgba(178,119,66,.055),transparent 38%),
+    linear-gradient(180deg,rgba(255,255,255,.014),transparent 24%,rgba(0,0,0,.16) 100%);
+  border-left:1px solid rgba(255,255,255,.015);
+  border-right:1px solid rgba(0,0,0,.35);
+  box-shadow:
+    inset 0 18px 24px rgba(0,0,0,.21),
+    inset 0 -24px 32px rgba(0,0,0,.29);
+}
+
+html[data-shelf-theme="dark-academia"] .books{
+  position:relative;
+  z-index:2;
+  filter:drop-shadow(0 6px 5px rgba(0,0,0,.18));
+}
+
+/* Dark walnut shelf face with subtle grain and a thicker front lip. */
+html[data-shelf-theme="dark-academia"] .wood-shelf{
+  position:relative;
+  height:23px!important;
+  filter:none;
+  background:
+    repeating-linear-gradient(96deg,rgba(255,255,255,.025) 0 1px,transparent 1px 22px),
+    linear-gradient(90deg,rgba(255,255,255,.035),transparent 14%,rgba(255,255,255,.018) 46%,transparent 72%),
+    linear-gradient(180deg,#4b3625 0%,#322419 18%,#21170f 52%,#120d09 82%,#090705 100%)!important;
+  border-top:1px solid rgba(180,127,76,.16);
+  border-bottom:1px solid rgba(0,0,0,.82);
+  box-shadow:
+    0 16px 20px rgba(0,0,0,.66),
+    0 3px 5px rgba(0,0,0,.52),
+    inset 0 2px rgba(255,255,255,.042),
+    inset 0 -4px 6px rgba(0,0,0,.44)!important;
+}
+
+html[data-shelf-theme="dark-academia"] .wood-shelf::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:-5px;
+  height:5px;
+  border-radius:0 0 3px 3px;
+  background:linear-gradient(180deg,#17100b,#080604);
+  box-shadow:0 5px 8px rgba(0,0,0,.42);
+}
+
+/* Make finished/generated spines feel physically seated in the shelf. */
+html[data-shelf-theme="dark-academia"] .book{
+  box-shadow:
+    3px 5px 8px rgba(0,0,0,.36),
+    inset 1px 0 rgba(255,255,255,.08),
+    inset -2px 0 rgba(0,0,0,.15)!important;
+}
+
+html[data-shelf-theme="dark-academia"] .book.has-cover{
+  outline-color:rgba(5,3,2,.58)!important;
+  box-shadow:
+    3px 7px 10px rgba(0,0,0,.43),
+    -1px 0 rgba(255,255,255,.035),
+    inset 3px 0 5px rgba(0,0,0,.16),
+    inset -3px 0 5px rgba(0,0,0,.23)!important;
+}
+
+html[data-shelf-theme="dark-academia"] .book.has-cover:hover,
+html[data-shelf-theme="dark-academia"] .book.has-cover:focus-visible{
+  box-shadow:
+    5px 12px 18px rgba(0,0,0,.52),
+    0 0 0 1px rgba(217,170,108,.12),
+    inset 3px 0 5px rgba(0,0,0,.16),
+    inset -3px 0 5px rgba(0,0,0,.23)!important;
+}
+
 @media(max-width:720px){
- html[data-shelf-theme="dark-academia"] .asset-decor{max-width:88px;max-height:138px;bottom:20px;opacity:.64}
- html[data-shelf-theme="dark-academia"] .asset-decor-secondary{display:none}
- html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(2n) .asset-decor-set{display:none}
- html[data-shelf-theme="dark-academia"] .asset-layout-0 .asset-decor-primary,html[data-shelf-theme="dark-academia"] .asset-layout-4 .asset-decor-primary{left:0}
- html[data-shelf-theme="dark-academia"] .asset-layout-1 .asset-decor-primary,html[data-shelf-theme="dark-academia"] .asset-layout-3 .asset-decor-primary,html[data-shelf-theme="dark-academia"] .asset-layout-5 .asset-decor-primary{right:0}
- html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(n) .books{padding-left:3%!important;padding-right:3%!important}
- html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+1) .books{padding-left:10%!important}
- html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+3) .books{padding-right:8%!important}
+  html[data-shelf-theme="dark-academia"] .asset-decor{
+    max-width:92px;
+    max-height:140px;
+    bottom:22px;
+    opacity:.66;
+    filter:saturate(.68) brightness(.69) contrast(1.08) drop-shadow(0 7px 8px rgba(0,0,0,.48));
+  }
+  html[data-shelf-theme="dark-academia"] .asset-decor-secondary{display:none}
+  html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(2n) .asset-decor-set{display:none}
+  html[data-shelf-theme="dark-academia"] .asset-layout-0 .asset-decor-primary,
+  html[data-shelf-theme="dark-academia"] .asset-layout-4 .asset-decor-primary{left:0}
+  html[data-shelf-theme="dark-academia"] .asset-layout-1 .asset-decor-primary,
+  html[data-shelf-theme="dark-academia"] .asset-layout-3 .asset-decor-primary,
+  html[data-shelf-theme="dark-academia"] .asset-layout-5 .asset-decor-primary{right:0}
+  html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(n) .books{padding-left:3%!important;padding-right:3%!important}
+  html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+1) .books{padding-left:10%!important}
+  html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(4n+3) .books{padding-right:8%!important}
+  html[data-shelf-theme="dark-academia"] .wood-shelf{height:21px!important}
 }
