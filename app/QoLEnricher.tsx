@@ -32,7 +32,7 @@ function seriesInfo(button: HTMLButtonElement) {
   const title = button.querySelector<HTMLElement>(".book-title")?.textContent?.trim() || "";
   const author = button.querySelector<HTMLElement>(".book-author")?.textContent?.trim() || "";
 
-  const paren = title.match(/^(.*?)\s*[\[(]([^\])]+?)(?:,|\s)(?:#|book\s*|vol(?:ume)?\s*|part\s*)?(\d+(?:\.\d+)?)[\])]\s*$/i);
+  const paren = title.match(/^(.*?)\s*[\[(]([^\)\]]+?)(?:,|\s)(?:#|book\s*|vol(?:ume)?\s*|part\s*)?(\d+(?:\.\d+)?)[\])]\s*$/i);
   if (paren) {
     const seriesName = normalized(paren[2].replace(/(?:#|book|volume|vol|part)\s*\d+(?:\.\d+)?/ig, ""));
     return { key: `${normalized(author)}::${seriesName || normalized(paren[1])}`, number: Number(paren[3]) };
@@ -48,7 +48,6 @@ function seriesInfo(button: HTMLButtonElement) {
     return { key: `${normalized(author)}::${normalized(hash[1])}`, number: Number(hash[2]) };
   }
 
-  // Useful for series such as Dungeon Diving 101 / 102 / 201 without grouping standalone numeric titles.
   const trailing = title.match(/^(.*?\D)\s+(\d{2,3})\s*$/);
   if (trailing && normalized(trailing[1]).length >= 4) {
     return { key: `${normalized(author)}::${normalized(trailing[1])}`, number: Number(trailing[2]) };
@@ -97,6 +96,8 @@ function groupSeriesInDom() {
       member.button.dataset.seriesGrouped = "1";
     });
   }
+
+  if (ordered.every((button, index) => button === buttons[index])) return;
   distribute(ordered);
 }
 
