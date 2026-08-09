@@ -58,7 +58,7 @@ export default function SpineGenerator() {
       button.type = "button";
       button.className = "primary generate-spine-button";
       button.textContent = "✦ Generate spine art";
-      button.title = "Create artwork designed specifically for this book spine";
+      button.title = "Recompose this confirmed cover into narrow Gemini spine artwork";
 
       const status = document.createElement("div");
       status.className = "generate-spine-status";
@@ -72,7 +72,7 @@ export default function SpineGenerator() {
         busy = true;
         button.disabled = true;
         button.textContent = "✦ Generating…";
-        status.textContent = "Creating a spine-specific composition from the confirmed cover…";
+        status.textContent = "Gemini is recomposing the confirmed cover into narrow spine artwork…";
 
         try {
           const response = await fetch("/api/generate-spine", {
@@ -80,10 +80,10 @@ export default function SpineGenerator() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(current),
           });
-          const result = await response.json() as { image?: string; error?: string; needsApiKey?: boolean };
+          const result = await response.json() as { image?: string; error?: string; needsApiKey?: boolean; model?: string };
           if (!response.ok || !result.image) {
             throw new Error(result.needsApiKey
-              ? "AI spine generation needs an OPENAI_API_KEY configured in Vercel."
+              ? "AI spine generation needs GEMINI_API_KEY configured in Vercel."
               : result.error || "Spine generation failed.");
           }
 
@@ -91,7 +91,7 @@ export default function SpineGenerator() {
           window.dispatchEvent(new CustomEvent("shelf-spine-generated", {
             detail: { coverUrl: current.cover, image: result.image },
           }));
-          status.textContent = "Generated spine saved on this device.";
+          status.textContent = "Gemini spine saved on this device.";
           button.textContent = "↻ Regenerate spine art";
         } catch (error) {
           status.textContent = error instanceof Error ? error.message : "Spine generation failed.";
