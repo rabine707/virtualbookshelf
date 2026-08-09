@@ -3,10 +3,38 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-type ShelfTheme = "classic" | "dark-academia";
+type ShelfTheme = "classic" | "dark-academia" | "botanical" | "fantasy" | "cozy" | "gothic" | "celestial";
 
 const THEME_KEY = "shelf-of-fame-theme-v1";
 const SPINE_LABELS_KEY = "shelf-of-fame-spine-labels-v1";
+
+const THEMES: { id: ShelfTheme; label: string }[] = [
+  { id: "classic", label: "Classic" },
+  { id: "dark-academia", label: "Dark Academia" },
+  { id: "botanical", label: "Botanical" },
+  { id: "fantasy", label: "Fantasy" },
+  { id: "cozy", label: "Cozy Cottage" },
+  { id: "gothic", label: "Gothic Romance" },
+  { id: "celestial", label: "Celestial" },
+];
+
+const THEME_ASSETS: Record<Exclude<ShelfTheme, "classic">, string[]> = {
+  "dark-academia": [
+    "/themes/dark-academia/lux-candle-botanical.svg",
+    "/themes/dark-academia/lux-apothecary-frame.svg",
+    "/themes/dark-academia/lux-ivy-bust.svg",
+    "/themes/dark-academia/lux-vintage-books.svg",
+  ],
+  botanical: ["/themes/botanical/botanical-shelf.svg"],
+  fantasy: ["/themes/fantasy/fantasy-shelf.svg"],
+  cozy: ["/themes/cozy/cozy-shelf.svg"],
+  gothic: ["/themes/gothic/gothic-shelf.svg"],
+  celestial: ["/themes/celestial/celestial-shelf.svg"],
+};
+
+function isShelfTheme(value: string | null): value is ShelfTheme {
+  return THEMES.some((theme) => theme.id === value);
+}
 
 function applyTheme(theme: ShelfTheme) {
   document.documentElement.dataset.shelfTheme = theme;
@@ -18,38 +46,38 @@ function applySpineLabels(enabled: boolean) {
   window.localStorage.setItem(SPINE_LABELS_KEY, enabled ? "on" : "off");
 }
 
-const ASSETS = [
-  "/themes/dark-academia/lux-candle-botanical.svg",
-  "/themes/dark-academia/lux-apothecary-frame.svg",
-  "/themes/dark-academia/lux-ivy-bust.svg",
-  "/themes/dark-academia/lux-vintage-books.svg",
-];
-
-function ensureDecor() {
+function syncDecor(theme: ShelfTheme) {
   const rows = [...document.querySelectorAll<HTMLElement>(".shelf-row")];
-  rows.forEach((row, index) => {
-    if (row.querySelector(".asset-decor-set")) return;
 
+  rows.forEach((row, index) => {
+    row.querySelectorAll(".asset-decor-set").forEach((node) => node.remove());
     row.querySelectorAll(".shelf-decor-set:not(.asset-decor-set)").forEach((node) => node.remove());
 
+    if (theme === "classic") return;
+
+    const assets = THEME_ASSETS[theme];
+    // Keep breathing room on dense mobile shelves and avoid making every row identical.
+    if (index % 4 === 2 && theme !== "dark-academia") return;
+
     const set = document.createElement("div");
-    set.className = `shelf-decor-set asset-decor-set asset-layout-${index % 6}`;
+    set.className = `shelf-decor-set asset-decor-set asset-layout-${index % 6} asset-theme-${theme}`;
     set.setAttribute("aria-hidden", "true");
 
-    if (index % 4 !== 2) {
-      const first = document.createElement("img");
-      first.className = `asset-decor asset-decor-primary asset-kind-${index % ASSETS.length}`;
-      first.src = ASSETS[index % ASSETS.length];
-      first.alt = "";
-      set.appendChild(first);
-    }
+    const firstIndex = index % assets.length;
+    const first = document.createElement("img");
+    first.className = `asset-decor asset-decor-primary asset-kind-${firstIndex}`;
+    first.src = assets[firstIndex];
+    first.alt = "";
+    first.loading = "lazy";
+    set.appendChild(first);
 
-    if (index % 6 === 1) {
-      const secondIndex = (index + 2) % ASSETS.length;
+    if (theme === "dark-academia" && index % 6 === 1 && assets.length > 1) {
+      const secondIndex = (index + 2) % assets.length;
       const second = document.createElement("img");
       second.className = `asset-decor asset-decor-secondary asset-kind-${secondIndex}`;
-      second.src = ASSETS[secondIndex];
+      second.src = assets[secondIndex];
       second.alt = "";
+      second.loading = "lazy";
       set.appendChild(second);
     }
 
@@ -64,7 +92,7 @@ export default function ThemeEnricher() {
 
   useEffect(() => {
     const saved = window.localStorage.getItem(THEME_KEY);
-    const initial: ShelfTheme = saved === "dark-academia" ? "dark-academia" : "classic";
+    const initial: ShelfTheme = isShelfTheme(saved) ? saved : "classic";
     setTheme(initial);
     applyTheme(initial);
 
@@ -80,7 +108,8 @@ export default function ThemeEnricher() {
       requestAnimationFrame(() => {
         scheduled = false;
         setToolbar(document.querySelector(".toolbar"));
-        ensureDecor();
+        const current = document.documentElement.dataset.shelfTheme;
+        syncDecor(isShelfTheme(current ?? null) ? current : "classic");
       });
     };
 
@@ -93,7 +122,7 @@ export default function ThemeEnricher() {
   function choose(next: ShelfTheme) {
     setTheme(next);
     applyTheme(next);
-    ensureDecor();
+    requestAnimationFrame(() => syncDecor(next));
   }
 
   function toggleSpineLabels() {
@@ -107,8 +136,17 @@ export default function ThemeEnricher() {
   return createPortal(
     <div className="theme-picker" role="group" aria-label="Bookshelf appearance">
       <span className="theme-picker-label">Theme</span>
-      <button type="button" className={theme === "classic" ? "active" : ""} onClick={() => choose("classic")} aria-pressed={theme === "classic"}>Classic</button>
-      <button type="button" className={theme === "dark-academia" ? "active" : ""} onClick={() => choose("dark-academia")} aria-pressed={theme === "dark-academia"}>Dark Academia</button>
+      {THEMES.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          className={theme === option.id ? "active" : ""}
+          onClick={() => choose(option.id)}
+          aria-pressed={theme === option.id}
+        >
+          {option.label}
+        </button>
+      ))}
       <span className="theme-picker-label spine-labels-label">Spines</span>
       <button
         type="button"
