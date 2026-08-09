@@ -30,8 +30,8 @@ const THEME_ASSETS: Record<Exclude<ShelfTheme, "classic">, string[]> = {
   celestial: ["/themes/celestial/celestial-shelf.svg"],
 };
 
-function isShelfTheme(value: string | null): value is ShelfTheme {
-  return THEMES.some((theme) => theme.id === value);
+function isShelfTheme(value: string | null | undefined): value is ShelfTheme {
+  return typeof value === "string" && THEMES.some((theme) => theme.id === value);
 }
 
 function applyTheme(theme: ShelfTheme) {
@@ -111,7 +111,7 @@ export default function ThemeEnricher() {
         scheduled = false;
         setToolbar(document.querySelector(".toolbar"));
         const currentTheme = document.documentElement.dataset.shelfTheme;
-        syncDecor(isShelfTheme(currentTheme ?? null) ? currentTheme : "classic");
+        syncDecor(isShelfTheme(currentTheme) ? currentTheme : "classic");
       });
     };
 
@@ -149,86 +149,39 @@ export default function ThemeEnricher() {
 
   if (!toolbar) return null;
 
-  const activeTheme = THEMES.find((option) => option.id === theme) ?? THEMES[0];
-
-  return (
+  return createPortal(
     <>
-      {createPortal(
-        <div className="theme-picker-compact" role="group" aria-label="Bookshelf appearance">
-          <button
-            type="button"
-            className="theme-picker-launch"
-            onClick={() => setPickerOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={pickerOpen}
-          >
-            <span className={`theme-picker-swatch theme-picker-swatch-${theme}`} aria-hidden="true">{activeTheme.icon}</span>
-            <span className="theme-picker-launch-copy">
-              <small>Theme</small>
-              <strong>{activeTheme.label}</strong>
-            </span>
-            <span className="theme-picker-chevron" aria-hidden="true">⌄</span>
-          </button>
-          <button
-            type="button"
-            className={`spine-label-toggle ${spineLabels ? "active" : ""}`}
-            onClick={toggleSpineLabels}
-            aria-pressed={spineLabels}
-            aria-label={`Spine labels ${spineLabels ? "on" : "off"}. Tap to turn ${spineLabels ? "off" : "on"}.`}
-          >
-            Labels {spineLabels ? "On" : "Off"}
-          </button>
-        </div>,
-        toolbar,
-      )}
-
-      {pickerOpen && createPortal(
-        <div className="theme-gallery-backdrop" role="presentation" onClick={() => setPickerOpen(false)}>
-          <section
-            className="theme-gallery"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="theme-gallery-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <header className="theme-gallery-header">
-              <div>
-                <p>Bookshelf appearance</p>
-                <h2 id="theme-gallery-title">Choose your shelf</h2>
-              </div>
-              <button type="button" className="theme-gallery-close" onClick={() => setPickerOpen(false)} aria-label="Close theme picker">×</button>
-            </header>
-
-            <div className="theme-gallery-grid">
+      <button type="button" className="theme-picker-trigger" onClick={() => setPickerOpen(true)}>
+        Theme
+      </button>
+      <button type="button" className="spine-label-toggle" onClick={toggleSpineLabels}>
+        {spineLabels ? "Hide spine text" : "Show spine text"}
+      </button>
+      {pickerOpen && (
+        <div className="theme-picker-backdrop" onClick={() => setPickerOpen(false)}>
+          <div className="theme-picker" role="dialog" aria-modal="true" aria-label="Choose bookshelf theme" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="theme-picker-close" onClick={() => setPickerOpen(false)} aria-label="Close theme picker">×</button>
+            <h2>Choose a shelf theme</h2>
+            <div className="theme-picker-grid">
               {THEMES.map((option) => (
                 <button
-                  key={option.id}
                   type="button"
-                  className={`theme-card theme-card-${option.id} ${theme === option.id ? "active" : ""}`}
+                  key={option.id}
+                  className={`theme-option${theme === option.id ? " active" : ""}`}
                   onClick={() => choose(option.id)}
-                  aria-pressed={theme === option.id}
                 >
-                  <span className="theme-card-preview" aria-hidden="true">
-                    <span className="theme-card-frame">
-                      <span className="theme-card-shelf theme-card-shelf-one" />
-                      <span className="theme-card-books theme-card-books-one" />
-                      <span className="theme-card-shelf theme-card-shelf-two" />
-                      <span className="theme-card-books theme-card-books-two" />
-                      <span className="theme-card-prop">{option.icon}</span>
-                    </span>
-                  </span>
-                  <span className="theme-card-copy">
+                  <span className="theme-option-icon">{option.icon}</span>
+                  <span className="theme-option-copy">
                     <strong>{option.label}</strong>
                     <small>{option.subtitle}</small>
                   </span>
-                  {theme === option.id && <span className="theme-card-check" aria-hidden="true">✓</span>}
                 </button>
               ))}
             </div>
-          </section>
-        </div>,
-        document.body,
+          </div>
+        </div>
       )}
-    </>
+    </>,
+    toolbar,
   );
 }
