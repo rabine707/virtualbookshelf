@@ -19,10 +19,10 @@ function applySpineLabels(enabled: boolean) {
 }
 
 const ASSETS = [
-  "/themes/dark-academia/candle-flowers.webp",
-  "/themes/dark-academia/frame-bottles.webp",
-  "/themes/dark-academia/ivy-candle.webp",
-  "/themes/dark-academia/stacked-books.webp",
+  "/themes/dark-academia/lux-candle-botanical.svg",
+  "/themes/dark-academia/lux-apothecary-frame.svg",
+  "/themes/dark-academia/lux-ivy-bust.svg",
+  "/themes/dark-academia/lux-vintage-books.svg",
 ];
 
 function ensureDecor() {
@@ -30,8 +30,6 @@ function ensureDecor() {
   rows.forEach((row, index) => {
     if (row.querySelector(".asset-decor-set")) return;
 
-    // Remove only legacy CSS decor once. Do not remove our own asset layer,
-    // otherwise the MutationObserver would continuously rebuild the DOM.
     row.querySelectorAll(".shelf-decor-set:not(.asset-decor-set)").forEach((node) => node.remove());
 
     const set = document.createElement("div");
@@ -40,16 +38,17 @@ function ensureDecor() {
 
     if (index % 4 !== 2) {
       const first = document.createElement("img");
-      first.className = "asset-decor asset-decor-primary";
+      first.className = `asset-decor asset-decor-primary asset-kind-${index % ASSETS.length}`;
       first.src = ASSETS[index % ASSETS.length];
       first.alt = "";
       set.appendChild(first);
     }
 
     if (index % 6 === 1) {
+      const secondIndex = (index + 2) % ASSETS.length;
       const second = document.createElement("img");
-      second.className = "asset-decor asset-decor-secondary";
-      second.src = ASSETS[(index + 2) % ASSETS.length];
+      second.className = `asset-decor asset-decor-secondary asset-kind-${secondIndex}`;
+      second.src = ASSETS[secondIndex];
       second.alt = "";
       set.appendChild(second);
     }
