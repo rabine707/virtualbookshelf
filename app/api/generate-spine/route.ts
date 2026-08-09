@@ -50,10 +50,10 @@ export async function POST(request: Request) {
   }
 
   const prompt = [
-    `Using the supplied confirmed front cover for “${title}”${author ? ` by ${author}` : ""} as the visual reference, create a new image designed specifically for the narrow spine of this same book.`,
+    `Using the supplied confirmed front cover for “${title}”${author ? ` by ${author}` : ""} as the visual reference, create new artwork designed specifically to become the narrow spine of this same book.`,
     "Preserve the reference cover's recognizable visual identity: palette, central subject or motif, clothing and character features when present, scenery, symbols, lighting, textures, and overall mood.",
-    "Recompose rather than crop: intelligently rearrange and extend the reference artwork so the important imagery reads naturally in a very tall, narrow 1:4 composition.",
-    "Keep the strongest focal subject inside the central vertical area so it stays recognizable when displayed as a small bookshelf spine.",
+    "Recompose rather than crop. The returned canvas is 9:16 for API compatibility, but design the important artwork inside a very narrow central vertical band so the app can crop it to approximately a 1:4 book-spine shape without losing the focal subject.",
+    "Keep faces, characters, symbols, and other important details away from the far left and right edges. Extend background texture and scenery outward so side cropping remains safe.",
     "Avoid inventing unrelated characters, faces, objects, or a new genre aesthetic. This should clearly feel derived from the supplied cover.",
     "Do not include any title, author name, words, letters, logos, publisher marks, badges, barcodes, frames, borders, book mockups, or typography. The app adds accurate text separately.",
     "Return polished standalone spine artwork only, edge-to-edge, with no surrounding background outside the artwork.",
@@ -100,8 +100,7 @@ export async function POST(request: Request) {
             responseModalities: ["IMAGE"],
             responseFormat: {
               image: {
-                aspectRatio: "1:4",
-                imageSize: "1K",
+                aspectRatio: "9:16",
               },
             },
           },
@@ -133,7 +132,8 @@ export async function POST(request: Request) {
     return Response.json({
       image: `data:${mimeType};base64,${data}`,
       model: "gemini-3.1-flash-image",
-      aspectRatio: "1:4",
+      aspectRatio: "9:16",
+      intendedSpineCrop: "1:4",
     });
   } catch (error) {
     return Response.json({
