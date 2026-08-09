@@ -7,6 +7,7 @@ import "./theme-cinematic-dark.css";
 import "./theme-organic-dark.css";
 import "./theme-mobile-hotfix.css";
 import "./theme-asset-dark.css";
+import "./theme-mega-upgrade.css";
 import "./modal-cover-hotfix.css";
 import "./web-cover-search.css";
 import "./saved-cover-choices.css";
