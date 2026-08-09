@@ -22,7 +22,7 @@ type Proposal = { isbn: string; asin: string; confidence: "high" | "medium"; sou
 function normalize(value?: string) {
   return (value || "").normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
-function identity(title: string, author: string) { return `${normalize(title)}::${normalize(author)}`; }
+function identity(title?: string, author?: string) { return `${normalize(title)}::${normalize(author)}`; }
 function cleanIsbn(value: string) {
   const cleaned = value.replace(/[=\"'\s-]/g, "").trim().toUpperCase();
   return /^(?:\d{13}|\d{9}[\dX])$/.test(cleaned) ? cleaned : "";
