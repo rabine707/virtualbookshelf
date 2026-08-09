@@ -18,12 +18,14 @@ import "./generated-spines.css";
 import "./page-refresh.css";
 import "./spine-generator.css";
 import "./spine-community.css";
+import "./identifier-editor.css";
 import "./qol.css";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import CoverAutoClose from "./CoverAutoClose";
 import CoverDecisionSafety from "./CoverDecisionSafety";
 import CoverSearchCleanup from "./CoverSearchCleanup";
 import CoverSelectionEnricher from "./CoverSelectionEnricher";
+import IdentifierEditor from "./IdentifierEditor";
 import MobileTapFix from "./MobileTapFix";
 import PageRefreshButton from "./PageRefreshButton";
 import QoLEnricher from "./QoLEnricher";
@@ -57,6 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <SpineArtEnricher />
         <SpineGenerator />
         <SpineCommunityEnricher />
+        <IdentifierEditor />
         <MobileTapFix />
         <PageRefreshButton />
         <RemoveAudibleImport />
