@@ -1,0 +1,108 @@
+/* Cinematic environment pack layer. Keeps live books interactive while dressing the shelf with raster props. */
+html[data-shelf-theme="dark-academia"] .bookcase{
+  overflow:hidden;
+  background:
+    radial-gradient(ellipse at 50% 4%,rgba(229,167,92,.10),transparent 28%),
+    linear-gradient(90deg,rgba(0,0,0,.72),transparent 12%,transparent 88%,rgba(0,0,0,.74)),
+    repeating-linear-gradient(92deg,rgba(255,255,255,.012) 0 1px,transparent 1px 28px),
+    linear-gradient(180deg,#1c120c 0%,#0b0806 52%,#070504 100%)!important;
+  border-color:#2a190f!important;
+  box-shadow:
+    inset 0 0 0 1px rgba(224,171,103,.06),
+    inset 24px 0 40px rgba(0,0,0,.34),
+    inset -24px 0 40px rgba(0,0,0,.36),
+    0 26px 46px rgba(0,0,0,.44)!important;
+}
+
+html[data-shelf-theme="dark-academia"] .shelf-row{
+  min-height:250px;
+}
+
+html[data-shelf-theme="dark-academia"] .shelf-row::after{
+  left:7%!important;
+  right:7%!important;
+  bottom:20px!important;
+  height:95px!important;
+  background:radial-gradient(ellipse at 50% 100%,rgba(236,157,79,.11),transparent 68%)!important;
+  filter:blur(5px)!important;
+}
+
+html[data-shelf-theme="dark-academia"] .asset-decor-set{
+  overflow:visible!important;
+  z-index:6!important;
+}
+
+html[data-shelf-theme="dark-academia"] .asset-decor{
+  bottom:22px!important;
+  width:auto!important;
+  max-width:200px!important;
+  max-height:218px!important;
+  opacity:.94!important;
+  filter:saturate(.88) brightness(.82) contrast(1.06) drop-shadow(0 8px 8px rgba(0,0,0,.46)) drop-shadow(0 18px 22px rgba(0,0,0,.38))!important;
+}
+
+html[data-shelf-theme="dark-academia"] .asset-decor-secondary{
+  display:block!important;
+  max-width:150px!important;
+  max-height:180px!important;
+  opacity:.78!important;
+}
+
+html[data-shelf-theme="dark-academia"] .asset-layout-0 .asset-decor-primary,
+html[data-shelf-theme="dark-academia"] .asset-layout-4 .asset-decor-primary{
+  left:-12px!important;
+}
+html[data-shelf-theme="dark-academia"] .asset-layout-1 .asset-decor-primary,
+html[data-shelf-theme="dark-academia"] .asset-layout-3 .asset-decor-primary,
+html[data-shelf-theme="dark-academia"] .asset-layout-5 .asset-decor-primary{
+  right:-10px!important;
+}
+html[data-shelf-theme="dark-academia"] .asset-layout-1 .asset-decor-secondary{
+  left:0!important;
+  right:auto!important;
+}
+html[data-shelf-theme="dark-academia"] .asset-layout-4 .asset-decor-secondary{
+  right:0!important;
+  left:auto!important;
+}
+
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(3n+1) .books{
+  padding-left:18%!important;
+  padding-right:4%!important;
+}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(3n+2) .books{
+  padding-left:4%!important;
+  padding-right:18%!important;
+}
+html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(3n) .books{
+  padding-left:6%!important;
+  padding-right:6%!important;
+}
+
+html[data-shelf-theme="dark-academia"] .wood-shelf{
+  height:25px!important;
+  background:
+    repeating-linear-gradient(96deg,rgba(255,255,255,.02) 0 1px,transparent 1px 30px),
+    linear-gradient(180deg,#5a3822 0%,#392416 23%,#21150e 58%,#100b08 82%,#080605 100%)!important;
+  border-top:1px solid rgba(204,143,78,.19)!important;
+  box-shadow:0 18px 24px rgba(0,0,0,.66),0 4px 8px rgba(0,0,0,.44),inset 0 2px rgba(255,255,255,.04)!important;
+}
+
+html[data-shelf-theme="dark-academia"] .book{
+  filter:drop-shadow(0 7px 6px rgba(0,0,0,.31));
+}
+
+@media(max-width:720px){
+  html[data-shelf-theme="dark-academia"] .shelf-row{min-height:225px}
+  html[data-shelf-theme="dark-academia"] .asset-decor{
+    max-width:112px!important;
+    max-height:145px!important;
+    opacity:.88!important;
+    bottom:20px!important;
+  }
+  html[data-shelf-theme="dark-academia"] .asset-decor-secondary{display:none!important}
+  html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(3n+1) .books{padding-left:13%!important;padding-right:2%!important}
+  html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(3n+2) .books{padding-left:2%!important;padding-right:13%!important}
+  html[data-shelf-theme="dark-academia"] .shelf-row:nth-child(3n) .books{padding-left:3%!important;padding-right:3%!important}
+  html[data-shelf-theme="dark-academia"] .wood-shelf{height:21px!important}
+}
