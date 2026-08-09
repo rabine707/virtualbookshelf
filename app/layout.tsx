@@ -9,6 +9,7 @@ import "./theme-mobile-hotfix.css";
 import "./theme-asset-dark.css";
 import "./theme-mega-upgrade.css";
 import "./theme-packs.css";
+import "./theme-gallery.css";
 import "./modal-cover-hotfix.css";
 import "./web-cover-search.css";
 import "./saved-cover-choices.css";
