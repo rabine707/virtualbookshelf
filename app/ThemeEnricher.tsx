@@ -46,21 +46,24 @@ function applySpineLabels(enabled: boolean) {
   window.localStorage.setItem(SPINE_LABELS_KEY, enabled ? "on" : "off");
 }
 
-function syncDecor(theme: ShelfTheme) {
+function syncDecor(theme: ShelfTheme, force = false) {
   const rows = [...document.querySelectorAll<HTMLElement>(".shelf-row")];
 
   rows.forEach((row, index) => {
-    row.querySelectorAll(".asset-decor-set").forEach((node) => node.remove());
+    const current = row.querySelector<HTMLElement>(".asset-decor-set");
+    if (!force && current?.dataset.theme === theme) return;
+
+    if (current) current.remove();
     row.querySelectorAll(".shelf-decor-set:not(.asset-decor-set)").forEach((node) => node.remove());
 
     if (theme === "classic") return;
 
     const assets = THEME_ASSETS[theme];
-    // Keep breathing room on dense mobile shelves and avoid making every row identical.
     if (index % 4 === 2 && theme !== "dark-academia") return;
 
     const set = document.createElement("div");
     set.className = `shelf-decor-set asset-decor-set asset-layout-${index % 6} asset-theme-${theme}`;
+    set.dataset.theme = theme;
     set.setAttribute("aria-hidden", "true");
 
     const firstIndex = index % assets.length;
@@ -108,8 +111,8 @@ export default function ThemeEnricher() {
       requestAnimationFrame(() => {
         scheduled = false;
         setToolbar(document.querySelector(".toolbar"));
-        const current = document.documentElement.dataset.shelfTheme;
-        syncDecor(isShelfTheme(current ?? null) ? current : "classic");
+        const currentTheme = document.documentElement.dataset.shelfTheme;
+        syncDecor(isShelfTheme(currentTheme ?? null) ? currentTheme : "classic");
       });
     };
 
@@ -122,7 +125,7 @@ export default function ThemeEnricher() {
   function choose(next: ShelfTheme) {
     setTheme(next);
     applyTheme(next);
-    requestAnimationFrame(() => syncDecor(next));
+    requestAnimationFrame(() => syncDecor(next, true));
   }
 
   function toggleSpineLabels() {
