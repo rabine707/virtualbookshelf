@@ -104,7 +104,6 @@ export async function POST(request: Request) {
             mime_type: "image/jpeg",
             aspect_ratio: "1:4",
             image_size: "1K",
-            delivery: "inline",
           },
         }),
       },
