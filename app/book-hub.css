@@ -1,1 +1,114 @@
-.book-hub-summary{margin:0 0 18px;padding:14px;border:1px solid rgba(197,154,109,.18);border-radius:18px;background:rgba(255,255,255,.025)}.book-hub-heading{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.book-hub-heading>div{display:grid;gap:3px}.book-hub-heading small{font:700 9px/1 Arial,sans-serif;letter-spacing:.14em;color:#bd9367}.book-hub-heading strong{font-size:18px;line-height:1.15}.book-hub-heading span{font-size:13px;opacity:.7}.book-hub-edit{border:1px solid rgba(197,154,109,.24);border-radius:999px;background:rgba(255,255,255,.04);color:inherit;padding:8px 11px;font-weight:700}.book-hub-chips{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:13px}.book-hub-chips span{min-width:0;border-radius:12px;padding:9px;background:rgba(255,255,255,.035);display:grid;gap:3px}.book-hub-chips small,.book-hub-idline span{font:700 8px/1 Arial,sans-serif;text-transform:uppercase;letter-spacing:.11em;opacity:.5}.book-hub-chips b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.book-hub-idline{display:flex;justify-content:space-between;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);font-size:11px}.book-hub-idline b{color:#d9b181}.book-hub-view:not(.book-hub-editing) [aria-label="Cover feedback"],.book-hub-view:not(.book-hub-editing) .cover-picker,.book-hub-view:not(.book-hub-editing) .identifier-edit-button{display:none!important}.book-hub-view.book-hub-editing [aria-label="Cover feedback"],.book-hub-view.book-hub-editing .cover-picker,.book-hub-view.book-hub-editing .identifier-edit-button{display:grid}.book-hub-view:not(.book-hub-editing) .cover-column{align-self:start}.book-hub-view:not(.book-hub-editing) .details>.eyebrow{display:none}@media(max-width:720px){.book-hub-chips{grid-template-columns:1fr 1fr 1fr}.book-hub-heading strong{font-size:16px}.book-hub-edit{padding:7px 9px}.book-hub-summary{margin-top:4px}}
+/* Books now open directly into the editing modal. Keep the two modal columns
+   strictly isolated so injected cover/spine controls cannot overlap book details. */
+.book-hub-summary {
+  display: none !important;
+}
+
+.book-hub-view {
+  grid-template-columns: 180px minmax(0, 1fr) !important;
+  gap: 28px !important;
+  align-items: start !important;
+}
+
+.book-hub-view .cover-column {
+  grid-column: 1;
+  width: 180px;
+  min-width: 0;
+  max-width: 180px;
+  position: relative;
+}
+
+.book-hub-view .cover {
+  width: 180px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.book-hub-view .details {
+  grid-column: 2;
+  width: 100%;
+  min-width: 0;
+  align-self: start;
+}
+
+.book-hub-view [aria-label="Cover feedback"] {
+  display: grid !important;
+  position: static !important;
+  width: 100% !important;
+  max-width: 180px !important;
+  min-width: 0 !important;
+  margin: 12px auto 0 !important;
+  gap: 8px !important;
+  overflow: visible;
+}
+
+.book-hub-view [aria-label="Cover feedback"] > div {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.book-hub-view [aria-label="Cover feedback"] button,
+.book-hub-view [aria-label="Cover feedback"] .primary {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  white-space: normal !important;
+}
+
+.book-hub-view .cover-picker,
+.book-hub-view .saved-cover-choices,
+.book-hub-view .web-cover-panel,
+.book-hub-view .identifier-editor,
+.book-hub-view .identifier-edit-button {
+  position: static !important;
+  max-width: 100% !important;
+}
+
+.book-hub-view .cover-picker {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin-top: 24px !important;
+}
+
+.book-hub-view .cover-options,
+.book-hub-view .saved-cover-grid,
+.book-hub-view .web-cover-results {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.book-hub-view .details > .eyebrow {
+  display: block;
+}
+
+@media (max-width: 720px) {
+  .book-hub-view {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 18px !important;
+  }
+
+  .book-hub-view .cover-column,
+  .book-hub-view .details {
+    grid-column: 1;
+    width: 100%;
+    max-width: none;
+  }
+
+  .book-hub-view .cover {
+    width: 160px;
+  }
+
+  .book-hub-view [aria-label="Cover feedback"] {
+    max-width: 320px !important;
+  }
+
+  .book-hub-view [aria-label="Cover feedback"] > div {
+    grid-template-columns: 1fr !important;
+  }
+}

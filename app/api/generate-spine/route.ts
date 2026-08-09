@@ -1,23 +1,23 @@
 import { fetchPublicImage, RemoteImageError } from "../../../lib/remote-image";
 
-type GeminiPart = {
+type InteractionBlock = {
+  type?: string;
   text?: string;
-  inlineData?: {
-    mimeType?: string;
-    data?: string;
-  };
-  inline_data?: {
-    mime_type?: string;
-    data?: string;
-  };
+  data?: string;
+  mime_type?: string;
+  uri?: string;
 };
 
-type GeminiResponse = {
-  candidates?: Array<{
-    content?: {
-      parts?: GeminiPart[];
-    };
-  }>;
+type InteractionStep = {
+  type?: string;
+  status?: string;
+  content?: InteractionBlock[];
+};
+
+type GeminiInteractionResponse = {
+  id?: string;
+  status?: string;
+  steps?: InteractionStep[];
   error?: {
     message?: string;
     status?: string;
@@ -69,20 +69,20 @@ export async function POST(request: Request) {
   }
 
   const prompt = [
-    `Using the supplied confirmed front cover for “${title}”${author ? ` by ${author}` : ""} as the visual reference, create new artwork designed specifically to become the narrow spine of this same book.`,
+    `Using the supplied confirmed front cover for “${title}”${author ? ` by ${author}` : ""} as the visual reference, create new artwork specifically for the narrow physical spine of this same book.`,
+    "The final canvas is an exact 1:4 vertical book-spine aspect ratio. Compose for that narrow format from the start; do not make a front cover, poster, mockup, or wide image that needs side cropping.",
     "Preserve the reference cover's recognizable visual identity: palette, central subject or motif, clothing and character features when present, scenery, symbols, lighting, textures, and overall mood.",
-    "Recompose rather than crop. The returned canvas is 9:16 for API compatibility, but design the important artwork inside a very narrow central vertical band so the app can crop it to approximately a 1:4 book-spine shape without losing the focal subject.",
-    "Keep faces, characters, symbols, and other important details away from the far left and right edges. Extend background texture and scenery outward so side cropping remains safe.",
+    "Recompose the important visual elements so they remain readable and attractive in a very narrow vertical strip. Simplify or extend background details as needed rather than stretching the original cover.",
     "Avoid inventing unrelated characters, faces, objects, or a new genre aesthetic. This should clearly feel derived from the supplied cover.",
     "Do not include any title, author name, words, letters, logos, publisher marks, badges, barcodes, frames, borders, book mockups, or typography. The app adds accurate text separately.",
-    "Return polished standalone spine artwork only, edge-to-edge, with no surrounding background outside the artwork.",
+    "Return polished standalone spine artwork only, edge-to-edge.",
   ].join(" ");
 
   try {
     const confirmedCover = await fetchPublicImage(cover);
 
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1/models/gemini-3.1-flash-image:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/interactions",
       {
         method: "POST",
         headers: {
@@ -90,45 +90,40 @@ export async function POST(request: Request) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: prompt },
-              {
-                inline_data: {
-                  mime_type: confirmedCover.contentType,
-                  data: confirmedCover.base64,
-                },
-              },
-            ],
-          }],
-          generationConfig: {
-            responseModalities: ["IMAGE"],
-            responseFormat: {
-              image: {
-                aspectRatio: "9:16",
-              },
+          model: "gemini-3.1-flash-image",
+          input: [
+            { type: "text", text: prompt },
+            {
+              type: "image",
+              mime_type: confirmedCover.contentType,
+              data: confirmedCover.base64,
             },
+          ],
+          response_format: {
+            type: "image",
+            mime_type: "image/jpeg",
+            aspect_ratio: "1:4",
+            image_size: "1K",
+            delivery: "inline",
           },
         }),
       },
     );
 
-    const result = await response.json() as GeminiResponse;
+    const result = await response.json() as GeminiInteractionResponse;
     if (!response.ok) {
       return Response.json({
         error: result.error?.message || "Gemini spine generation failed.",
       }, { status: response.status });
     }
 
-    const parts = result.candidates?.flatMap((candidate) => candidate.content?.parts || []) || [];
-    const imagePart = parts.find((part) => part.inlineData?.data || part.inline_data?.data);
-    const inline = imagePart?.inlineData;
-    const snakeInline = imagePart?.inline_data;
-    const data = inline?.data || snakeInline?.data;
-    const mimeType = inline?.mimeType || snakeInline?.mime_type || "image/png";
+    const blocks = result.steps?.flatMap((step) => step.content || []) || [];
+    const imageBlock = [...blocks].reverse().find((block) => block.type === "image" && block.data);
+    const data = imageBlock?.data;
+    const mimeType = imageBlock?.mime_type || "image/jpeg";
 
     if (!data) {
-      const text = parts.map((part) => part.text).filter(Boolean).join(" ").trim();
+      const text = blocks.map((block) => block.text).filter(Boolean).join(" ").trim();
       return Response.json({
         error: text || "Gemini returned no spine artwork.",
       }, { status: 502 });
@@ -137,7 +132,7 @@ export async function POST(request: Request) {
     return Response.json({
       image: `data:${mimeType};base64,${data}`,
       model: "gemini-3.1-flash-image",
-      aspectRatio: "9:16",
+      aspectRatio: "1:4",
       intendedSpineCrop: "1:4",
     });
   } catch (error) {
