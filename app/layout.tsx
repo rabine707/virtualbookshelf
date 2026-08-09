@@ -17,6 +17,7 @@ import "./saved-cover-choices.css";
 import "./generated-spines.css";
 import "./page-refresh.css";
 import "./spine-generator.css";
+import "./qol.css";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import CoverAutoClose from "./CoverAutoClose";
 import CoverDecisionSafety from "./CoverDecisionSafety";
@@ -24,6 +25,7 @@ import CoverSearchCleanup from "./CoverSearchCleanup";
 import CoverSelectionEnricher from "./CoverSelectionEnricher";
 import MobileTapFix from "./MobileTapFix";
 import PageRefreshButton from "./PageRefreshButton";
+import QoLEnricher from "./QoLEnricher";
 import RemoveAudibleImport from "./RemoveAudibleImport";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import SavedCoverChoices from "./SavedCoverChoices";
@@ -56,6 +58,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <PageRefreshButton />
         <RemoveAudibleImport />
         <ThemeEnricher />
+        <QoLEnricher />
       </body>
     </html>
   );
