@@ -29,6 +29,7 @@ type SharedSpineRow = {
 };
 
 export type SharedSpineCatalog = {
+  byCover: Map<string, string>;
   byIsbn: Map<string, string>;
   byAsin: Map<string, string>;
   byTitleAuthor: Map<string, string>;
@@ -144,6 +145,7 @@ export async function publishSharedSpine(identity: SharedBookIdentity, image: st
     }),
   }, true);
 
+  catalogPromise = null;
   return { shared: true as const, url: publicSpineUrl(path) };
 }
 
@@ -158,6 +160,7 @@ export function loadSharedSpineCatalog(force = false) {
     ) as SharedSpineRow[];
 
     const catalog: SharedSpineCatalog = {
+      byCover: new Map(),
       byIsbn: new Map(),
       byAsin: new Map(),
       byTitleAuthor: new Map(),
@@ -166,16 +169,18 @@ export function loadSharedSpineCatalog(force = false) {
     for (const row of rows || []) {
       if (!row.storage_path || !row.books) continue;
       const url = publicSpineUrl(row.storage_path);
+      const cover = row.source_cover_url?.trim();
       const isbn = row.books.isbn?.trim();
       const asin = row.books.asin?.trim();
       const title = row.books.title || row.books.normalized_title || "";
       const author = row.books.author || row.books.normalized_author || "";
+      if (cover && !catalog.byCover.has(cover)) catalog.byCover.set(cover, url);
       if (isbn && !catalog.byIsbn.has(isbn)) catalog.byIsbn.set(isbn, url);
       if (asin && !catalog.byAsin.has(asin)) catalog.byAsin.set(asin, url);
       const key = titleAuthorKey(title, author);
       if (key !== "::" && !catalog.byTitleAuthor.has(key)) catalog.byTitleAuthor.set(key, url);
     }
     return catalog;
-  })().catch(() => ({ byIsbn: new Map(), byAsin: new Map(), byTitleAuthor: new Map() }));
+  })().catch(() => ({ byCover: new Map(), byIsbn: new Map(), byAsin: new Map(), byTitleAuthor: new Map() }));
   return catalogPromise;
 }
