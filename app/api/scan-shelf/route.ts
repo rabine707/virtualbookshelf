@@ -3,7 +3,7 @@ import { enforceApiRateLimit } from "../../../lib/rate-limit";
 export const runtime = "nodejs";
 
 const MODEL = "gemini-3.6-flash";
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const MAX_BOOKS = 60;
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -25,6 +25,7 @@ type GeminiInteractionResponse = {
 
 type RawBook = {
   box_2d?: unknown;
+  spine_box_2d?: unknown;
   title?: unknown;
   author?: unknown;
   visible_text?: unknown;
@@ -40,7 +41,7 @@ function cleanText(value: unknown, maxLength: number) {
     .slice(0, maxLength);
 }
 
-function sanitizeBox(value: unknown) {
+function sanitizeBox(value: unknown, minimumWidth = 4, minimumHeight = 20) {
   if (!Array.isArray(value) || value.length !== 4) return null;
   const numbers = value.map(Number);
   if (numbers.some((number) => !Number.isFinite(number))) return null;
@@ -52,7 +53,7 @@ function sanitizeBox(value: unknown) {
   const xMax = Math.max(0, Math.min(1000, Math.round(rawXMax)));
 
   if (yMax <= yMin || xMax <= xMin) return null;
-  if (yMax - yMin < 20 || xMax - xMin < 4) return null;
+  if (yMax - yMin < minimumHeight || xMax - xMin < minimumWidth) return null;
   return [yMin, xMin, yMax, xMax] as const;
 }
 
@@ -63,6 +64,7 @@ function sanitizeBooks(value: unknown) {
 
   return rows.flatMap((raw): Array<{
     box_2d: readonly [number, number, number, number];
+    spine_box_2d: readonly [number, number, number, number] | null;
     title: string;
     author: string;
     visible_text: string;
@@ -73,11 +75,15 @@ function sanitizeBooks(value: unknown) {
     const box = sanitizeBox(row.box_2d);
     if (!box) return [];
 
+    // A spine may be much narrower than the whole physical book.
+    const spineBox = sanitizeBox(row.spine_box_2d, 2, 12);
+
     return [{
       box_2d: box,
-      title: cleanText(row.title, 240),
-      author: cleanText(row.author, 180),
-      visible_text: cleanText(row.visible_text, 500),
+      spine_box_2d: spineBox,
+      title: spineBox ? cleanText(row.title, 240) : "",
+      author: spineBox ? cleanText(row.author, 180) : "",
+      visible_text: spineBox ? cleanText(row.visible_text, 500) : "",
       confidence: Math.max(0, Math.min(100, Math.round(Number(row.confidence) || 0))),
     }];
   }).slice(0, MAX_BOOKS);
@@ -116,17 +122,20 @@ export async function POST(request: Request) {
     return Response.json({ error: "Use a JPEG, PNG, or WebP shelf photo." }, { status: 415 });
   }
   if (image.size <= 0 || image.size > MAX_IMAGE_BYTES) {
-    return Response.json({ error: "Shelf photos must be 5 MB or smaller after preparation." }, { status: 413 });
+    return Response.json({ error: "Shelf photos must be 4 MB or smaller after preparation." }, { status: 413 });
   }
 
   const base64 = Buffer.from(await image.arrayBuffer()).toString("base64");
   const prompt = [
-    "Analyze this photograph of physical books.",
-    "Detect EVERY distinct physical book whose spine or front cover is visibly present.",
-    "Return exactly one bounding box per physical book. Do not box shelves, gaps, decor, labels, posters, screens, or groups of multiple books.",
-    "box_2d must be [ymin, xmin, ymax, xmax] normalized to integers from 0 to 1000 and should tightly surround the visible body of that one book.",
-    "Read title and author ONLY when the words are actually visible enough to read. If uncertain, return an empty string; never infer or guess a title/author from colors or artwork.",
-    "visible_text may contain other legible spine text. confidence is 0-100 confidence that the box is one physical book, not confidence in the title guess.",
+    "Analyze this photograph of physical books on shelves.",
+    "Detect every distinct physical book and return one box_2d around the visible physical body of that book.",
+    "For EACH detected book, also return spine_box_2d around ONLY the visible spine FACE: the narrow bound/bookbinding surface that normally carries spine artwork, title, author, publisher marks, or decoration.",
+    "spine_box_2d must EXCLUDE exposed page blocks/fore-edges, top or bottom page edges, front covers, back covers, neighboring books, shelf boards, and empty space.",
+    "A book may be rotated, stacked horizontally, leaning, upside down, or partially occluded. Find the actual spine face regardless of orientation.",
+    "If the physical book is visible but its spine face is genuinely not visible enough to crop, return an empty array for spine_box_2d and leave title, author, and visible_text empty. Do not substitute the page block/fore-edge as the spine.",
+    "Read title and author ONLY from the pixels inside that book's visible spine face. Never infer a title from neighboring books, page edges, colors, series context, or artwork outside the spine face.",
+    "box_2d and spine_box_2d use [ymin, xmin, ymax, xmax] coordinates normalized to integers from 0 to 1000.",
+    "visible_text may contain other legible text from the spine face. confidence is 0-100 confidence that box_2d is one physical book.",
     "Order books top-to-bottom by shelf, then left-to-right within each shelf.",
   ].join(" ");
 
@@ -161,14 +170,19 @@ export async function POST(request: Request) {
                     box_2d: {
                       type: "array",
                       items: { type: "integer" },
-                      description: "[ymin, xmin, ymax, xmax], each normalized from 0 to 1000",
+                      description: "Whole physical book: [ymin, xmin, ymax, xmax], normalized 0-1000",
+                    },
+                    spine_box_2d: {
+                      type: "array",
+                      items: { type: "integer" },
+                      description: "Visible spine face only, [ymin, xmin, ymax, xmax]; empty array when no spine face is visible",
                     },
                     title: { type: "string" },
                     author: { type: "string" },
                     visible_text: { type: "string" },
                     confidence: { type: "integer" },
                   },
-                  required: ["box_2d", "title", "author", "visible_text", "confidence"],
+                  required: ["box_2d", "spine_box_2d", "title", "author", "visible_text", "confidence"],
                 },
               },
             },
