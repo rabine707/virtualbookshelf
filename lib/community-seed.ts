@@ -14,7 +14,7 @@ type SeedBook = {
 
 type SupabaseBook = { id: string; title: string; author: string; isbn?: string | null; asin?: string | null };
 
-const MAX_SEED_BATCH = 100;
+const MAX_SEED_BATCH = 150;
 
 function normalize(value: string) {
   return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
