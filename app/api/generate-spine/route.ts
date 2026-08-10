@@ -47,6 +47,11 @@ type ProviderAttempt = {
   status: number;
 };
 
+type ConfirmedCover = {
+  contentType: string;
+  base64: string;
+};
+
 const MAX_TITLE_CHARS = 200;
 const MAX_AUTHOR_CHARS = 120;
 const MAX_COVER_URL_CHARS = 2_048;
@@ -73,10 +78,17 @@ function pollinationsError(result: PollinationsResponse) {
   return result.error?.message || result.error?.details?.upstreamBody;
 }
 
+function filenameForMime(contentType: string) {
+  if (contentType === "image/png") return "cover.png";
+  if (contentType === "image/webp") return "cover.webp";
+  if (contentType === "image/gif") return "cover.gif";
+  return "cover.jpg";
+}
+
 async function generateWithGemini(
   apiKey: string,
   prompt: string,
-  confirmedCover: { contentType: string; base64: string },
+  confirmedCover: ConfirmedCover,
 ): Promise<ProviderAttempt> {
   try {
     const response = await fetch(
@@ -148,24 +160,28 @@ async function generateWithGemini(
 async function generateWithKlein(
   apiKey: string,
   prompt: string,
-  cover: string,
+  confirmedCover: ConfirmedCover,
 ): Promise<ProviderAttempt> {
   try {
-    const response = await fetch("https://gen.pollinations.ai/v1/images/generations", {
+    const form = new FormData();
+    const bytes = Uint8Array.from(Buffer.from(confirmedCover.base64, "base64"));
+    form.append(
+      "image",
+      new Blob([bytes], { type: confirmedCover.contentType }),
+      filenameForMime(confirmedCover.contentType),
+    );
+    form.append("prompt", prompt);
+    form.append("model", "klein");
+    form.append("size", "512x2048");
+    form.append("response_format", "b64_json");
+    form.append("safe", "true");
+
+    const response = await fetch("https://gen.pollinations.ai/v1/images/edits", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "klein",
-        prompt,
-        image: cover,
-        n: 1,
-        size: "512x2048",
-        response_format: "b64_json",
-        safe: true,
-      }),
+      body: form,
     });
 
     const result = await response.json() as PollinationsResponse;
@@ -259,8 +275,6 @@ export async function POST(request: Request) {
   ].join(" ");
 
   try {
-    // Validate the reference image once on our server before giving its public URL
-    // to either provider. This preserves the SSRF/size/content-type protections.
     const confirmedCover = await fetchPublicImage(cover);
     const failures: string[] = [];
     let geminiAttempt: ProviderAttempt | null = null;
@@ -280,7 +294,7 @@ export async function POST(request: Request) {
     }
 
     if (kleinApiKey) {
-      const kleinAttempt = await generateWithKlein(kleinApiKey, prompt, cover);
+      const kleinAttempt = await generateWithKlein(kleinApiKey, prompt, confirmedCover);
       if (kleinAttempt.image) {
         return Response.json({
           image: kleinAttempt.image,
