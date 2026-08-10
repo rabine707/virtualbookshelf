@@ -16,6 +16,7 @@ import "./web-cover-search.css";
 import "./saved-cover-choices.css";
 import "./generated-spines.css";
 import "./spine-physical-cleanup.css";
+import "./physical-book-model.css";
 import "./page-refresh.css";
 import "./spine-generator.css";
 import "./spine-community.css";

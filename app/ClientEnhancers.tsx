@@ -9,6 +9,7 @@ import DecorStoreEnricher from "./DecorStoreEnricher";
 import IdentifierEditor from "./IdentifierEditor";
 import MobileTapFix from "./MobileTapFix";
 import PageRefreshButton from "./PageRefreshButton";
+import PhysicalBookEnricher from "./PhysicalBookEnricher";
 import QoLEnricher from "./QoLEnricher";
 import RemoveAudibleImport from "./RemoveAudibleImport";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
@@ -38,6 +39,7 @@ export default function ClientEnhancers() {
       <RomanceShelfEnricher />
       <AudibleCoverEnricher />
       <SpineArtEnricher />
+      <PhysicalBookEnricher />
       <SpineGenerator />
       <SpineCommunityEnricher />
       <IdentifierEditor />
