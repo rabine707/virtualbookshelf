@@ -12,5 +12,5 @@ jobs:
       - name: Seed BookTok-first community queue
         run: |
           set -euo pipefail
-          curl --fail --show-error --silent --max-time 180 \
+          curl --location --fail --show-error --silent --max-time 180 \
             https://virtualbookshelf-git-main-ready-set-ink.vercel.app/api/admin/bootstrap-booktok-8c4f7a
