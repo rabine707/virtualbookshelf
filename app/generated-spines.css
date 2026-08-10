@@ -190,3 +190,159 @@ html[data-spine-labels="off"] .generated-spine-rule {
     font-size: 5.05px;
   }
 }
+
+/* --- PHYSICAL BOOK OBJECT -------------------------------------------------
+   The generated image is now the printed texture on a subtle physical spine,
+   rather than a flat rectangle. Depth stays restrained so titles remain easy
+   to read and the shelf does not return to the exaggerated 3D look. */
+.book.has-cover[data-generated-spine="1"] {
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 4px 2px 2px 4px !important;
+  transform-style: preserve-3d !important;
+  transform-origin: 50% 100% !important;
+  backface-visibility: hidden;
+  background: #17100c !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.16),
+    1px 0 0 rgba(255,255,255,.10),
+    2px 1px 0 #eee5d5,
+    3px 1px 0 #d7c8ae,
+    4px 2px 0 rgba(91,66,47,.58),
+    6px 7px 11px rgba(35,21,13,.28) !important;
+}
+
+/* Thin visible page block on the fore-edge. */
+.book.has-cover[data-generated-spine="1"]::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 3px !important;
+  bottom: 2px !important;
+  left: auto !important;
+  right: -6px !important;
+  width: 6px !important;
+  height: auto !important;
+  opacity: 1 !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+  border: 0 !important;
+  border-radius: 0 2px 2px 0 !important;
+  background:
+    repeating-linear-gradient(180deg,
+      rgba(101,84,64,.12) 0 1px,
+      rgba(255,255,255,.12) 1px 2px,
+      transparent 2px 4px),
+    linear-gradient(90deg,
+      #c7b89f 0%,
+      #eee6d7 30%,
+      #d8cbb6 72%,
+      #ad9a7d 100%) !important;
+  box-shadow:
+    inset 1px 0 rgba(71,52,38,.20),
+    inset -1px 0 rgba(64,47,34,.16),
+    1px 2px 2px rgba(37,23,15,.20) !important;
+  transform: skewY(-.8deg) !important;
+  transform-origin: left center !important;
+}
+
+.generated-spine {
+  overflow: visible;
+  border-radius: 4px 2px 2px 4px;
+  box-shadow:
+    inset 1px 0 rgba(255,255,255,.13),
+    inset -1px 0 rgba(0,0,0,.25),
+    inset 0 1px rgba(255,255,255,.08),
+    inset 0 -1px rgba(0,0,0,.18);
+}
+
+.generated-spine-art,
+.generated-spine-wash {
+  border-radius: inherit;
+}
+
+/* Tiny top cover lip: enough to read as a bound object without stealing room. */
+.generated-spine::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  left: 2px;
+  right: -5px;
+  top: -3px;
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,.28) 0%,
+    rgba(95,70,50,.70) 42%,
+    rgba(39,27,20,.82) 100%);
+  box-shadow: 0 -1px rgba(255,255,255,.08), 1px 1px 1px rgba(28,17,11,.20);
+  transform: skewX(-24deg);
+  transform-origin: left bottom;
+}
+
+/* Printed-cover sheen and curved-spine falloff over the AI artwork. */
+.generated-spine::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg,
+      rgba(0,0,0,.24) 0%,
+      rgba(255,255,255,.09) 7%,
+      transparent 16%,
+      transparent 76%,
+      rgba(255,255,255,.035) 84%,
+      rgba(0,0,0,.30) 100%),
+    linear-gradient(180deg,
+      rgba(255,255,255,.055) 0%,
+      transparent 12%,
+      transparent 88%,
+      rgba(0,0,0,.13) 100%);
+  box-shadow:
+    inset 1px 0 rgba(255,255,255,.08),
+    inset -1px 0 rgba(0,0,0,.18);
+}
+
+/* Keep the object nearly square to the viewer; only hover reveals a hint more
+   depth. This preserves the clean, uniform bookshelf silhouette. */
+.book.has-cover[data-generated-spine="1"]:hover,
+.book.has-cover[data-generated-spine="1"]:focus-visible {
+  transform: translateY(-8px) rotate(var(--lean)) perspective(900px) rotateY(-1.5deg) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.17),
+    1px 0 0 rgba(255,255,255,.10),
+    2px 1px 0 #f0e7d7,
+    3px 1px 0 #d9cab0,
+    5px 2px 0 rgba(91,66,47,.58),
+    8px 12px 16px rgba(35,21,13,.31) !important;
+}
+
+@media (max-width: 720px) {
+  .book.has-cover[data-generated-spine="1"] {
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.15),
+      1px 0 0 rgba(255,255,255,.09),
+      2px 1px 0 #e9dfcf,
+      3px 1px 0 #cdbda5,
+      4px 5px 8px rgba(35,21,13,.24) !important;
+  }
+
+  .book.has-cover[data-generated-spine="1"]::before {
+    right: -4px !important;
+    width: 4px !important;
+  }
+
+  .generated-spine::before {
+    right: -3px;
+    top: -2px;
+    height: 2px;
+  }
+
+  .book.has-cover[data-generated-spine="1"]:hover,
+  .book.has-cover[data-generated-spine="1"]:focus-visible {
+    transform: translateY(-6px) rotate(var(--lean)) !important;
+  }
+}
