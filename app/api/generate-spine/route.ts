@@ -1,4 +1,5 @@
 import { fetchPublicImage, RemoteImageError } from "../../../lib/remote-image";
+import { consumeGenerationAttempt } from "../../../lib/spine-generation-guard";
 
 type InteractionBlock = {
   type?: string;
@@ -54,6 +55,7 @@ type ConfirmedCover = {
 
 const MAX_TITLE_CHARS = 200;
 const MAX_AUTHOR_CHARS = 120;
+const MAX_IDENTIFIER_CHARS = 64;
 const MAX_COVER_URL_CHARS = 2_048;
 const MAX_PROVIDER_ERROR_CHARS = 1_200;
 
@@ -258,9 +260,41 @@ export async function POST(request: Request) {
   const cover = typeof payload.cover === "string" ? payload.cover.trim() : "";
   const title = promptText(payload.title, MAX_TITLE_CHARS) || "this book";
   const author = promptText(payload.author, MAX_AUTHOR_CHARS);
+  const isbn = promptText(payload.isbn, MAX_IDENTIFIER_CHARS) || undefined;
+  const asin = promptText(payload.asin, MAX_IDENTIFIER_CHARS) || undefined;
 
   if (!cover || cover.length > MAX_COVER_URL_CHARS || !/^https?:\/\//i.test(cover)) {
     return Response.json({ error: "A valid confirmed cover is required." }, { status: 400 });
+  }
+
+  let generationGuard;
+  try {
+    generationGuard = await consumeGenerationAttempt(request, { title, author, isbn, asin });
+  } catch (error) {
+    const status = typeof error === "object" && error && "status" in error
+      ? Number((error as { status?: unknown }).status) || 502
+      : 502;
+    return Response.json({
+      error: error instanceof Error ? error.message : "Could not verify AI generation allowance.",
+    }, { status });
+  }
+
+  if (generationGuard.sharedSpineUrl) {
+    return Response.json({
+      error: "An approved community spine already exists for this book, so no AI credit was used.",
+      sharedSpine: generationGuard.sharedSpineUrl,
+      attempts: generationGuard.attempts,
+      remaining: generationGuard.remaining,
+    }, { status: 409 });
+  }
+
+  if (!generationGuard.allowed) {
+    return Response.json({
+      error: "You've used all 3 AI spine generations for this book. Use one of the saved/community spines instead.",
+      attempts: generationGuard.attempts,
+      remaining: 0,
+      limitReached: true,
+    }, { status: 429 });
   }
 
   const prompt = [
@@ -291,6 +325,8 @@ export async function POST(request: Request) {
           image: gptAttempt.image,
           model: gptAttempt.model,
           provider: gptAttempt.provider,
+          attempts: generationGuard.attempts,
+          remaining: generationGuard.remaining,
           aspectRatio: "1:4",
           intendedSpineCrop: "1:4",
         });
@@ -310,6 +346,8 @@ export async function POST(request: Request) {
           model: kleinAttempt.model,
           provider: kleinAttempt.provider,
           fallbackFrom: "gpt-image-2",
+          attempts: generationGuard.attempts,
+          remaining: generationGuard.remaining,
           aspectRatio: "1:4",
           intendedSpineCrop: "1:4",
         });
@@ -326,6 +364,8 @@ export async function POST(request: Request) {
           model: geminiAttempt.model,
           provider: geminiAttempt.provider,
           fallbackFrom: attempted.length > 1 ? attempted.slice(0, -1) : undefined,
+          attempts: generationGuard.attempts,
+          remaining: generationGuard.remaining,
           aspectRatio: "1:4",
           intendedSpineCrop: "1:4",
         });
@@ -337,14 +377,18 @@ export async function POST(request: Request) {
       error: failures.join(" • ") || "AI spine generation failed.",
       providerErrors: failures,
       attemptedProviders: attempted,
+      attempts: generationGuard.attempts,
+      remaining: generationGuard.remaining,
     }, { status: 502 });
   } catch (error) {
     if (error instanceof RemoteImageError) {
-      return Response.json({ error: error.message }, { status: error.status });
+      return Response.json({ error: error.message, attempts: generationGuard.attempts, remaining: generationGuard.remaining }, { status: error.status });
     }
 
     return Response.json({
       error: error instanceof Error ? error.message : "Could not reach the AI image generator.",
+      attempts: generationGuard.attempts,
+      remaining: generationGuard.remaining,
     }, { status: 502 });
   }
 }
