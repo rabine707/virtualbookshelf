@@ -59,12 +59,18 @@ function removePhysicalModel(button: HTMLButtonElement) {
   delete button.dataset.physicalModelReady;
 }
 
+function spineMaterial(viewer: ModelViewerLike) {
+  const materials = viewer.model?.materials || [];
+  return materials.find((candidate) => candidate.name === "spineTexture")
+    || materials.find((candidate) => /spine/i.test(candidate.name || ""));
+}
+
 async function applySpineTexture(button: HTMLButtonElement, viewer: ModelViewerLike) {
   const source = spineSource(button);
   if (!source || !viewer.createTexture || !viewer.model?.materials?.length) return;
   if (viewer.dataset.spineSource === source && button.dataset.physicalModelReady === "1") return;
 
-  const material = viewer.model.materials.find((candidate) => candidate.name === "spineTexture");
+  const material = spineMaterial(viewer);
   const textureChannel = material?.pbrMetallicRoughness?.baseColorTexture;
   if (!textureChannel?.setTexture) return;
 
@@ -76,7 +82,7 @@ async function applySpineTexture(button: HTMLButtonElement, viewer: ModelViewerL
     viewer.classList.add("is-ready");
     button.dataset.physicalModelReady = "1";
   } catch {
-    // Keep the existing flat generated spine as a graceful fallback.
+    // Keep the flat generated spine visible if WebGL or texture loading fails.
     viewer.classList.remove("is-ready");
     delete button.dataset.physicalModelReady;
   }
@@ -95,15 +101,18 @@ function buildPhysicalModel(button: HTMLButtonElement) {
     viewer.setAttribute("src", BOOK_MODEL);
     viewer.setAttribute("alt", "");
     viewer.setAttribute("aria-hidden", "true");
-    viewer.setAttribute("loading", "lazy");
+    viewer.setAttribute("loading", "eager");
     viewer.setAttribute("reveal", "auto");
     viewer.setAttribute("interaction-prompt", "none");
     viewer.setAttribute("environment-image", "neutral");
     viewer.setAttribute("tone-mapping", "neutral");
     viewer.setAttribute("exposure", "1");
     viewer.setAttribute("camera-target", "0m 0m 0m");
-    viewer.setAttribute("camera-orbit", "1.5deg 90deg 1.95m");
-    viewer.setAttribute("field-of-view", "12deg");
+    // Face the actual spine mesh head-on and fill the shelf-height viewport.
+    viewer.setAttribute("camera-orbit", "0deg 90deg 1.78m");
+    viewer.setAttribute("field-of-view", "11.5deg");
+    // Slightly widen the physical book so it reads naturally beside the CSS books.
+    viewer.setAttribute("scale", "1.18 1 1");
     viewer.tabIndex = -1;
     button.appendChild(viewer);
     button.dataset.physicalBookModel = "1";
