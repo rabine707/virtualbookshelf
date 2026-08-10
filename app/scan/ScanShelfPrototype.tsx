@@ -29,6 +29,7 @@ type Region = {
 
 const OPENCV_SCRIPT_ID = "shelf-of-fame-opencv";
 const OPENCV_URL = "https://docs.opencv.org/4.x/opencv.js";
+const OPENCV_TIMEOUT_MS = 15_000;
 const MAX_IMAGE_DIMENSION = 1800;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
@@ -36,38 +37,76 @@ function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-async function resolveCv() {
-  const value = window.cv;
-  if (!value) return null;
-  if (typeof (value as Promise<CvApi>).then === "function") {
-    const resolved = await (value as Promise<CvApi>);
-    window.cv = resolved;
-    return resolved;
-  }
-  return value as CvApi;
+function cvIsReady(value: unknown): value is CvApi {
+  return Boolean(value && typeof value === "object" && "Mat" in value);
 }
 
-async function loadOpenCv() {
-  const existing = await resolveCv();
-  if (existing?.Mat) return existing;
-
+function ensureOpenCvScript() {
   let script = document.getElementById(OPENCV_SCRIPT_ID) as HTMLScriptElement | null;
+
+  if (script?.dataset.loadState === "failed") {
+    script.remove();
+    script = null;
+  }
+
   if (!script) {
     script = document.createElement("script");
     script.id = OPENCV_SCRIPT_ID;
     script.src = OPENCV_URL;
     script.async = true;
+    script.dataset.loadState = "loading";
+    script.onload = () => {
+      if (script) script.dataset.loadState = "loaded";
+    };
+    script.onerror = () => {
+      if (script) script.dataset.loadState = "failed";
+    };
     document.head.appendChild(script);
   }
 
+  return script;
+}
+
+async function loadOpenCv() {
+  const immediate = window.cv;
+  if (cvIsReady(immediate)) return immediate;
+
+  const script = ensureOpenCvScript();
   const started = Date.now();
-  while (Date.now() - started < 20_000) {
-    const cv = await resolveCv();
-    if (cv?.Mat) return cv;
-    await wait(100);
+  let pendingCv: Promise<CvApi> | null = null;
+
+  while (Date.now() - started < OPENCV_TIMEOUT_MS) {
+    if (script.dataset.loadState === "failed") {
+      throw new Error("The OpenCV detector could not be downloaded. Refresh the page and try again.");
+    }
+
+    const value = window.cv;
+    if (cvIsReady(value)) return value;
+
+    if (value && typeof (value as Promise<CvApi>).then === "function") {
+      pendingCv ??= Promise.resolve(value as Promise<CvApi>).then((resolved) => {
+        window.cv = resolved;
+        return resolved;
+      });
+
+      const remaining = Math.max(0, OPENCV_TIMEOUT_MS - (Date.now() - started));
+      const result = await Promise.race([
+        pendingCv
+          .then((cv) => ({ cv, error: null as unknown }))
+          .catch((error) => ({ cv: null as CvApi | null, error })),
+        wait(Math.min(250, remaining)).then(() => null),
+      ]);
+
+      if (result?.error) {
+        throw new Error("OpenCV started loading but could not initialize on this device.");
+      }
+      if (result?.cv && cvIsReady(result.cv)) return result.cv;
+    } else {
+      await wait(100);
+    }
   }
 
-  throw new Error("OpenCV could not finish loading. Check your connection and try again.");
+  throw new Error("The spine detector took too long to load. Refresh the page and try again; if it still hangs, send me your browser/device and I’ll switch the loader.");
 }
 
 function loadImage(src: string) {
@@ -133,8 +172,7 @@ function cleanRegions(regions: Array<Omit<Region, "id" | "crop">>) {
 
 // Detection approach adapted from the CC0 Libiry BookSpineScanner project:
 // grayscale -> blur -> Canny edges -> vertical dilation -> contour filtering.
-async function detectSpineRegions(image: PreparedImage) {
-  const cv = await loadOpenCv();
+async function detectSpineRegions(image: PreparedImage, cv: CvApi) {
   const canvas = document.createElement("canvas");
   canvas.width = image.width;
   canvas.height = image.height;
@@ -229,10 +267,10 @@ export default function ScanShelfPrototype() {
     try {
       const prepared = await prepareFile(file);
       setImage(prepared);
-      setStatus("Loading spine detector…");
-      await loadOpenCv();
+      setStatus("Loading spine detector… first load can take up to 15 seconds.");
+      const cv = await loadOpenCv();
       setStatus("Finding book-shaped regions…");
-      const detected = await detectSpineRegions(prepared);
+      const detected = await detectSpineRegions(prepared, cv);
 
       if (!detected.length) {
         setStatus("No clear spine-shaped regions found yet.");
