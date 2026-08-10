@@ -1,6 +1,6 @@
-import { BOOKTOK_TRENDING_TITLES } from "../../../../../lib/booktok-seed";
-import { fetchBookTokStarterSeeds, starterPresetQueries } from "../../../../../lib/openlibrary-seed";
-import { sanitizeSeedBooks, seedCommunityCatalog } from "../../../../../lib/community-seed";
+import { BOOKTOK_TRENDING_TITLES } from "../../../../lib/booktok-seed";
+import { fetchBookTokStarterSeeds, starterPresetQueries } from "../../../../lib/openlibrary-seed";
+import { sanitizeSeedBooks, seedCommunityCatalog } from "../../../../lib/community-seed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
