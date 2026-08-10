@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
-import BookHubEnricher from "./BookHubEnricher";
-import CoverAutoClose from "./CoverAutoClose";
+import CoreInteractionEnricher from "./CoreInteractionEnricher";
 import CoverDecisionSafety from "./CoverDecisionSafety";
 import CoverSearchCleanup from "./CoverSearchCleanup";
-import CoverSelectionEnricher from "./CoverSelectionEnricher";
 import DecorStoreEnricher from "./DecorStoreEnricher";
 import IdentifierEditor from "./IdentifierEditor";
 import MobileTapFix from "./MobileTapFix";
@@ -32,10 +30,9 @@ export default function ClientEnhancers() {
 
   return (
     <>
-      <CoverAutoClose />
+      <CoreInteractionEnricher />
       <CoverDecisionSafety />
       <CoverSearchCleanup />
-      <CoverSelectionEnricher />
       <SavedCoverChoices />
       <WebCoverEnricher />
       <RomanceShelfEnricher />
@@ -44,7 +41,6 @@ export default function ClientEnhancers() {
       <SpineGenerator />
       <SpineCommunityEnricher />
       <IdentifierEditor />
-      <BookHubEnricher />
       <DecorStoreEnricher />
       <MobileTapFix />
       <PageRefreshButton />
