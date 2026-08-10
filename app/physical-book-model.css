@@ -1,0 +1,71 @@
+/* Actual 3D book geometry: the AI/crop spine is applied to the curved spine
+   material of /models/shelf-book.glb. The old DOM spine remains underneath as
+   a fallback until the model and texture are both ready. */
+.book.has-cover[data-generated-spine="1"] .physical-book-model {
+  position: absolute;
+  z-index: 12;
+  pointer-events: none;
+  left: -5px;
+  right: -5px;
+  top: -4px;
+  bottom: -4px;
+  width: calc(100% + 10px);
+  height: calc(100% + 8px);
+  display: block;
+  opacity: 0;
+  background: transparent !important;
+  --poster-color: transparent;
+  transition: opacity 140ms ease;
+}
+
+.book.has-cover[data-generated-spine="1"][data-physical-model-ready="1"] .physical-book-model {
+  opacity: 1;
+}
+
+.book.has-cover[data-generated-spine="1"][data-physical-model-ready="1"] .generated-spine {
+  opacity: 0 !important;
+}
+
+/* Once the real geometry is present, turn off the CSS pseudo-3D shell. */
+.book.has-cover[data-generated-spine="1"][data-physical-model-ready="1"] {
+  overflow: visible !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.book.has-cover[data-generated-spine="1"][data-physical-model-ready="1"]::before,
+.book.has-cover[data-generated-spine="1"][data-physical-model-ready="1"]::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* The 3D model already carries its own cover shape and lighting. Hover simply
+   lifts the whole book; no fake paper edge or extra CSS perspective is added. */
+.book.has-cover[data-generated-spine="1"][data-physical-model-ready="1"]:hover,
+.book.has-cover[data-generated-spine="1"][data-physical-model-ready="1"]:focus-visible {
+  transform: translateY(-7px) rotate(var(--lean)) !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 720px) {
+  .book.has-cover[data-generated-spine="1"] .physical-book-model {
+    left: -4px;
+    right: -4px;
+    top: -3px;
+    bottom: -3px;
+    width: calc(100% + 8px);
+    height: calc(100% + 6px);
+  }
+
+  .book.has-cover[data-generated-spine="1"][data-physical-model-ready="1"]:hover,
+  .book.has-cover[data-generated-spine="1"][data-physical-model-ready="1"]:focus-visible {
+    transform: translateY(-5px) rotate(var(--lean)) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book.has-cover[data-generated-spine="1"] .physical-book-model {
+    transition: none;
+  }
+}
