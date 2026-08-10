@@ -1,0 +1,35 @@
+/* Final physical-spine cleanup: keep depth, remove exposed-paper illusion. */
+.book.has-cover[data-generated-spine="1"] {
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.13),
+    1px 0 0 rgba(255,255,255,.07),
+    2px 1px 0 rgba(38,25,18,.86),
+    4px 2px 0 rgba(67,45,32,.58),
+    6px 7px 11px rgba(35,21,13,.28) !important;
+}
+
+/* No visible page block between books. */
+.book.has-cover[data-generated-spine="1"]::before {
+  content: none !important;
+  display: none !important;
+}
+
+.book.has-cover[data-generated-spine="1"]:hover,
+.book.has-cover[data-generated-spine="1"]:focus-visible {
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.14),
+    1px 0 0 rgba(255,255,255,.08),
+    2px 1px 0 rgba(39,25,18,.88),
+    5px 2px 0 rgba(70,47,33,.60),
+    8px 12px 16px rgba(35,21,13,.31) !important;
+}
+
+@media (max-width: 720px) {
+  .book.has-cover[data-generated-spine="1"] {
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.11),
+      1px 0 0 rgba(255,255,255,.06),
+      2px 1px 0 rgba(38,25,18,.82),
+      4px 5px 8px rgba(35,21,13,.24) !important;
+  }
+}
