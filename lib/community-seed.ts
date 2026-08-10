@@ -12,7 +12,15 @@ type SeedBook = {
   needsIdentification?: boolean;
 };
 
-type SupabaseBook = { id: string; title: string; author: string; isbn?: string | null; asin?: string | null };
+type SupabaseBook = {
+  id: string;
+  title: string;
+  author: string;
+  isbn?: string | null;
+  asin?: string | null;
+  normalized_title?: string | null;
+  normalized_author?: string | null;
+};
 
 const MAX_SEED_BATCH = 150;
 
@@ -65,50 +73,76 @@ export function sanitizeSeedBooks(input: unknown): SeedBook[] {
   });
 }
 
-async function findExistingBook(baseUrl: string, serviceRoleKey: string, row: SeedBook): Promise<SupabaseBook | undefined> {
-  const select = "id,title,author,isbn,asin";
-  if (row.isbn) {
-    const r = await fetch(`${baseUrl}/rest/v1/books?select=${select}&isbn=eq.${encodeURIComponent(row.isbn)}&limit=1`, { headers: headers(serviceRoleKey), cache: "no-store" });
-    const data = await jsonOrText(r);
-    if (r.ok && Array.isArray(data) && data[0]) return data[0] as SupabaseBook;
-  }
-  if (row.asin) {
-    const r = await fetch(`${baseUrl}/rest/v1/books?select=${select}&asin=eq.${encodeURIComponent(row.asin)}&limit=1`, { headers: headers(serviceRoleKey), cache: "no-store" });
-    const data = await jsonOrText(r);
-    if (r.ok && Array.isArray(data) && data[0]) return data[0] as SupabaseBook;
-  }
-  const nt = normalize(row.title), na = normalize(row.author);
-  const r = await fetch(`${baseUrl}/rest/v1/books?select=${select}&normalized_title=eq.${encodeURIComponent(nt)}&normalized_author=eq.${encodeURIComponent(na)}&limit=1`, { headers: headers(serviceRoleKey), cache: "no-store" });
-  const data = await jsonOrText(r);
-  if (r.ok && Array.isArray(data) && data[0]) return data[0] as SupabaseBook;
-  return undefined;
+function normKey(title: string, author: string) {
+  return `${normalize(title)}|${normalize(author)}`;
 }
 
-async function createBook(baseUrl: string, serviceRoleKey: string, row: SeedBook): Promise<SupabaseBook> {
-  const response = await fetch(`${baseUrl}/rest/v1/books`, {
-    method: "POST",
-    headers: headers(serviceRoleKey, "return=representation"),
-    body: JSON.stringify({
-      title: row.title,
-      author: row.author,
-      isbn: row.isbn,
-      asin: row.asin,
-      normalized_title: normalize(row.title),
-      normalized_author: normalize(row.author),
-    }),
+function identityKey(row: Pick<SeedBook, "isbn" | "asin" | "title" | "author">) {
+  if (row.isbn) return `isbn:${row.isbn}`;
+  if (row.asin) return `asin:${row.asin}`;
+  return `norm:${normKey(row.title, row.author)}`;
+}
+
+export async function seedCommunityCatalog(baseUrl: string, serviceRoleKey: string, rows: SeedBook[]) {
+  const existingResponse = await fetch(`${baseUrl}/rest/v1/books?select=id,title,author,isbn,asin,normalized_title,normalized_author&limit=10000`, {
+    headers: headers(serviceRoleKey), cache: "no-store",
   });
-  const data = await jsonOrText(response);
-  if (!response.ok || !Array.isArray(data) || !data[0]) throw new Error(`Could not seed book: ${row.title}`);
-  return data[0] as SupabaseBook;
-}
+  const existingData = await jsonOrText(existingResponse);
+  if (!existingResponse.ok || !Array.isArray(existingData)) throw new Error("Could not read the shared book catalog.");
 
-async function upsertCandidate(baseUrl: string, serviceRoleKey: string, row: SeedBook, bookId: string) {
-  if (!row.coverUrl) return false;
-  const response = await fetch(`${baseUrl}/rest/v1/cover_candidates?on_conflict=image_url`, {
-    method: "POST",
-    headers: headers(serviceRoleKey, "resolution=merge-duplicates,return=minimal"),
-    body: JSON.stringify({
-      book_id: bookId,
+  const existing = existingData as SupabaseBook[];
+  const byIsbn = new Map<string, SupabaseBook>();
+  const byAsin = new Map<string, SupabaseBook>();
+  const byNorm = new Map<string, SupabaseBook>();
+  for (const book of existing) {
+    if (book.isbn) byIsbn.set(book.isbn, book);
+    if (book.asin) byAsin.set(book.asin, book);
+    byNorm.set(`${book.normalized_title || normalize(book.title)}|${book.normalized_author || normalize(book.author)}`, book);
+  }
+
+  const resolveExisting = (row: SeedBook) =>
+    (row.isbn ? byIsbn.get(row.isbn) : undefined) ||
+    (row.asin ? byAsin.get(row.asin) : undefined) ||
+    byNorm.get(normKey(row.title, row.author));
+
+  const missingByIdentity = new Map<string, SeedBook>();
+  let booksMatched = 0;
+  for (const row of rows) {
+    if (resolveExisting(row)) booksMatched += 1;
+    else if (!missingByIdentity.has(identityKey(row))) missingByIdentity.set(identityKey(row), row);
+  }
+
+  const missing = [...missingByIdentity.values()];
+  let created: SupabaseBook[] = [];
+  if (missing.length) {
+    const createResponse = await fetch(`${baseUrl}/rest/v1/books`, {
+      method: "POST",
+      headers: headers(serviceRoleKey, "return=representation"),
+      body: JSON.stringify(missing.map((row) => ({
+        title: row.title,
+        author: row.author,
+        isbn: row.isbn,
+        asin: row.asin,
+        normalized_title: normalize(row.title),
+        normalized_author: normalize(row.author),
+      }))),
+    });
+    const createData = await jsonOrText(createResponse);
+    if (!createResponse.ok || !Array.isArray(createData)) throw new Error("Could not add the starter books to the shared catalog.");
+    created = createData as SupabaseBook[];
+    for (const book of created) {
+      if (book.isbn) byIsbn.set(book.isbn, book);
+      if (book.asin) byAsin.set(book.asin, book);
+      byNorm.set(`${book.normalized_title || normalize(book.title)}|${book.normalized_author || normalize(book.author)}`, book);
+    }
+  }
+
+  const candidateRows = rows.flatMap((row, index) => {
+    if (!row.coverUrl) return [];
+    const book = resolveExisting(row);
+    if (!book) return [];
+    return [{
+      book_id: book.id,
       image_url: row.coverUrl,
       source: row.source,
       source_identifier: row.sourceIdentifier,
@@ -116,20 +150,27 @@ async function upsertCandidate(baseUrl: string, serviceRoleKey: string, row: See
       source_author: row.sourceAuthor || row.author,
       status: row.needsIdentification ? "needs_identification" : "pending",
       confidence: row.confidence || 0,
+      created_at: new Date(Date.now() + index).toISOString(),
       updated_at: new Date().toISOString(),
-    }),
+    }];
   });
-  if (!response.ok) throw new Error(`Could not seed cover candidate for: ${row.title}`);
-  return true;
-}
 
-export async function seedCommunityCatalog(baseUrl: string, serviceRoleKey: string, rows: SeedBook[]) {
-  let booksCreated = 0, booksMatched = 0, candidatesUpserted = 0;
-  for (const row of rows) {
-    let book = await findExistingBook(baseUrl, serviceRoleKey, row);
-    if (book) booksMatched += 1;
-    else { book = await createBook(baseUrl, serviceRoleKey, row); booksCreated += 1; }
-    if (await upsertCandidate(baseUrl, serviceRoleKey, row, book.id)) candidatesUpserted += 1;
+  if (candidateRows.length) {
+    const candidateResponse = await fetch(`${baseUrl}/rest/v1/cover_candidates?on_conflict=image_url`, {
+      method: "POST",
+      headers: headers(serviceRoleKey, "resolution=merge-duplicates,return=minimal"),
+      body: JSON.stringify(candidateRows),
+    });
+    if (!candidateResponse.ok) {
+      const detail = await jsonOrText(candidateResponse);
+      throw new Error(`Could not seed cover candidates: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`);
+    }
   }
-  return { received: rows.length, booksCreated, booksMatched, candidatesUpserted };
+
+  return {
+    received: rows.length,
+    booksCreated: created.length,
+    booksMatched,
+    candidatesUpserted: candidateRows.length,
+  };
 }
