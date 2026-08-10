@@ -6,6 +6,7 @@ import Link from "next/link";
 const SUPABASE_URL = "https://vrkuimrfdkejfhpxlwlf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mf0u925xGBkP4iNgxSCjuQ_H4Dp8r1S";
 const SESSION_KEY = "shelf-of-fame-supabase-session";
+const REFRESH_INTERVAL_MS = 45 * 60 * 1000;
 
 type User = {
   id?: string;
@@ -96,11 +97,33 @@ export default function AuthEnricher() {
   }
 
   useEffect(() => {
+    let refreshTimer: number | undefined;
+
     function onAuthChanged(event: Event) {
       const detail = (event as CustomEvent<Session | null>).detail;
       setSession(detail || null);
     }
     window.addEventListener("shelf-auth-changed", onAuthChanged as EventListener);
+
+    const refreshStoredSession = async () => {
+      try {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return;
+        const stored = JSON.parse(raw) as Session;
+        if (!stored.refresh_token) return;
+        const data = await auth("token?grant_type=refresh_token", { refresh_token: stored.refresh_token });
+        if (!data?.access_token) return;
+        await saveSession({
+          ...stored,
+          access_token: data.access_token,
+          refresh_token: data.refresh_token || stored.refresh_token,
+          user: data.user || stored.user,
+        });
+      } catch {
+        // Keep the saved session in place on a transient refresh failure.
+        // A later refresh or explicit sign-in can recover it.
+      }
+    };
 
     try {
       const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -124,12 +147,17 @@ export default function AuthEnricher() {
         if (raw) {
           const stored = JSON.parse(raw) as Session;
           setSession(stored);
-          if (!stored.profile && stored.access_token) void saveSession(stored);
+          void refreshStoredSession();
         }
       }
     } catch {}
 
-    return () => window.removeEventListener("shelf-auth-changed", onAuthChanged as EventListener);
+    refreshTimer = window.setInterval(() => { void refreshStoredSession(); }, REFRESH_INTERVAL_MS);
+
+    return () => {
+      window.removeEventListener("shelf-auth-changed", onAuthChanged as EventListener);
+      if (refreshTimer) window.clearInterval(refreshTimer);
+    };
   }, []);
 
   async function checkUsernameField(rawUsername: string) {
