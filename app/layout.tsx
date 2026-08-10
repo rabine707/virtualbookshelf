@@ -23,6 +23,7 @@ import "./identifier-editor.css";
 import "./book-hub.css";
 import "./decor-store.css";
 import "./qol.css";
+import "./auth.css";
 import ClientEnhancers from "./ClientEnhancers";
 
 export const metadata: Metadata = {
