@@ -85,6 +85,81 @@ function filenameForMime(contentType: string) {
   return "cover.jpg";
 }
 
+async function generateWithPollinationsEdit(
+  apiKey: string,
+  prompt: string,
+  confirmedCover: ConfirmedCover,
+  model: "gpt-image-2" | "klein",
+): Promise<ProviderAttempt> {
+  try {
+    const form = new FormData();
+    const bytes = Uint8Array.from(Buffer.from(confirmedCover.base64, "base64"));
+    form.append(
+      "image",
+      new Blob([bytes], { type: confirmedCover.contentType }),
+      filenameForMime(confirmedCover.contentType),
+    );
+    form.append("prompt", prompt);
+    form.append("model", model);
+    form.append("size", "512x2048");
+    form.append("response_format", "b64_json");
+    form.append("safe", "true");
+    if (model === "gpt-image-2") form.append("quality", "medium");
+
+    const response = await fetch("https://gen.pollinations.ai/v1/images/edits", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: form,
+    });
+
+    const result = await response.json() as PollinationsResponse;
+    const provider = model === "gpt-image-2" ? "GPT Image 2" : "Klein";
+
+    if (!response.ok) {
+      return {
+        status: response.status,
+        error: compactError(pollinationsError(result), `${provider} spine generation failed.`),
+      };
+    }
+
+    const generated = result.data?.[0];
+    if (generated?.b64_json) {
+      const mediaType = generated.media_type || "image/jpeg";
+      return {
+        status: 200,
+        image: `data:${mediaType};base64,${generated.b64_json}`,
+        model,
+        provider,
+      };
+    }
+
+    if (generated?.url) {
+      return {
+        status: 200,
+        image: generated.url,
+        model,
+        provider,
+      };
+    }
+
+    return {
+      status: 502,
+      error: `${provider} returned no spine artwork.`,
+    };
+  } catch (error) {
+    const provider = model === "gpt-image-2" ? "GPT Image 2" : "Klein";
+    return {
+      status: 502,
+      error: compactError(
+        error instanceof Error ? error.message : undefined,
+        `Could not reach the ${provider} image generator.`,
+      ),
+    };
+  }
+}
+
 async function generateWithGemini(
   apiKey: string,
   prompt: string,
@@ -157,87 +232,11 @@ async function generateWithGemini(
   }
 }
 
-async function generateWithKlein(
-  apiKey: string,
-  prompt: string,
-  confirmedCover: ConfirmedCover,
-): Promise<ProviderAttempt> {
-  try {
-    const form = new FormData();
-    const bytes = Uint8Array.from(Buffer.from(confirmedCover.base64, "base64"));
-    form.append(
-      "image",
-      new Blob([bytes], { type: confirmedCover.contentType }),
-      filenameForMime(confirmedCover.contentType),
-    );
-    form.append("prompt", prompt);
-    form.append("model", "klein");
-    form.append("size", "512x2048");
-    form.append("response_format", "b64_json");
-    form.append("safe", "true");
-
-    const response = await fetch("https://gen.pollinations.ai/v1/images/edits", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: form,
-    });
-
-    const result = await response.json() as PollinationsResponse;
-    if (!response.ok) {
-      return {
-        status: response.status,
-        error: compactError(pollinationsError(result), "Klein spine generation failed."),
-      };
-    }
-
-    const generated = result.data?.[0];
-    if (generated?.b64_json) {
-      const mediaType = generated.media_type || "image/jpeg";
-      return {
-        status: 200,
-        image: `data:${mediaType};base64,${generated.b64_json}`,
-        model: "klein",
-        provider: "Pollinations Klein",
-      };
-    }
-
-    if (generated?.url) {
-      return {
-        status: 200,
-        image: generated.url,
-        model: "klein",
-        provider: "Pollinations Klein",
-      };
-    }
-
-    return {
-      status: 502,
-      error: "Klein returned no spine artwork.",
-    };
-  } catch (error) {
-    return {
-      status: 502,
-      error: compactError(
-        error instanceof Error ? error.message : undefined,
-        "Could not reach the Klein image generator.",
-      ),
-    };
-  }
-}
-
-function isQuotaFailure(attempt: ProviderAttempt) {
-  const text = attempt.error || "";
-  return attempt.status === 429
-    || /RESOURCE_EXHAUSTED|quota exceeded|current quota|rate limit/i.test(text);
-}
-
 export async function POST(request: Request) {
+  const pollinationsApiKey = (process.env.POLLINATIONS_API_KEY || process.env.KLEIN_API_KEY)?.trim();
   const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
-  const kleinApiKey = (process.env.POLLINATIONS_API_KEY || process.env.KLEIN_API_KEY)?.trim();
 
-  if (!geminiApiKey && !kleinApiKey) {
+  if (!pollinationsApiKey && !geminiApiKey) {
     return Response.json({
       error: "AI spine generation is not configured yet.",
       needsApiKey: true,
@@ -277,15 +276,56 @@ export async function POST(request: Request) {
   try {
     const confirmedCover = await fetchPublicImage(cover);
     const failures: string[] = [];
-    let geminiAttempt: ProviderAttempt | null = null;
+    const attempted: string[] = [];
+
+    if (pollinationsApiKey) {
+      attempted.push("gpt-image-2");
+      const gptAttempt = await generateWithPollinationsEdit(
+        pollinationsApiKey,
+        prompt,
+        confirmedCover,
+        "gpt-image-2",
+      );
+      if (gptAttempt.image) {
+        return Response.json({
+          image: gptAttempt.image,
+          model: gptAttempt.model,
+          provider: gptAttempt.provider,
+          aspectRatio: "1:4",
+          intendedSpineCrop: "1:4",
+        });
+      }
+      failures.push(`GPT Image 2: ${gptAttempt.error || "generation failed"}`);
+
+      attempted.push("klein");
+      const kleinAttempt = await generateWithPollinationsEdit(
+        pollinationsApiKey,
+        prompt,
+        confirmedCover,
+        "klein",
+      );
+      if (kleinAttempt.image) {
+        return Response.json({
+          image: kleinAttempt.image,
+          model: kleinAttempt.model,
+          provider: kleinAttempt.provider,
+          fallbackFrom: "gpt-image-2",
+          aspectRatio: "1:4",
+          intendedSpineCrop: "1:4",
+        });
+      }
+      failures.push(`Klein: ${kleinAttempt.error || "generation failed"}`);
+    }
 
     if (geminiApiKey) {
-      geminiAttempt = await generateWithGemini(geminiApiKey, prompt, confirmedCover);
+      attempted.push("gemini-3.1-flash-image");
+      const geminiAttempt = await generateWithGemini(geminiApiKey, prompt, confirmedCover);
       if (geminiAttempt.image) {
         return Response.json({
           image: geminiAttempt.image,
           model: geminiAttempt.model,
           provider: geminiAttempt.provider,
+          fallbackFrom: attempted.length > 1 ? attempted.slice(0, -1) : undefined,
           aspectRatio: "1:4",
           intendedSpineCrop: "1:4",
         });
@@ -293,41 +333,11 @@ export async function POST(request: Request) {
       failures.push(`Gemini: ${geminiAttempt.error || "generation failed"}`);
     }
 
-    if (kleinApiKey) {
-      const kleinAttempt = await generateWithKlein(kleinApiKey, prompt, confirmedCover);
-      if (kleinAttempt.image) {
-        return Response.json({
-          image: kleinAttempt.image,
-          model: kleinAttempt.model,
-          provider: kleinAttempt.provider,
-          fallbackFrom: geminiApiKey ? "gemini-3.1-flash-image" : undefined,
-          aspectRatio: "1:4",
-          intendedSpineCrop: "1:4",
-        });
-      }
-      failures.push(`Klein: ${kleinAttempt.error || "generation failed"}`);
-
-      return Response.json({
-        error: failures.join(" • ") || "AI spine generation failed.",
-        providerErrors: failures,
-      }, { status: kleinAttempt.status >= 400 ? kleinAttempt.status : 502 });
-    }
-
-    if (geminiAttempt) {
-      const quotaExceeded = isQuotaFailure(geminiAttempt);
-      const error = quotaExceeded
-        ? `Gemini image quota is unavailable for this project, and the Klein fallback is not configured. Google said: ${geminiAttempt.error || "quota exceeded"}`
-        : geminiAttempt.error || "Gemini spine generation failed.";
-
-      return Response.json({
-        error,
-        quotaExceeded,
-        needsFallbackKey: quotaExceeded,
-        fallbackEnv: quotaExceeded ? ["POLLINATIONS_API_KEY", "KLEIN_API_KEY"] : undefined,
-      }, { status: quotaExceeded ? 503 : geminiAttempt.status });
-    }
-
-    return Response.json({ error: "AI spine generation failed." }, { status: 502 });
+    return Response.json({
+      error: failures.join(" • ") || "AI spine generation failed.",
+      providerErrors: failures,
+      attemptedProviders: attempted,
+    }, { status: 502 });
   } catch (error) {
     if (error instanceof RemoteImageError) {
       return Response.json({ error: error.message }, { status: error.status });
