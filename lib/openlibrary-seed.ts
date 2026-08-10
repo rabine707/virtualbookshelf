@@ -45,7 +45,11 @@ function pushDocs(records: Array<Record<string, unknown>>, seen: Set<string>, da
   }
 }
 
-export async function fetchBookTokStarterSeeds(titles: TrendingSeedTitle[] = BOOKTOK_TRENDING_TITLES, fallbackQueries = STARTER_SEED_PRESETS.core, maxCandidates = 150) {
+export async function fetchBookTokStarterSeeds(
+  titles: TrendingSeedTitle[] = BOOKTOK_TRENDING_TITLES,
+  fallbackQueries: readonly string[] = STARTER_SEED_PRESETS.core,
+  maxCandidates = 150,
+) {
   const records: Array<Record<string, unknown>> = []; const seen = new Set<string>();
   for (const row of titles.slice(0, 100)) {
     const query = `title:\"${row.title.replace(/\"/g, "")}\" author:\"${row.author.replace(/\"/g, "")}\"`;
