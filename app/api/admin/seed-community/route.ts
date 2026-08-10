@@ -1,5 +1,5 @@
 import { sanitizeSeedBooks, seedCommunityCatalog } from "../../../../lib/community-seed";
-import { fetchOpenLibraryStarterSeeds } from "../../../../lib/openlibrary-seed";
+import { fetchOpenLibraryStarterSeeds, starterPresetQueries } from "../../../../lib/openlibrary-seed";
 
 export const runtime = "nodejs";
 
@@ -25,8 +25,8 @@ export async function POST(request: Request) {
   try {
     let rawRecords: unknown;
     if (payload.mode === "openlibrary") {
-      const queries = Array.isArray(payload.queries) ? payload.queries.filter((x): x is string => typeof x === "string") : [];
-      if (!queries.length) return Response.json({ error: "Provide at least one Open Library query." }, { status: 400 });
+      const explicitQueries = Array.isArray(payload.queries) ? payload.queries.filter((x): x is string => typeof x === "string") : [];
+      const queries = explicitQueries.length ? explicitQueries : starterPresetQueries(payload.preset);
       rawRecords = await fetchOpenLibraryStarterSeeds(queries, Number(payload.limitPerQuery) || 20);
     } else {
       rawRecords = payload.records;
