@@ -12,6 +12,9 @@ type GenerateSpineResponse = {
   image?: string;
   error?: string;
   needsApiKey?: boolean;
+  provider?: string;
+  model?: string;
+  fallbackFrom?: string | string[];
 };
 
 function openDb() {
@@ -102,6 +105,13 @@ function positionLabel(position: SpinePosition) {
   return "Center detail";
 }
 
+function providerLabel(data: GenerateSpineResponse) {
+  if (/gpt image 2/i.test(data.provider || "") || data.model === "gpt-image-2") return "GPT Image 2 recompose";
+  if (/klein/i.test(data.provider || "") || data.model === "klein") return "Klein recompose";
+  if (/gemini/i.test(data.provider || "") || /gemini/i.test(data.model || "")) return "Gemini recompose";
+  return "AI recompose";
+}
+
 function createPreview(current: { title: string; author: string }, image: string, headingText: string, detailText: string) {
   const editor = document.createElement("div");
   editor.className = "spine-crop-editor";
@@ -177,7 +187,7 @@ export default function SpineGenerator() {
       aiButton.type = "button";
       aiButton.className = "primary generate-spine-button";
       aiButton.textContent = "✨ Generate AI spine";
-      aiButton.title = "Create dedicated spine artwork from this confirmed cover with Gemini";
+      aiButton.title = "Create dedicated spine artwork from this confirmed cover";
 
       const cropButton = document.createElement("button");
       cropButton.type = "button";
@@ -212,7 +222,7 @@ export default function SpineGenerator() {
         feedback.querySelector<HTMLElement>(".spine-crop-editor")?.remove();
         setBusy(true);
         aiButton.textContent = "✨ Generating AI spine…";
-        status.textContent = "Creating dedicated spine artwork with Gemini…";
+        status.textContent = "Creating dedicated spine artwork…";
 
         try {
           const response = await fetch("/api/generate-spine", {
@@ -226,10 +236,10 @@ export default function SpineGenerator() {
           });
           const data = await response.json() as GenerateSpineResponse;
           if (!response.ok || !data.image) {
-            throw new Error(data.error || (data.needsApiKey ? "Gemini image generation is not configured." : "AI spine generation failed."));
+            throw new Error(data.error || (data.needsApiKey ? "AI image generation is not configured." : "AI spine generation failed."));
           }
 
-          const preview = createPreview(current, data.image, "AI spine preview", "Gemini recompose");
+          const preview = createPreview(current, data.image, "AI spine preview", providerLabel(data));
           preview.editor.dataset.cover = current.cover;
           preview.editor.dataset.mode = "ai";
           preview.editor.setAttribute("aria-label", "Review generated AI spine");
@@ -241,7 +251,7 @@ export default function SpineGenerator() {
           preview.accept.title = "Save this AI artwork as the shelf spine";
           preview.editorStatus.textContent = "× discards • ↻ regenerates • ✓ saves";
           feedback.appendChild(preview.editor);
-          status.textContent = "AI spine ready — review it before saving.";
+          status.textContent = `${data.provider || "AI"} spine ready — review it before saving.`;
           aiButton.textContent = "✨ Regenerate AI spine";
 
           preview.reject.addEventListener("click", () => {
