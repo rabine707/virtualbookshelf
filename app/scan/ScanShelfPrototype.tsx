@@ -3,19 +3,26 @@
 import { ChangeEvent, useRef, useState } from "react";
 import styles from "./scan.module.css";
 
-type CvApi = any;
-
-declare global {
-  interface Window {
-    cv?: CvApi | Promise<CvApi>;
-  }
-}
-
 type PreparedImage = {
   dataUrl: string;
+  blob: Blob;
   width: number;
   height: number;
   fileName: string;
+};
+
+type ApiBook = {
+  box_2d: number[];
+  title?: string;
+  author?: string;
+  visible_text?: string;
+  confidence?: number;
+};
+
+type ScanResponse = {
+  books?: ApiBook[];
+  model?: string;
+  error?: string;
 };
 
 type Region = {
@@ -25,89 +32,15 @@ type Region = {
   width: number;
   height: number;
   crop: string;
+  title: string;
+  author: string;
+  visibleText: string;
+  confidence: number;
 };
 
-const OPENCV_SCRIPT_ID = "shelf-of-fame-opencv";
-const OPENCV_URL = "https://docs.opencv.org/4.x/opencv.js";
-const OPENCV_TIMEOUT_MS = 15_000;
-const MAX_IMAGE_DIMENSION = 1800;
+const MAX_IMAGE_DIMENSION = 1600;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
-
-function wait(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
-function cvIsReady(value: unknown): value is CvApi {
-  return Boolean(value && typeof value === "object" && "Mat" in value);
-}
-
-function ensureOpenCvScript() {
-  let script = document.getElementById(OPENCV_SCRIPT_ID) as HTMLScriptElement | null;
-
-  if (script?.dataset.loadState === "failed") {
-    script.remove();
-    script = null;
-  }
-
-  if (!script) {
-    script = document.createElement("script");
-    script.id = OPENCV_SCRIPT_ID;
-    script.src = OPENCV_URL;
-    script.async = true;
-    script.dataset.loadState = "loading";
-    script.onload = () => {
-      if (script) script.dataset.loadState = "loaded";
-    };
-    script.onerror = () => {
-      if (script) script.dataset.loadState = "failed";
-    };
-    document.head.appendChild(script);
-  }
-
-  return script;
-}
-
-async function loadOpenCv() {
-  const immediate = window.cv;
-  if (cvIsReady(immediate)) return immediate;
-
-  const script = ensureOpenCvScript();
-  const started = Date.now();
-  let pendingCv: Promise<CvApi> | null = null;
-
-  while (Date.now() - started < OPENCV_TIMEOUT_MS) {
-    if (script.dataset.loadState === "failed") {
-      throw new Error("The OpenCV detector could not be downloaded. Refresh the page and try again.");
-    }
-
-    const value = window.cv;
-    if (cvIsReady(value)) return value;
-
-    if (value && typeof (value as Promise<CvApi>).then === "function") {
-      pendingCv ??= Promise.resolve(value as Promise<CvApi>).then((resolved) => {
-        window.cv = resolved;
-        return resolved;
-      });
-
-      const remaining = Math.max(0, OPENCV_TIMEOUT_MS - (Date.now() - started));
-      const result = await Promise.race([
-        pendingCv
-          .then((cv) => ({ cv, error: null as unknown }))
-          .catch((error) => ({ cv: null as CvApi | null, error })),
-        wait(Math.min(250, remaining)).then(() => null),
-      ]);
-
-      if (result?.error) {
-        throw new Error("OpenCV started loading but could not initialize on this device.");
-      }
-      if (result?.cv && cvIsReady(result.cv)) return result.cv;
-    } else {
-      await wait(100);
-    }
-  }
-
-  throw new Error("The spine detector took too long to load. Refresh the page and try again; if it still hangs, send me your browser/device and I’ll switch the loader.");
-}
+const SCAN_TIMEOUT_MS = 38_000;
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -115,6 +48,15 @@ function loadImage(src: string) {
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error("This image could not be opened by your browser."));
     image.src = src;
+  });
+}
+
+function canvasBlob(canvas: HTMLCanvasElement) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Your browser could not prepare this photo."));
+    }, "image/jpeg", 0.84);
   });
 }
 
@@ -137,8 +79,14 @@ async function prepareFile(file: File): Promise<PreparedImage> {
     if (!context) throw new Error("Your browser could not prepare this photo.");
     context.drawImage(image, 0, 0, width, height);
 
+    const blob = await canvasBlob(canvas);
+    if (blob.size > 5 * 1024 * 1024) {
+      throw new Error("The prepared shelf photo is still too large. Try a closer photo of fewer books.");
+    }
+
     return {
-      dataUrl: canvas.toDataURL("image/jpeg", 0.92),
+      dataUrl: canvas.toDataURL("image/jpeg", 0.84),
+      blob,
       width,
       height,
       fileName: file.name || "bookshelf-photo",
@@ -148,92 +96,36 @@ async function prepareFile(file: File): Promise<PreparedImage> {
   }
 }
 
-function overlapRatio(a: Omit<Region, "id" | "crop">, b: Omit<Region, "id" | "crop">) {
-  const left = Math.max(a.x, b.x);
-  const top = Math.max(a.y, b.y);
-  const right = Math.min(a.x + a.width, b.x + b.width);
-  const bottom = Math.min(a.y + a.height, b.y + b.height);
-  if (right <= left || bottom <= top) return 0;
-  const overlap = (right - left) * (bottom - top);
-  return overlap / Math.min(a.width * a.height, b.width * b.height);
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.max(minimum, Math.min(maximum, value));
 }
 
-function cleanRegions(regions: Array<Omit<Region, "id" | "crop">>) {
-  const ranked = [...regions].sort((a, b) => (b.height * b.width) - (a.height * a.width));
-  const kept: Array<Omit<Region, "id" | "crop">> = [];
+function regionFromApi(book: ApiBook, image: PreparedImage, index: number): Omit<Region, "crop"> | null {
+  if (!Array.isArray(book.box_2d) || book.box_2d.length !== 4) return null;
+  const values = book.box_2d.map(Number);
+  if (values.some((value) => !Number.isFinite(value))) return null;
 
-  for (const region of ranked) {
-    if (kept.some((existing) => overlapRatio(region, existing) > 0.82)) continue;
-    kept.push(region);
-  }
+  const [yMinRaw, xMinRaw, yMaxRaw, xMaxRaw] = values;
+  const yMin = clamp(yMinRaw, 0, 1000);
+  const xMin = clamp(xMinRaw, 0, 1000);
+  const yMax = clamp(yMaxRaw, 0, 1000);
+  const xMax = clamp(xMaxRaw, 0, 1000);
+  if (yMax <= yMin || xMax <= xMin) return null;
 
-  return kept.sort((a, b) => a.x - b.x).slice(0, 60);
+  return {
+    id: `${Date.now()}-${index}`,
+    x: Math.round((xMin / 1000) * image.width),
+    y: Math.round((yMin / 1000) * image.height),
+    width: Math.max(1, Math.round(((xMax - xMin) / 1000) * image.width)),
+    height: Math.max(1, Math.round(((yMax - yMin) / 1000) * image.height)),
+    title: (book.title || "").trim(),
+    author: (book.author || "").trim(),
+    visibleText: (book.visible_text || "").trim(),
+    confidence: clamp(Math.round(Number(book.confidence) || 0), 0, 100),
+  };
 }
 
-// Detection approach adapted from the CC0 Libiry BookSpineScanner project:
-// grayscale -> blur -> Canny edges -> vertical dilation -> contour filtering.
-async function detectSpineRegions(image: PreparedImage, cv: CvApi) {
-  const canvas = document.createElement("canvas");
-  canvas.width = image.width;
-  canvas.height = image.height;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Your browser could not analyze this photo.");
-  context.drawImage(await loadImage(image.dataUrl), 0, 0, image.width, image.height);
-
-  const src = cv.imread(canvas);
-  const gray = new cv.Mat();
-  const edges = new cv.Mat();
-  const contours = new cv.MatVector();
-  const hierarchy = new cv.Mat();
-  const kernelHeight = Math.max(7, Math.round(image.height / 150));
-  const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, kernelHeight));
-
-  const candidates: Array<Omit<Region, "id" | "crop">> = [];
-  try {
-    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-    cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0);
-    cv.Canny(gray, edges, 45, 145);
-    cv.dilate(edges, edges, kernel);
-    cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-    const minHeight = image.height * 0.27;
-    const minWidth = Math.max(10, image.width * 0.006);
-    const maxWidth = image.width * 0.24;
-
-    for (let index = 0; index < contours.size(); index += 1) {
-      const contour = contours.get(index);
-      try {
-        const rect = cv.boundingRect(contour);
-        const ratio = rect.height / Math.max(rect.width, 1);
-        const tallEnough = rect.height >= minHeight;
-        const usefulWidth = rect.width >= minWidth && rect.width <= maxWidth;
-        const spineLike = ratio >= 1.65;
-        if (!tallEnough || !usefulWidth || !spineLike) continue;
-
-        candidates.push({
-          x: rect.x,
-          y: rect.y,
-          width: rect.width,
-          height: rect.height,
-        });
-      } finally {
-        contour.delete?.();
-      }
-    }
-  } finally {
-    src.delete();
-    gray.delete();
-    edges.delete();
-    contours.delete();
-    hierarchy.delete();
-    kernel.delete();
-  }
-
-  return cleanRegions(candidates);
-}
-
-async function makeCrop(image: PreparedImage, region: Omit<Region, "id" | "crop">) {
-  const source = await loadImage(image.dataUrl);
+function makeCrop(source: HTMLImageElement, image: PreparedImage, region: Omit<Region, "crop">) {
   const pad = Math.max(4, Math.round(image.width * 0.004));
   const x = Math.max(0, region.x - pad);
   const y = Math.max(0, region.y - pad);
@@ -246,7 +138,33 @@ async function makeCrop(image: PreparedImage, region: Omit<Region, "id" | "crop"
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Could not crop a detected spine.");
   context.drawImage(source, x, y, width, height, 0, 0, width, height);
-  return canvas.toDataURL("image/jpeg", 0.94);
+  return canvas.toDataURL("image/jpeg", 0.92);
+}
+
+async function detectBooks(image: PreparedImage) {
+  const form = new FormData();
+  form.append("image", image.blob, "shelf.jpg");
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
+  try {
+    const response = await fetch("/api/scan-shelf", {
+      method: "POST",
+      body: form,
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    const data = await response.json() as ScanResponse;
+    if (!response.ok) throw new Error(data.error || "Shelf detection could not finish.");
+    return data.books || [];
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Shelf detection took too long. Try a closer photo of fewer books.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 export default function ScanShelfPrototype() {
@@ -267,24 +185,32 @@ export default function ScanShelfPrototype() {
     try {
       const prepared = await prepareFile(file);
       setImage(prepared);
-      setStatus("Loading spine detector… first load can take up to 15 seconds.");
-      const cv = await loadOpenCv();
-      setStatus("Finding book-shaped regions…");
-      const detected = await detectSpineRegions(prepared, cv);
+      setStatus("Gemini is finding the individual books…");
+      const detected = await detectBooks(prepared);
 
       if (!detected.length) {
-        setStatus("No clear spine-shaped regions found yet.");
+        setStatus("Gemini did not find any clear individual books in this photo.");
         return;
       }
 
-      setStatus(`Cropping ${detected.length} detected spine${detected.length === 1 ? "" : "s"}…`);
-      const cropped = await Promise.all(detected.map(async (region, index) => ({
+      setStatus(`Cropping ${detected.length} detected book${detected.length === 1 ? "" : "s"}…`);
+      const source = await loadImage(prepared.dataUrl);
+      const converted = detected
+        .map((book, index) => regionFromApi(book, prepared, index))
+        .filter((region): region is Omit<Region, "crop"> => Boolean(region))
+        .sort((left, right) => {
+          const sameShelf = Math.abs(left.y - right.y) < prepared.height * 0.12;
+          return sameShelf ? left.x - right.x : left.y - right.y;
+        });
+
+      const cropped = converted.map((region) => ({
         ...region,
-        id: `${Date.now()}-${index}`,
-        crop: await makeCrop(prepared, region),
-      })));
+        crop: makeCrop(source, prepared, region),
+      }));
+
       setRegions(cropped);
-      setStatus(`Found ${cropped.length} possible book spine${cropped.length === 1 ? "" : "s"}.`);
+      const readable = cropped.filter((region) => region.title || region.author).length;
+      setStatus(`Found ${cropped.length} book${cropped.length === 1 ? "" : "s"}${readable ? ` · read text on ${readable}` : ""}.`);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "The shelf scan failed.";
       setError(message);
@@ -316,10 +242,10 @@ export default function ScanShelfPrototype() {
       <div className={styles.shell}>
         <header className={styles.header}>
           <a className={styles.backLink} href="/">← Back to Shelf of Fame</a>
-          <p className={styles.eyebrow}>EXPERIMENTAL · DETECTION ONLY</p>
+          <p className={styles.eyebrow}>EXPERIMENTAL · GEMINI DETECTION</p>
           <h1>Scan My Shelf</h1>
           <p className={styles.lead}>
-            Take a straight-on photo of a shelf or upload one you already have. This first prototype only finds and crops possible book spines—nothing is saved to your account yet.
+            Take a straight-on shelf photo or upload one you already have. Gemini finds each physical book, outlines it, and reads visible title/author text when it can.
           </p>
         </header>
 
@@ -330,18 +256,12 @@ export default function ScanShelfPrototype() {
 
         <section className={styles.actions}>
           <button className={styles.primaryButton} type="button" disabled={processing} onClick={() => cameraInput.current?.click()}>
-            <span aria-hidden="true">📷</span>
-            Take Photo
+            <span aria-hidden="true">📷</span> Take Photo
           </button>
           <button className={styles.secondaryButton} type="button" disabled={processing} onClick={() => uploadInput.current?.click()}>
-            <span aria-hidden="true">🖼️</span>
-            Upload Photo
+            <span aria-hidden="true">🖼️</span> Upload Photo
           </button>
-          {image ? (
-            <button className={styles.ghostButton} type="button" disabled={processing} onClick={reset}>
-              Clear
-            </button>
-          ) : null}
+          {image ? <button className={styles.ghostButton} type="button" disabled={processing} onClick={reset}>Clear</button> : null}
           <input ref={cameraInput} className={styles.hiddenInput} type="file" accept="image/*" capture="environment" onChange={chooseFile} />
           <input ref={uploadInput} className={styles.hiddenInput} type="file" accept="image/*" onChange={chooseFile} />
         </section>
@@ -376,8 +296,8 @@ export default function ScanShelfPrototype() {
                     width: `${(region.width / image.width) * 100}%`,
                     height: `${(region.height / image.height) * 100}%`,
                   }}
-                  title={`Possible spine ${index + 1}. Click to remove this detection.`}
-                  aria-label={`Remove possible spine ${index + 1}`}
+                  title={`Possible book ${index + 1}. Click to remove this detection.`}
+                  aria-label={`Remove possible book ${index + 1}`}
                   onClick={() => removeRegion(region.id)}
                 >
                   <span>{index + 1}</span>
@@ -389,20 +309,23 @@ export default function ScanShelfPrototype() {
               <>
                 <div className={styles.cropHeading}>
                   <div>
-                    <h2>Detected spine crops</h2>
-                    <p>Tap “Not a book” on any false detection. OCR and title matching come in the next pass.</p>
+                    <h2>Detected books</h2>
+                    <p>These are Gemini’s individual crops. Remove false detections; metadata verification comes next.</p>
                   </div>
                 </div>
                 <div className={styles.cropGrid}>
                   {regions.map((region, index) => (
                     <article className={styles.cropCard} key={region.id}>
-                      <div className={styles.cropNumber}>#{index + 1}</div>
+                      <div className={styles.cropNumber}>#{index + 1} · {region.confidence}% book</div>
                       <div className={styles.cropImageWrap}>
-                        <img src={region.crop} alt={`Detected spine crop ${index + 1}`} className={styles.cropImage} />
+                        <img src={region.crop} alt={`Detected book crop ${index + 1}`} className={styles.cropImage} />
                       </div>
-                      <button className={styles.removeButton} type="button" onClick={() => removeRegion(region.id)}>
-                        Not a book
-                      </button>
+                      <div className={styles.cropMeta}>
+                        <strong>{region.title || "Needs identification"}</strong>
+                        {region.author ? <span>{region.author}</span> : null}
+                        {!region.title && region.visibleText ? <small>{region.visibleText}</small> : null}
+                      </div>
+                      <button className={styles.removeButton} type="button" onClick={() => removeRegion(region.id)}>Not a book</button>
                     </article>
                   ))}
                 </div>
@@ -418,12 +341,12 @@ export default function ScanShelfPrototype() {
           <section className={styles.placeholder}>
             <div className={styles.placeholderIcon} aria-hidden="true">▥</div>
             <strong>Your shelf photo will appear here</strong>
-            <span>Detected book regions will be outlined and turned into individual spine crops.</span>
+            <span>Gemini will return individual book boxes and any title/author text it can actually read.</span>
           </section>
         )}
 
         <footer className={styles.footer}>
-          Prototype scope: local image processing only. No OCR, metadata lookup, shelf import, Supabase upload, or community sharing is enabled in this branch yet.
+          This prototype sends the prepared photo to Gemini for detection. Shelf of Fame does not save the photo, crops, or results to Supabase yet.
         </footer>
       </div>
     </main>
