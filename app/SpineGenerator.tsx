@@ -5,6 +5,7 @@ import { useEffect } from "react";
 const DB_NAME = "shelf-of-fame-art";
 const STORE_NAME = "generated-spines";
 const DB_VERSION = 1;
+const SESSION_KEY = "shelf-of-fame-supabase-session";
 const POSITIONS = ["left", "center", "right"] as const;
 type SpinePosition = (typeof POSITIONS)[number];
 
@@ -15,6 +16,10 @@ type GenerateSpineResponse = {
   provider?: string;
   model?: string;
   fallbackFrom?: string | string[];
+  attempts?: number;
+  remaining?: number;
+  sharedSpine?: string;
+  limitReached?: boolean;
 };
 
 function openDb() {
@@ -56,6 +61,26 @@ async function getGeneratedSpine(coverUrl: string) {
   }
 }
 
+function accessToken() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return "";
+    const parsed = JSON.parse(raw) as { access_token?: string };
+    return parsed.access_token || "";
+  } catch {
+    return "";
+  }
+}
+
+function detailValue(modal: HTMLElement, label: string) {
+  for (const dt of modal.querySelectorAll<HTMLElement>(".details dt")) {
+    if (dt.textContent?.trim().toLowerCase() !== label.toLowerCase()) continue;
+    const dd = dt.nextElementSibling;
+    return dd?.textContent?.trim() || "";
+  }
+  return "";
+}
+
 function selectedBookInfo() {
   const modal = document.querySelector<HTMLElement>(".modal");
   if (!modal) return null;
@@ -64,8 +89,12 @@ function selectedBookInfo() {
   const authorText = modal.querySelector<HTMLElement>(".details .author")?.textContent?.trim() || "";
   const author = authorText.replace(/^by\s+/i, "").trim();
   const cover = image?.currentSrc || image?.src || "";
+  const isbnRaw = detailValue(modal, "ISBN");
+  const asinRaw = detailValue(modal, "Audible ASIN");
+  const isbn = isbnRaw && isbnRaw !== "N/A" ? isbnRaw : undefined;
+  const asin = asinRaw || undefined;
   if (!cover || !title) return null;
-  return { cover, title, author };
+  return { cover, title, author, isbn, asin };
 }
 
 function spineDisplayTitle(title: string) {
@@ -110,6 +139,11 @@ function providerLabel(data: GenerateSpineResponse) {
   if (/klein/i.test(data.provider || "") || data.model === "klein") return "Klein recompose";
   if (/gemini/i.test(data.provider || "") || /gemini/i.test(data.model || "")) return "Gemini recompose";
   return "AI recompose";
+}
+
+function attemptText(data: GenerateSpineResponse) {
+  if (typeof data.attempts !== "number") return "";
+  return ` • ${data.attempts} of 3 generations used${typeof data.remaining === "number" ? ` • ${data.remaining} left` : ""}`;
 }
 
 function createPreview(current: { title: string; author: string }, image: string, headingText: string, detailText: string) {
@@ -198,13 +232,13 @@ export default function SpineGenerator() {
       const status = document.createElement("div");
       status.className = "generate-spine-status";
       status.setAttribute("role", "status");
-      status.textContent = "AI creates dedicated spine artwork. Cover crop stays free and instant.";
+      status.textContent = "AI allows up to 3 generations per book. Shared spines are reused first.";
 
       const updateSavedLabels = async () => {
         const saved = await getGeneratedSpine(info.cover);
         if (!aiButton.isConnected) return;
         const position = savedPosition(saved);
-        aiButton.textContent = saved && !position ? "✨ Regenerate AI spine" : "✨ Generate AI spine";
+        aiButton.textContent = saved && !position ? "✨ Try a different AI spine" : "✨ Generate AI spine";
         cropButton.textContent = position ? "▥ Change cover crop" : "▥ Choose cover crop";
       };
 
@@ -218,45 +252,70 @@ export default function SpineGenerator() {
       const generateAiPreview = async () => {
         const current = selectedBookInfo();
         if (!current) return;
+        const token = accessToken();
+        if (!token) {
+          status.textContent = "Sign in first to generate AI spines. Cover crop is still free and available.";
+          return;
+        }
 
         feedback.querySelector<HTMLElement>(".spine-crop-editor")?.remove();
         setBusy(true);
         aiButton.textContent = "✨ Generating AI spine…";
-        status.textContent = "Creating dedicated spine artwork…";
+        status.textContent = "Checking the shared library and your remaining generations…";
 
         try {
           const response = await fetch("/api/generate-spine", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
               cover: current.cover,
               title: current.title,
               author: current.author,
+              isbn: current.isbn,
+              asin: current.asin,
             }),
           });
           const data = await response.json() as GenerateSpineResponse;
+
+          if (data.sharedSpine) {
+            await saveGeneratedSpine(current.cover, data.sharedSpine);
+            window.dispatchEvent(new CustomEvent("shelf-spine-generated", {
+              detail: { coverUrl: current.cover, image: data.sharedSpine },
+            }));
+            status.textContent = `Community spine found for ${current.title} — reused instantly, no AI credit used.${attemptText(data)}`;
+            aiButton.textContent = "✨ Community spine in use";
+            return;
+          }
+
           if (!response.ok || !data.image) {
             throw new Error(data.error || (data.needsApiKey ? "AI image generation is not configured." : "AI spine generation failed."));
           }
 
-          const preview = createPreview(current, data.image, "AI spine preview", providerLabel(data));
+          const preview = createPreview(current, data.image, "AI spine preview", `${providerLabel(data)}${attemptText(data)}`);
           preview.editor.dataset.cover = current.cover;
           preview.editor.dataset.mode = "ai";
           preview.editor.setAttribute("aria-label", "Review generated AI spine");
           preview.reject.setAttribute("aria-label", "Discard AI spine");
           preview.reject.title = "Discard this AI preview";
           preview.retry.setAttribute("aria-label", "Regenerate AI spine");
-          preview.retry.title = "Generate another AI spine";
+          preview.retry.title = data.remaining === 0 ? "No generations remaining for this book" : "Generate another AI spine";
+          preview.retry.disabled = data.remaining === 0;
           preview.accept.setAttribute("aria-label", "Use this AI spine");
           preview.accept.title = "Save this AI artwork as the shelf spine";
-          preview.editorStatus.textContent = "× discards • ↻ regenerates • ✓ saves";
+          preview.editorStatus.textContent = `× discards • ↻ regenerates • ✓ saves${attemptText(data)}`;
           feedback.appendChild(preview.editor);
-          status.textContent = `${data.provider || "AI"} spine ready — review it before saving.`;
-          aiButton.textContent = "✨ Regenerate AI spine";
+          status.textContent = `${data.provider || "AI"} spine ready — review it before saving.${attemptText(data)}`;
+          aiButton.textContent = data.remaining === 0 ? "✨ Generation limit reached" : "✨ Try another AI spine";
+          if (data.remaining === 0) aiButton.disabled = true;
 
           preview.reject.addEventListener("click", () => {
             preview.editor.remove();
-            status.textContent = "AI preview discarded. Generate another or use a cover crop.";
+            status.textContent = data.remaining === 0
+              ? "Preview discarded. You've used all 3 AI generations for this book; use a saved/community spine or cover crop."
+              : `AI preview discarded.${attemptText(data)}`;
           });
 
           preview.retry.addEventListener("click", () => {
@@ -272,7 +331,7 @@ export default function SpineGenerator() {
               window.dispatchEvent(new CustomEvent("shelf-spine-generated", {
                 detail: { coverUrl: current.cover, image: data.image },
               }));
-              status.textContent = `AI spine saved for ${current.title}.`;
+              status.textContent = `AI spine saved for ${current.title}.${attemptText(data)}`;
               cropButton.textContent = "▥ Choose cover crop";
               preview.editor.remove();
             } catch {
@@ -284,7 +343,8 @@ export default function SpineGenerator() {
           aiButton.textContent = "✨ Generate AI spine";
           status.textContent = error instanceof Error ? error.message : "AI spine generation failed.";
         } finally {
-          setBusy(false);
+          if (!aiButton.disabled) setBusy(false);
+          else cropButton.disabled = false;
         }
       };
 
@@ -296,7 +356,7 @@ export default function SpineGenerator() {
           existing.remove();
           const saved = await getGeneratedSpine(info.cover);
           cropButton.textContent = savedPosition(saved) ? "▥ Change cover crop" : "▥ Choose cover crop";
-          status.textContent = "AI creates dedicated spine artwork. Cover crop stays free and instant.";
+          status.textContent = "AI allows up to 3 generations per book. Shared spines are reused first.";
           return;
         }
         existing?.remove();
@@ -362,7 +422,6 @@ export default function SpineGenerator() {
               detail: { coverUrl: current.cover, image, position },
             }));
             status.textContent = `${positionLabel(position)} saved for ${current.title}.`;
-            aiButton.textContent = "✨ Generate AI spine";
             cropButton.textContent = "▥ Change cover crop";
             preview.editor.remove();
           } catch {
