@@ -13,6 +13,7 @@ type PreparedImage = {
 
 type ApiBook = {
   box_2d: number[];
+  spine_box_2d?: number[] | null;
   title?: string;
   author?: string;
   visible_text?: string;
@@ -25,13 +26,17 @@ type ScanResponse = {
   error?: string;
 };
 
-type Region = {
-  id: string;
+type PixelBox = {
   x: number;
   y: number;
   width: number;
   height: number;
-  crop: string;
+};
+
+type Region = PixelBox & {
+  id: string;
+  spineBox: PixelBox | null;
+  crop: string | null;
   title: string;
   author: string;
   visibleText: string;
@@ -40,6 +45,7 @@ type Region = {
 
 const MAX_IMAGE_DIMENSION = 1600;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
+const MAX_PREPARED_BYTES = 4 * 1024 * 1024;
 const SCAN_TIMEOUT_MS = 38_000;
 
 function loadImage(src: string) {
@@ -80,7 +86,7 @@ async function prepareFile(file: File): Promise<PreparedImage> {
     context.drawImage(image, 0, 0, width, height);
 
     const blob = await canvasBlob(canvas);
-    if (blob.size > 5 * 1024 * 1024) {
+    if (blob.size > MAX_PREPARED_BYTES) {
       throw new Error("The prepared shelf photo is still too large. Try a closer photo of fewer books.");
     }
 
@@ -100,10 +106,10 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.max(minimum, Math.min(maximum, value));
 }
 
-function regionFromApi(book: ApiBook, image: PreparedImage, index: number): Omit<Region, "crop"> | null {
-  if (!Array.isArray(book.box_2d) || book.box_2d.length !== 4) return null;
-  const values = book.box_2d.map(Number);
-  if (values.some((value) => !Number.isFinite(value))) return null;
+function normalizedBoxToPixels(value: unknown, image: PreparedImage): PixelBox | null {
+  if (!Array.isArray(value) || value.length !== 4) return null;
+  const values = value.map(Number);
+  if (values.some((entry) => !Number.isFinite(entry))) return null;
 
   const [yMinRaw, xMinRaw, yMaxRaw, xMaxRaw] = values;
   const yMin = clamp(yMinRaw, 0, 1000);
@@ -113,24 +119,40 @@ function regionFromApi(book: ApiBook, image: PreparedImage, index: number): Omit
   if (yMax <= yMin || xMax <= xMin) return null;
 
   return {
-    id: `${Date.now()}-${index}`,
     x: Math.round((xMin / 1000) * image.width),
     y: Math.round((yMin / 1000) * image.height),
     width: Math.max(1, Math.round(((xMax - xMin) / 1000) * image.width)),
     height: Math.max(1, Math.round(((yMax - yMin) / 1000) * image.height)),
-    title: (book.title || "").trim(),
-    author: (book.author || "").trim(),
-    visibleText: (book.visible_text || "").trim(),
+  };
+}
+
+function regionFromApi(book: ApiBook, image: PreparedImage, index: number): Omit<Region, "crop"> | null {
+  const bookBox = normalizedBoxToPixels(book.box_2d, image);
+  if (!bookBox) return null;
+  const spineBox = normalizedBoxToPixels(book.spine_box_2d, image);
+
+  return {
+    id: `${Date.now()}-${index}`,
+    ...bookBox,
+    spineBox,
+    title: spineBox ? (book.title || "").trim() : "",
+    author: spineBox ? (book.author || "").trim() : "",
+    visibleText: spineBox ? (book.visible_text || "").trim() : "",
     confidence: clamp(Math.round(Number(book.confidence) || 0), 0, 100),
   };
 }
 
-function makeCrop(source: HTMLImageElement, image: PreparedImage, region: Omit<Region, "crop">) {
-  const pad = Math.max(4, Math.round(image.width * 0.004));
-  const x = Math.max(0, region.x - pad);
-  const y = Math.max(0, region.y - pad);
-  const width = Math.min(image.width - x, region.width + pad * 2);
-  const height = Math.min(image.height - y, region.height + pad * 2);
+function makeSpineCrop(source: HTMLImageElement, image: PreparedImage, spineBox: PixelBox | null) {
+  if (!spineBox) return null;
+
+  // Keep just enough context to avoid shaving off the spine's printed edge,
+  // but do not expand far enough to turn a page block into the thumbnail.
+  const horizontalPad = Math.max(2, Math.round(spineBox.width * 0.06));
+  const verticalPad = Math.max(2, Math.round(spineBox.height * 0.015));
+  const x = Math.max(0, spineBox.x - horizontalPad);
+  const y = Math.max(0, spineBox.y - verticalPad);
+  const width = Math.min(image.width - x, spineBox.width + horizontalPad * 2);
+  const height = Math.min(image.height - y, spineBox.height + verticalPad * 2);
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -185,7 +207,7 @@ export default function ScanShelfPrototype() {
     try {
       const prepared = await prepareFile(file);
       setImage(prepared);
-      setStatus("Gemini is finding the individual books…");
+      setStatus("Gemini is finding the books and their visible spine faces…");
       const detected = await detectBooks(prepared);
 
       if (!detected.length) {
@@ -193,7 +215,7 @@ export default function ScanShelfPrototype() {
         return;
       }
 
-      setStatus(`Cropping ${detected.length} detected book${detected.length === 1 ? "" : "s"}…`);
+      setStatus(`Cropping visible spines from ${detected.length} detected book${detected.length === 1 ? "" : "s"}…`);
       const source = await loadImage(prepared.dataUrl);
       const converted = detected
         .map((book, index) => regionFromApi(book, prepared, index))
@@ -205,12 +227,15 @@ export default function ScanShelfPrototype() {
 
       const cropped = converted.map((region) => ({
         ...region,
-        crop: makeCrop(source, prepared, region),
+        crop: makeSpineCrop(source, prepared, region.spineBox),
       }));
 
       setRegions(cropped);
+      const visibleSpines = cropped.filter((region) => region.crop).length;
       const readable = cropped.filter((region) => region.title || region.author).length;
-      setStatus(`Found ${cropped.length} book${cropped.length === 1 ? "" : "s"}${readable ? ` · read text on ${readable}` : ""}.`);
+      setStatus(
+        `Found ${cropped.length} book${cropped.length === 1 ? "" : "s"} · ${visibleSpines} visible spine${visibleSpines === 1 ? "" : "s"}${readable ? ` · read text on ${readable}` : ""}.`,
+      );
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "The shelf scan failed.";
       setError(message);
@@ -245,7 +270,7 @@ export default function ScanShelfPrototype() {
           <p className={styles.eyebrow}>EXPERIMENTAL · GEMINI DETECTION</p>
           <h1>Scan My Shelf</h1>
           <p className={styles.lead}>
-            Take a straight-on shelf photo or upload one you already have. Gemini finds each physical book, outlines it, and reads visible title/author text when it can.
+            Take a straight-on shelf photo or upload one you already have. Gemini finds each physical book, then separately finds the visible spine face so page edges are not used as the spine image.
           </p>
         </header>
 
@@ -309,8 +334,8 @@ export default function ScanShelfPrototype() {
               <>
                 <div className={styles.cropHeading}>
                   <div>
-                    <h2>Detected books</h2>
-                    <p>These are Gemini’s individual crops. Remove false detections; metadata verification comes next.</p>
+                    <h2>Detected spine faces</h2>
+                    <p>The cards now crop the actual visible binding/spine face, not the page block. If Gemini cannot see a spine, the card says so instead of showing pages.</p>
                   </div>
                 </div>
                 <div className={styles.cropGrid}>
@@ -318,10 +343,14 @@ export default function ScanShelfPrototype() {
                     <article className={styles.cropCard} key={region.id}>
                       <div className={styles.cropNumber}>#{index + 1} · {region.confidence}% book</div>
                       <div className={styles.cropImageWrap}>
-                        <img src={region.crop} alt={`Detected book crop ${index + 1}`} className={styles.cropImage} />
+                        {region.crop ? (
+                          <img src={region.crop} alt={`Visible spine crop ${index + 1}`} className={styles.cropImage} />
+                        ) : (
+                          <div className={styles.noSpine}>Spine face not visible</div>
+                        )}
                       </div>
                       <div className={styles.cropMeta}>
-                        <strong>{region.title || "Needs identification"}</strong>
+                        <strong>{region.title || (region.crop ? "Needs identification" : "No visible spine")}</strong>
                         {region.author ? <span>{region.author}</span> : null}
                         {!region.title && region.visibleText ? <small>{region.visibleText}</small> : null}
                       </div>
@@ -341,7 +370,7 @@ export default function ScanShelfPrototype() {
           <section className={styles.placeholder}>
             <div className={styles.placeholderIcon} aria-hidden="true">▥</div>
             <strong>Your shelf photo will appear here</strong>
-            <span>Gemini will return individual book boxes and any title/author text it can actually read.</span>
+            <span>Gemini will return a whole-book detection plus a separate visible-spine crop.</span>
           </section>
         )}
 
