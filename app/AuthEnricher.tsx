@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 
 const SUPABASE_URL = "https://vrkuimrfdkejfhpxlwlf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mf0u925xGBkP4iNgxSCjuQ_H4Dp8r1S";
@@ -12,7 +13,12 @@ type User = {
   user_metadata?: { username?: string; display_name?: string };
 };
 
-type Profile = { username?: string; display_name?: string | null };
+type Profile = {
+  username?: string;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  bio?: string | null;
+};
 type Session = { access_token: string; refresh_token?: string; user?: User; profile?: Profile };
 
 async function auth(path: string, body: object) {
@@ -36,7 +42,7 @@ async function getUser(accessToken: string): Promise<User | undefined> {
 
 async function getProfile(userId?: string, accessToken?: string): Promise<Profile | undefined> {
   if (!userId) return undefined;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=username,display_name&id=eq.${encodeURIComponent(userId)}&limit=1`, {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=username,display_name,avatar_url,bio&id=eq.${encodeURIComponent(userId)}&limit=1`, {
     headers: {
       apikey: SUPABASE_KEY,
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
@@ -68,6 +74,10 @@ function usernameFormatError(value: string) {
   return "";
 }
 
+function initials(value: string) {
+  return value.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "S";
+}
+
 export default function AuthEnricher() {
   const [session, setSession] = useState<Session | null>(null);
   const [open, setOpen] = useState(false);
@@ -86,6 +96,12 @@ export default function AuthEnricher() {
   }
 
   useEffect(() => {
+    function onAuthChanged(event: Event) {
+      const detail = (event as CustomEvent<Session | null>).detail;
+      setSession(detail || null);
+    }
+    window.addEventListener("shelf-auth-changed", onAuthChanged as EventListener);
+
     try {
       const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
       const accessToken = hash.get("access_token");
@@ -97,25 +113,23 @@ export default function AuthEnricher() {
         setOpen(true);
         setMode("login");
         window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
-        return;
-      }
-
-      if (accessToken) {
+      } else if (accessToken) {
         void saveSession({ access_token: accessToken, refresh_token: refreshToken }).then(() => {
           setMessage("");
           setOpen(false);
           window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
         });
-        return;
-      }
-
-      const raw = localStorage.getItem(SESSION_KEY);
-      if (raw) {
-        const stored = JSON.parse(raw) as Session;
-        setSession(stored);
-        if (!stored.profile && stored.access_token) void saveSession(stored);
+      } else {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (raw) {
+          const stored = JSON.parse(raw) as Session;
+          setSession(stored);
+          if (!stored.profile && stored.access_token) void saveSession(stored);
+        }
       }
     } catch {}
+
+    return () => window.removeEventListener("shelf-auth-changed", onAuthChanged as EventListener);
   }, []);
 
   async function checkUsernameField(rawUsername: string) {
@@ -186,12 +200,19 @@ export default function AuthEnricher() {
   }
 
   const visibleUsername = session?.profile?.username || session?.user?.user_metadata?.username;
+  const visibleName = session?.profile?.display_name || session?.user?.user_metadata?.display_name || visibleUsername || "Profile";
+  const avatarUrl = session?.profile?.avatar_url || "";
 
   return <>
     <div className="sof-account">
       {session ? <>
-        <span className="sof-account-email">{visibleUsername ? `@${visibleUsername}` : "Signed in"}</span>
-        <button type="button" onClick={logout}>Sign out</button>
+        <Link className="sof-profile-link" href="/account" aria-label="Open account settings">
+          {avatarUrl
+            ? <img className="sof-profile-mini-avatar" src={avatarUrl} alt="" />
+            : <span className="sof-profile-mini-avatar">{initials(visibleName)}</span>}
+          <span>{visibleUsername ? `@${visibleUsername}` : visibleName}</span>
+        </Link>
+        <button className="sof-account-signout-mini" type="button" onClick={logout}>Sign out</button>
       </> : <button type="button" onClick={() => setOpen(true)}>Sign in / Create account</button>}
     </div>
     {open && !session && <div className="sof-auth-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>

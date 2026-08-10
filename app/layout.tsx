@@ -24,6 +24,8 @@ import "./book-hub.css";
 import "./decor-store.css";
 import "./qol.css";
 import "./auth.css";
+import "./account/account.css";
+import "./help-shelf-launcher.css";
 import ClientEnhancers from "./ClientEnhancers";
 
 export const metadata: Metadata = {
