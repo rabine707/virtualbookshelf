@@ -136,8 +136,10 @@ function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
   spine.append(art, wash, textLane, topRule, titleNode, authorNode, bottomRule);
   button.appendChild(spine);
   button.dataset.generatedSpine = "1";
-  button.style.setProperty("--generated-spine-width", "44px");
-  button.style.setProperty("--generated-spine-height", "220px");
+  // Geometry is shelf-controlled. The generated image is only the printed texture.
+  // Match the regular shelf-book height instead of inheriting the source image ratio.
+  button.style.setProperty("--generated-spine-width", "48px");
+  button.style.setProperty("--generated-spine-height", "204px");
 }
 
 function wireBook(button: HTMLButtonElement) {
