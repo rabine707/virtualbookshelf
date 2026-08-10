@@ -9,10 +9,10 @@ jobs:
   seed:
     runs-on: ubuntu-latest
     steps:
-      - name: Diagnose and seed BookTok-first community queue
+      - name: Run optimized BookTok-first community seed
         run: |
           set -euo pipefail
-          curl --location --show-error --silent --max-time 180 \
+          curl --location --fail --show-error --silent --max-time 120 \
             --output response.txt \
             --write-out 'HTTP=%{http_code}\nFINAL_URL=%{url_effective}\nCONTENT_TYPE=%{content_type}\n' \
             https://virtualbookshelf-git-main-ready-set-ink.vercel.app/api/admin/bootstrap-booktok-8c4f7a
