@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AuthEnricher from "./AuthEnricher";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import CoreInteractionEnricher from "./CoreInteractionEnricher";
 import CoverDecisionSafety from "./CoverDecisionSafety";
@@ -22,31 +23,27 @@ import WebCoverEnricher from "./WebCoverEnricher";
 export default function ClientEnhancers() {
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
+  useEffect(() => { setMounted(true); }, []);
   if (!mounted) return null;
 
-  return (
-    <>
-      <CoreInteractionEnricher />
-      <CoverDecisionSafety />
-      <CoverSearchCleanup />
-      <SavedCoverChoices />
-      <WebCoverEnricher />
-      <RomanceShelfEnricher />
-      <AudibleCoverEnricher />
-      <SpineArtEnricher />
-      <SpineGenerator />
-      <SpineCommunityEnricher />
-      <IdentifierEditor />
-      <DecorStoreEnricher />
-      <MobileTapFix />
-      <PageRefreshButton />
-      <RemoveAudibleImport />
-      <ThemeEnricher />
-      <QoLEnricher />
-    </>
-  );
+  return <>
+    <AuthEnricher />
+    <CoreInteractionEnricher />
+    <CoverDecisionSafety />
+    <CoverSearchCleanup />
+    <SavedCoverChoices />
+    <WebCoverEnricher />
+    <RomanceShelfEnricher />
+    <AudibleCoverEnricher />
+    <SpineArtEnricher />
+    <SpineGenerator />
+    <SpineCommunityEnricher />
+    <IdentifierEditor />
+    <DecorStoreEnricher />
+    <MobileTapFix />
+    <PageRefreshButton />
+    <RemoveAudibleImport />
+    <ThemeEnricher />
+    <QoLEnricher />
+  </>;
 }
