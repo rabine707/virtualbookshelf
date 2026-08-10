@@ -5,7 +5,16 @@ type OpenLibrarySearch = { docs?: OpenLibraryDoc[] };
 const USER_AGENT = "ShelfOfFame/0.1 (community catalog seeding; https://github.com/rabine707/virtualbookshelf)";
 
 export const STARTER_SEED_PRESETS = {
-  core: ["subject:romance", "subject:dark_romance", "subject:litrpg"],
+  core: [
+    "subject:dark_romance",
+    "subject:litrpg",
+    "subject:mafia_romance",
+    "subject:progression_fantasy",
+    "subject:enemies_to_lovers",
+    "subject:isekai",
+    "subject:contemporary_romance",
+    "subject:romance",
+  ],
   romance: ["subject:romance", "subject:contemporary_romance", "subject:romantic_suspense"],
   darkRomance: ["subject:dark_romance", "subject:mafia_romance", "subject:enemies_to_lovers"],
   litrpg: ["subject:litrpg", "subject:progression_fantasy", "subject:isekai"],
@@ -51,17 +60,17 @@ export async function fetchBookTokStarterSeeds(
   maxCandidates = 150,
 ) {
   const records: Array<Record<string, unknown>> = []; const seen = new Set<string>();
-  for (const row of titles.slice(0, 100)) {
+  const curated = await Promise.all(titles.slice(0, 100).map(async (row) => {
     const query = `title:\"${row.title.replace(/\"/g, "")}\" author:\"${row.author.replace(/\"/g, "")}\"`;
-    const data = await searchOne(query, 5);
-    pushDocs(records, seen, data, 96);
-    if (records.length >= maxCandidates) return records.slice(0, maxCandidates);
-  }
-  for (const query of [...new Set(fallbackQueries)].slice(0, 8)) {
-    const data = await searchOne(query, 25);
-    pushDocs(records, seen, data, 74);
-    if (records.length >= maxCandidates) break;
-  }
+    try { return await searchOne(query, 3); } catch { return { docs: [] } as OpenLibrarySearch; }
+  }));
+  curated.forEach((data) => pushDocs(records, seen, data, 96));
+  if (records.length >= maxCandidates) return records.slice(0, maxCandidates);
+
+  const fallback = await Promise.all([...new Set(fallbackQueries)].slice(0, 8).map(async (query) => {
+    try { return await searchOne(query, 25); } catch { return { docs: [] } as OpenLibrarySearch; }
+  }));
+  fallback.forEach((data) => pushDocs(records, seen, data, 74));
   return records.slice(0, maxCandidates);
 }
 
@@ -69,10 +78,9 @@ export async function fetchOpenLibraryStarterSeeds(queries: string[], limitPerQu
   const uniqueQueries = [...new Set(queries.map((q) => q.trim()).filter(Boolean))].slice(0, 8);
   const perQuery = Math.max(1, Math.min(25, limitPerQuery));
   const records: Array<Record<string, unknown>> = []; const seen = new Set<string>();
-  for (const query of uniqueQueries) {
-    const data = await searchOne(query, perQuery);
-    pushDocs(records, seen, data, 72);
-    if (records.length >= 150) break;
-  }
+  const batches = await Promise.all(uniqueQueries.map(async (query) => {
+    try { return await searchOne(query, perQuery); } catch { return { docs: [] } as OpenLibrarySearch; }
+  }));
+  batches.forEach((data) => pushDocs(records, seen, data, 72));
   return records.slice(0, 150);
 }
