@@ -1,0 +1,16 @@
+name: Bootstrap community once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bootstrap-community-once.yml'
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Seed BookTok-first community queue
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --silent --max-time 180 \
+            https://virtualbookshelf-git-main-ready-set-ink.vercel.app/api/admin/bootstrap-booktok-8c4f7a
