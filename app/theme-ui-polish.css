@@ -1,0 +1,298 @@
+/* Theme-aware UI polish.
+   Gives every shelf theme its own readable control palette without changing behavior. */
+
+html[data-shelf-theme] {
+  --sof-ui-text: #2c2119;
+  --sof-ui-muted: #74665b;
+  --sof-ui-accent: #8a5a39;
+  --sof-ui-accent-soft: rgba(138, 90, 57, .13);
+  --sof-ui-hero: rgba(248, 241, 229, .90);
+  --sof-ui-control: rgba(255, 250, 242, .88);
+  --sof-ui-control-hover: rgba(255, 253, 248, .98);
+  --sof-ui-input: rgba(255, 250, 242, .90);
+  --sof-ui-border: rgba(68, 42, 27, .18);
+  --sof-ui-primary: #33241b;
+  --sof-ui-primary-text: #fff8ed;
+  --sof-ui-shadow: rgba(45, 28, 18, .16);
+}
+
+html[data-shelf-theme="dark-academia"] {
+  --sof-ui-text: #f0e3d1;
+  --sof-ui-muted: #aa9781;
+  --sof-ui-accent: #c28a55;
+  --sof-ui-accent-soft: rgba(194, 138, 85, .16);
+  --sof-ui-hero: rgba(29, 23, 18, .94);
+  --sof-ui-control: rgba(35, 28, 22, .94);
+  --sof-ui-control-hover: rgba(48, 37, 28, .98);
+  --sof-ui-input: rgba(24, 21, 17, .94);
+  --sof-ui-border: rgba(201, 157, 105, .18);
+  --sof-ui-primary: #a56f42;
+  --sof-ui-primary-text: #160f0a;
+  --sof-ui-shadow: rgba(0, 0, 0, .34);
+}
+
+html[data-shelf-theme="botanical"] {
+  --sof-ui-text: #eef1e5;
+  --sof-ui-muted: #aab7a1;
+  --sof-ui-accent: #9db47f;
+  --sof-ui-accent-soft: rgba(157, 180, 127, .15);
+  --sof-ui-hero: rgba(20, 31, 22, .94);
+  --sof-ui-control: rgba(24, 38, 27, .94);
+  --sof-ui-control-hover: rgba(34, 50, 36, .98);
+  --sof-ui-input: rgba(16, 27, 19, .94);
+  --sof-ui-border: rgba(170, 196, 145, .18);
+  --sof-ui-primary: #9db47f;
+  --sof-ui-primary-text: #11180f;
+  --sof-ui-shadow: rgba(4, 10, 5, .34);
+}
+
+html[data-shelf-theme="fantasy"] {
+  --sof-ui-text: #f0edff;
+  --sof-ui-muted: #b9b5d1;
+  --sof-ui-accent: #aa9cf4;
+  --sof-ui-accent-soft: rgba(170, 156, 244, .16);
+  --sof-ui-hero: rgba(23, 25, 54, .95);
+  --sof-ui-control: rgba(28, 30, 64, .95);
+  --sof-ui-control-hover: rgba(40, 42, 82, .99);
+  --sof-ui-input: rgba(18, 20, 44, .95);
+  --sof-ui-border: rgba(181, 171, 247, .18);
+  --sof-ui-primary: #aa9cf4;
+  --sof-ui-primary-text: #151329;
+  --sof-ui-shadow: rgba(2, 3, 12, .38);
+}
+
+html[data-shelf-theme="cozy"] {
+  --sof-ui-text: #fff1dd;
+  --sof-ui-muted: #d5bfa7;
+  --sof-ui-accent: #e0a66f;
+  --sof-ui-accent-soft: rgba(224, 166, 111, .17);
+  --sof-ui-hero: rgba(75, 55, 42, .94);
+  --sof-ui-control: rgba(83, 61, 45, .95);
+  --sof-ui-control-hover: rgba(100, 73, 53, .98);
+  --sof-ui-input: rgba(58, 44, 34, .95);
+  --sof-ui-border: rgba(245, 201, 153, .20);
+  --sof-ui-primary: #e0a66f;
+  --sof-ui-primary-text: #2b1c12;
+  --sof-ui-shadow: rgba(28, 17, 10, .32);
+}
+
+html[data-shelf-theme="gothic"] {
+  --sof-ui-text: #f7e9e5;
+  --sof-ui-muted: #bca0a4;
+  --sof-ui-accent: #c7657b;
+  --sof-ui-accent-soft: rgba(199, 101, 123, .16);
+  --sof-ui-hero: rgba(26, 12, 17, .95);
+  --sof-ui-control: rgba(34, 15, 21, .95);
+  --sof-ui-control-hover: rgba(48, 20, 28, .99);
+  --sof-ui-input: rgba(21, 10, 14, .95);
+  --sof-ui-border: rgba(202, 108, 129, .20);
+  --sof-ui-primary: #c7657b;
+  --sof-ui-primary-text: #1e0b10;
+  --sof-ui-shadow: rgba(0, 0, 0, .42);
+}
+
+html[data-shelf-theme="celestial"] {
+  --sof-ui-text: #f2f5ff;
+  --sof-ui-muted: #b9c2df;
+  --sof-ui-accent: #d6bd78;
+  --sof-ui-accent-soft: rgba(214, 189, 120, .16);
+  --sof-ui-hero: rgba(13, 22, 52, .95);
+  --sof-ui-control: rgba(17, 29, 65, .95);
+  --sof-ui-control-hover: rgba(25, 39, 80, .99);
+  --sof-ui-input: rgba(10, 18, 43, .95);
+  --sof-ui-border: rgba(160, 178, 235, .20);
+  --sof-ui-primary: #d6bd78;
+  --sof-ui-primary-text: #11172b;
+  --sof-ui-shadow: rgba(0, 3, 16, .42);
+}
+
+/* Hero follows the active theme instead of staying parchment-colored. */
+html[data-shelf-theme] .hero {
+  background: var(--sof-ui-hero) !important;
+  border-color: var(--sof-ui-border) !important;
+  color: var(--sof-ui-text) !important;
+  box-shadow: 0 14px 34px var(--sof-ui-shadow), inset 0 1px rgba(255,255,255,.035) !important;
+}
+html[data-shelf-theme] .hero h1 { color: var(--sof-ui-text) !important; }
+html[data-shelf-theme] .hero .eyebrow { color: var(--sof-ui-accent) !important; }
+html[data-shelf-theme] .hero .subhead { color: var(--sof-ui-muted) !important; }
+
+/* Search / sort / count share one readable surface. */
+html[data-shelf-theme] .search,
+html[data-shelf-theme] .toolbar select,
+html[data-shelf-theme] .count-pill {
+  background: var(--sof-ui-input) !important;
+  border-color: var(--sof-ui-border) !important;
+  color: var(--sof-ui-text) !important;
+  box-shadow: 0 3px 10px var(--sof-ui-shadow) !important;
+}
+html[data-shelf-theme] .search::placeholder { color: var(--sof-ui-muted) !important; opacity: .82; }
+html[data-shelf-theme] .search-wrap > span,
+html[data-shelf-theme] .count-pill span { color: var(--sof-ui-muted) !important; }
+html[data-shelf-theme] .search:focus,
+html[data-shelf-theme] .toolbar select:focus {
+  border-color: var(--sof-ui-accent) !important;
+  box-shadow: 0 0 0 3px var(--sof-ui-accent-soft) !important;
+}
+
+/* Main actions use the theme accent. */
+html[data-shelf-theme] .primary,
+html[data-shelf-theme] .reader-add-books-trigger {
+  background: var(--sof-ui-primary) !important;
+  color: var(--sof-ui-primary-text) !important;
+  box-shadow: 0 8px 18px var(--sof-ui-shadow) !important;
+}
+html[data-shelf-theme] .primary:hover,
+html[data-shelf-theme] .reader-add-books-trigger:hover {
+  filter: brightness(1.08);
+}
+
+/* Secondary controls are intentionally quieter than Add books. */
+html[data-shelf-theme] .page-refresh-button,
+html[data-shelf-theme] .spine-review-launch,
+html[data-shelf-theme] .decor-store-launch,
+html[data-shelf-theme] .theme-picker-trigger,
+html[data-shelf-theme] .spine-label-toggle,
+html[data-shelf-theme] .qol-toolbar button,
+html[data-shelf-theme] .help-shelf-launcher {
+  background: var(--sof-ui-control) !important;
+  border-color: var(--sof-ui-border) !important;
+  color: var(--sof-ui-text) !important;
+  box-shadow: 0 5px 14px var(--sof-ui-shadow), inset 0 1px rgba(255,255,255,.03) !important;
+}
+html[data-shelf-theme] .page-refresh-button:hover,
+html[data-shelf-theme] .spine-review-launch:hover,
+html[data-shelf-theme] .decor-store-launch:hover,
+html[data-shelf-theme] .theme-picker-trigger:hover,
+html[data-shelf-theme] .spine-label-toggle:hover,
+html[data-shelf-theme] .qol-toolbar button:hover,
+html[data-shelf-theme] .help-shelf-launcher:hover {
+  background: var(--sof-ui-control-hover) !important;
+}
+
+/* Accent the small labels/icons instead of washing the entire button out. */
+html[data-shelf-theme] .spine-review-launch > span:first-child,
+html[data-shelf-theme] .decor-store-launch > span:first-child,
+html[data-shelf-theme] .qol-toolbar button > span:first-child,
+html[data-shelf-theme] .spine-review-launch small,
+html[data-shelf-theme] .decor-store-launch small,
+html[data-shelf-theme] .qol-toolbar small,
+html[data-shelf-theme] .help-shelf-launcher span {
+  color: var(--sof-ui-accent) !important;
+  opacity: 1 !important;
+}
+html[data-shelf-theme] .spine-review-launch b,
+html[data-shelf-theme] .decor-store-launch b,
+html[data-shelf-theme] .qol-toolbar b {
+  background: var(--sof-ui-accent-soft) !important;
+  color: var(--sof-ui-text) !important;
+}
+
+/* Give Rewards a subtle special treatment while keeping accessible contrast. */
+html[data-shelf-theme] .decor-store-launch {
+  background: linear-gradient(135deg, var(--sof-ui-accent-soft), var(--sof-ui-control) 58%) !important;
+}
+
+/* Theme picker itself now inherits the selected palette. */
+.theme-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(4, 4, 8, .68);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+html[data-shelf-theme] .theme-picker-backdrop .theme-picker {
+  position: relative;
+  width: min(660px, 100%);
+  max-height: min(84vh, 720px);
+  display: block;
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--sof-ui-border);
+  border-radius: 22px;
+  background: var(--sof-ui-hero);
+  color: var(--sof-ui-text);
+  box-shadow: 0 28px 70px rgba(0,0,0,.52);
+}
+html[data-shelf-theme] .theme-picker-backdrop .theme-picker h2 {
+  margin: 0 44px 16px 0;
+  color: var(--sof-ui-text);
+}
+html[data-shelf-theme] .theme-picker-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--sof-ui-border);
+  border-radius: 50%;
+  background: var(--sof-ui-control);
+  color: var(--sof-ui-text);
+  cursor: pointer;
+}
+html[data-shelf-theme] .theme-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+html[data-shelf-theme] .theme-option {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--sof-ui-border);
+  border-radius: 14px;
+  background: var(--sof-ui-control);
+  color: var(--sof-ui-text);
+  text-align: left;
+  cursor: pointer;
+}
+html[data-shelf-theme] .theme-option:hover { background: var(--sof-ui-control-hover); }
+html[data-shelf-theme] .theme-option.active {
+  border-color: var(--sof-ui-accent);
+  background: var(--sof-ui-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--sof-ui-accent-soft);
+}
+html[data-shelf-theme] .theme-option-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--sof-ui-accent-soft);
+  color: var(--sof-ui-accent);
+  font-size: 18px;
+}
+html[data-shelf-theme] .theme-option-copy { display: grid; gap: 2px; min-width: 0; }
+html[data-shelf-theme] .theme-option-copy strong { font-size: 13px; }
+html[data-shelf-theme] .theme-option-copy small { color: var(--sof-ui-muted); font-size: 10px; line-height: 1.25; }
+html[data-shelf-theme] .theme-picker-spine-setting {
+  border-color: var(--sof-ui-border) !important;
+  background: var(--sof-ui-control) !important;
+  color: var(--sof-ui-text) !important;
+}
+html[data-shelf-theme] .theme-picker-spine-setting small { color: var(--sof-ui-muted) !important; opacity: 1 !important; }
+html[data-shelf-theme] .theme-picker-spine-setting b { background: var(--sof-ui-accent-soft) !important; color: var(--sof-ui-accent) !important; }
+
+@media (max-width: 760px) {
+  .theme-picker-backdrop { align-items: end; padding: 0; }
+  html[data-shelf-theme] .theme-picker-backdrop .theme-picker {
+    width: 100%;
+    max-height: 88vh;
+    border-radius: 24px 24px 0 0;
+    padding: 18px 14px calc(22px + env(safe-area-inset-bottom));
+  }
+  html[data-shelf-theme] .theme-picker-grid { gap: 8px; }
+  html[data-shelf-theme] .theme-option { padding: 10px; grid-template-columns: 34px 1fr; }
+  html[data-shelf-theme] .theme-option-icon { width: 32px; height: 32px; }
+}
+
+@media (max-width: 390px) {
+  html[data-shelf-theme] .theme-picker-grid { grid-template-columns: 1fr; }
+}
