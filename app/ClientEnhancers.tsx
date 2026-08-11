@@ -15,6 +15,7 @@ import QoLEnricher from "./QoLEnricher";
 import RemoveAudibleImport from "./RemoveAudibleImport";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import SavedCoverChoices from "./SavedCoverChoices";
+import ScannedSpineEnricher from "./ScannedSpineEnricher";
 import SharedSpineEnricher from "./SharedSpineEnricher";
 import SpineArtEnricher from "./SpineArtEnricher";
 import SpineCommunityEnricher from "./SpineCommunityEnricher";
@@ -37,6 +38,7 @@ export default function ClientEnhancers() {
     <RomanceShelfEnricher />
     <AudibleCoverEnricher />
     <SpineArtEnricher />
+    <ScannedSpineEnricher />
     <SharedSpineEnricher />
     <SpineGenerator />
     <SpineCommunityEnricher />
