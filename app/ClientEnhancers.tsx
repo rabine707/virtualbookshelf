@@ -21,6 +21,7 @@ import SharedSpineEnricher from "./SharedSpineEnricher";
 import SpineArtEnricher from "./SpineArtEnricher";
 import SpineCommunityEnricher from "./SpineCommunityEnricher";
 import SpineGenerator from "./SpineGenerator";
+import SpineSourcePreferenceEnricher from "./SpineSourcePreferenceEnricher";
 import ThemeEnricher from "./ThemeEnricher";
 import WebCoverEnricher from "./WebCoverEnricher";
 
@@ -38,6 +39,7 @@ export default function ClientEnhancers() {
     <WebCoverEnricher />
     <RomanceShelfEnricher />
     <AudibleCoverEnricher />
+    <SpineSourcePreferenceEnricher />
     <SpineArtEnricher />
     <ScannedSpineEnricher />
     <SharedSpineEnricher />
