@@ -162,6 +162,18 @@ export default function ThemeEnricher() {
           <div className="theme-picker" role="dialog" aria-modal="true" aria-label="Choose bookshelf theme" onClick={(event) => event.stopPropagation()}>
             <button type="button" className="theme-picker-close" onClick={() => setPickerOpen(false)} aria-label="Close theme picker">×</button>
             <h2>Choose a shelf theme</h2>
+            <button
+              type="button"
+              className="theme-picker-spine-setting"
+              onClick={toggleSpineLabels}
+              aria-pressed={spineLabels}
+            >
+              <span>
+                <strong>Spine text</strong>
+                <small>Show book title and author labels on the shelf</small>
+              </span>
+              <b>{spineLabels ? "On" : "Off"}</b>
+            </button>
             <div className="theme-picker-grid">
               {THEMES.map((option) => (
                 <button
