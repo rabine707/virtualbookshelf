@@ -1,12 +1,14 @@
-/* Dedicated 1:5 shelf spines built from the approved cover art. */
+/* Dedicated 1:4 shelf spines built from the approved cover art. */
 .book.has-cover[data-generated-spine="1"] {
-  width: var(--generated-spine-width, 44px) !important;
-  min-width: var(--generated-spine-width, 44px) !important;
-  max-width: var(--generated-spine-width, 44px) !important;
-  height: var(--generated-spine-height, 220px) !important;
-  min-height: var(--generated-spine-height, 220px) !important;
-  max-height: var(--generated-spine-height, 220px) !important;
-  aspect-ratio: 1 / 5 !important;
+  --generated-spine-width: 51px !important;
+  --generated-spine-height: 204px !important;
+  width: var(--generated-spine-width, 51px) !important;
+  min-width: var(--generated-spine-width, 51px) !important;
+  max-width: var(--generated-spine-width, 51px) !important;
+  height: var(--generated-spine-height, 204px) !important;
+  min-height: var(--generated-spine-height, 204px) !important;
+  max-height: var(--generated-spine-height, 204px) !important;
+  aspect-ratio: 1 / 4 !important;
   padding: 0 !important;
   writing-mode: horizontal-tb !important;
   overflow: hidden;
@@ -37,7 +39,7 @@
   user-select: none;
 }
 
-/* /api/spine returns an actual 1:5 crop, so nothing is stretched into place. */
+/* /api/spine returns an actual 1:4 crop, so nothing is stretched into place. */
 .generated-spine-art-dedicated {
   inset: 0;
   width: 100%;
@@ -72,8 +74,8 @@
     inset 0 -1px rgba(0,0,0,.24);
 }
 
-/* Text is intentionally independent from the artwork. The old dark text lane
-   is gone; outlined type stays readable directly on top of the cover crop. */
+/* Text is intentionally independent from the artwork for cover crops and
+   legacy AI spines. New integrated AI spines hide these nodes at runtime. */
 .generated-spine-text-lane,
 .generated-spine-rule {
   display: none;
@@ -136,6 +138,11 @@
   text-overflow: ellipsis;
 }
 
+.generated-spine[data-typography="integrated"] .generated-spine-title,
+.generated-spine[data-typography="integrated"] .generated-spine-author {
+  display: none !important;
+}
+
 html[data-spine-labels="off"] .generated-spine-text-lane,
 html[data-spine-labels="off"] .generated-spine-title,
 html[data-spine-labels="off"] .generated-spine-author,
@@ -166,9 +173,9 @@ html[data-spine-labels="off"] .generated-spine-rule {
 
 @media (max-width: 720px) {
   .book.has-cover[data-generated-spine="1"] {
-    --generated-spine-width: 40px !important;
+    --generated-spine-width: 50px !important;
     --generated-spine-height: 200px !important;
-    aspect-ratio: 1 / 5 !important;
+    aspect-ratio: 1 / 4 !important;
   }
 
   .generated-spine-title {
