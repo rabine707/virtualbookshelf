@@ -77,43 +77,32 @@ function compactError(value: string | undefined, fallback: string) {
 
 function pollinationsError(result: PollinationsResponse) {
   if (typeof result.error === "string") return result.error;
-  return result.error?.message || result.error?.details?.upstreamBody;
+  return result.error?.details?.upstreamBody || result.error?.message;
 }
 
-function filenameForMime(contentType: string) {
-  if (contentType === "image/png") return "cover.png";
-  if (contentType === "image/webp") return "cover.webp";
-  if (contentType === "image/gif") return "cover.gif";
-  return "cover.jpg";
-}
-
-async function generateWithPollinationsEdit(
+async function generateWithPollinationsImage(
   apiKey: string,
   prompt: string,
-  confirmedCover: ConfirmedCover,
+  cover: string,
   model: "gpt-image-2" | "klein",
 ): Promise<ProviderAttempt> {
   try {
-    const form = new FormData();
-    const bytes = Uint8Array.from(Buffer.from(confirmedCover.base64, "base64"));
-    form.append(
-      "image",
-      new Blob([bytes], { type: confirmedCover.contentType }),
-      filenameForMime(confirmedCover.contentType),
-    );
-    form.append("prompt", prompt);
-    form.append("model", model);
-    form.append("size", "512x2048");
-    form.append("response_format", "b64_json");
-    form.append("safe", "true");
-    if (model === "gpt-image-2") form.append("quality", "high");
-
-    const response = await fetch("https://gen.pollinations.ai/v1/images/edits", {
+    const response = await fetch("https://gen.pollinations.ai/v1/images/generations", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
-      body: form,
+      body: JSON.stringify({
+        model,
+        prompt,
+        image: cover,
+        n: 1,
+        size: "512x2048",
+        response_format: "b64_json",
+        safe: true,
+        ...(model === "gpt-image-2" ? { quality: "high" } : {}),
+      }),
     });
 
     const result = await response.json() as PollinationsResponse;
@@ -316,16 +305,18 @@ export async function POST(request: Request) {
   ].join(" ");
 
   try {
+    // Validate the reference image once on our server before giving its public URL
+    // to Pollinations. This preserves the SSRF, timeout, size, and content-type protections.
     const confirmedCover = await fetchPublicImage(cover);
     const failures: string[] = [];
     const attempted: string[] = [];
 
     if (pollinationsApiKey) {
       attempted.push("gpt-image-2");
-      const gptAttempt = await generateWithPollinationsEdit(
+      const gptAttempt = await generateWithPollinationsImage(
         pollinationsApiKey,
         prompt,
-        confirmedCover,
+        cover,
         "gpt-image-2",
       );
       if (gptAttempt.image) {
@@ -342,10 +333,10 @@ export async function POST(request: Request) {
       failures.push(`GPT Image 2: ${gptAttempt.error || "generation failed"}`);
 
       attempted.push("klein");
-      const kleinAttempt = await generateWithPollinationsEdit(
+      const kleinAttempt = await generateWithPollinationsImage(
         pollinationsApiKey,
         prompt,
-        confirmedCover,
+        cover,
         "klein",
       );
       if (kleinAttempt.image) {
