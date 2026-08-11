@@ -29,6 +29,7 @@ import "./auth.css";
 import "./account/account.css";
 import "./help-shelf-launcher.css";
 import "./reader-ui-cleanup.css";
+import "./mobile-shelf-compression.css";
 import ClientEnhancers from "./ClientEnhancers";
 
 export const metadata: Metadata = {
