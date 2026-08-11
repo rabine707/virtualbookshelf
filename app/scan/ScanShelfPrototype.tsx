@@ -13,7 +13,17 @@ type PreparedImage = {
 
 type ApiBook = {
   box_2d: number[];
+  title?: string;
+  author?: string;
+  visible_text?: string;
+  confidence?: number;
+};
+
+type SpineRefinement = {
+  index: number;
+  spine_visible?: boolean;
   spine_box_2d?: number[] | null;
+  spine_mask?: number[][];
   title?: string;
   author?: string;
   visible_text?: string;
@@ -22,6 +32,12 @@ type ApiBook = {
 
 type ScanResponse = {
   books?: ApiBook[];
+  model?: string;
+  error?: string;
+};
+
+type RefineResponse = {
+  books?: SpineRefinement[];
   model?: string;
   error?: string;
 };
@@ -40,13 +56,17 @@ type Region = PixelBox & {
   title: string;
   author: string;
   visibleText: string;
-  confidence: number;
+  bookConfidence: number;
+  spineConfidence: number;
 };
 
+const SESSION_KEY = "shelf-of-fame-supabase-session";
 const MAX_IMAGE_DIMENSION = 1600;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_PREPARED_BYTES = 4 * 1024 * 1024;
+const BOOK_CROP_MAX_DIMENSION = 720;
 const SCAN_TIMEOUT_MS = 38_000;
+const REFINE_TIMEOUT_MS = 43_000;
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -57,13 +77,24 @@ function loadImage(src: string) {
   });
 }
 
-function canvasBlob(canvas: HTMLCanvasElement) {
+function canvasBlob(canvas: HTMLCanvasElement, quality = 0.84) {
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);
       else reject(new Error("Your browser could not prepare this photo."));
-    }, "image/jpeg", 0.84);
+    }, "image/jpeg", quality);
   });
+}
+
+function accessToken() {
+  try {
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    if (!raw) return "";
+    const session = JSON.parse(raw) as { access_token?: unknown };
+    return typeof session.access_token === "string" ? session.access_token.trim() : "";
+  } catch {
+    return "";
+  }
 }
 
 async function prepareFile(file: File): Promise<PreparedImage> {
@@ -106,7 +137,7 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.max(minimum, Math.min(maximum, value));
 }
 
-function normalizedBoxToPixels(value: unknown, image: PreparedImage): PixelBox | null {
+function normalizedBox(value: unknown, width: number, height: number): PixelBox | null {
   if (!Array.isArray(value) || value.length !== 4) return null;
   const values = value.map(Number);
   if (values.some((entry) => !Number.isFinite(entry))) return null;
@@ -119,76 +150,109 @@ function normalizedBoxToPixels(value: unknown, image: PreparedImage): PixelBox |
   if (yMax <= yMin || xMax <= xMin) return null;
 
   return {
-    x: Math.round((xMin / 1000) * image.width),
-    y: Math.round((yMin / 1000) * image.height),
-    width: Math.max(1, Math.round(((xMax - xMin) / 1000) * image.width)),
-    height: Math.max(1, Math.round(((yMax - yMin) / 1000) * image.height)),
+    x: Math.round((xMin / 1000) * width),
+    y: Math.round((yMin / 1000) * height),
+    width: Math.max(1, Math.round(((xMax - xMin) / 1000) * width)),
+    height: Math.max(1, Math.round(((yMax - yMin) / 1000) * height)),
   };
 }
 
-function extendSpineAcrossBookLength(bookBox: PixelBox, spineBox: PixelBox | null): PixelBox | null {
-  if (!spineBox) return null;
-
-  // Gemini is best at locating which narrow surface is the spine, but it can
-  // tighten that box around the readable words. The physical spine should run
-  // along the same long axis as the book itself, so preserve Gemini's narrow
-  // cross-axis and borrow the whole book's long-axis extent.
-  const bookIsUpright = bookBox.height >= bookBox.width;
-
-  if (bookIsUpright) {
-    return {
-      x: spineBox.x,
-      y: bookBox.y,
-      width: spineBox.width,
-      height: bookBox.height,
-    };
-  }
-
-  return {
-    x: bookBox.x,
-    y: spineBox.y,
-    width: bookBox.width,
-    height: spineBox.height,
-  };
-}
-
-function regionFromApi(book: ApiBook, image: PreparedImage, index: number): Omit<Region, "crop"> | null {
-  const bookBox = normalizedBoxToPixels(book.box_2d, image);
+function regionFromApi(book: ApiBook, image: PreparedImage, index: number): Region | null {
+  const bookBox = normalizedBox(book.box_2d, image.width, image.height);
   if (!bookBox) return null;
-  const detectedSpineBox = normalizedBoxToPixels(book.spine_box_2d, image);
-  const spineBox = extendSpineAcrossBookLength(bookBox, detectedSpineBox);
 
   return {
     id: `${Date.now()}-${index}`,
     ...bookBox,
-    spineBox,
-    title: spineBox ? (book.title || "").trim() : "",
-    author: spineBox ? (book.author || "").trim() : "",
-    visibleText: spineBox ? (book.visible_text || "").trim() : "",
-    confidence: clamp(Math.round(Number(book.confidence) || 0), 0, 100),
+    spineBox: null,
+    crop: null,
+    title: (book.title || "").trim(),
+    author: (book.author || "").trim(),
+    visibleText: (book.visible_text || "").trim(),
+    bookConfidence: clamp(Math.round(Number(book.confidence) || 0), 0, 100),
+    spineConfidence: 0,
   };
 }
 
-function makeSpineCrop(source: HTMLImageElement, image: PreparedImage, spineBox: PixelBox | null) {
-  if (!spineBox) return null;
-
-  const horizontalPad = Math.max(2, Math.round(spineBox.width * 0.035));
-  const verticalPad = Math.max(2, Math.round(spineBox.height * 0.01));
-  const x = Math.max(0, spineBox.x - horizontalPad);
-  const y = Math.max(0, spineBox.y - verticalPad);
-  const width = Math.min(image.width - x, spineBox.width + horizontalPad * 2);
-  const height = Math.min(image.height - y, spineBox.height + verticalPad * 2);
-
+async function makeIsolatedBookCrop(source: HTMLImageElement, region: Region) {
+  const scale = Math.min(1, BOOK_CROP_MAX_DIMENSION / Math.max(region.width, region.height));
+  const width = Math.max(1, Math.round(region.width * scale));
+  const height = Math.max(1, Math.round(region.height * scale));
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("Could not crop a detected spine.");
-  context.drawImage(source, x, y, width, height, 0, 0, width, height);
-  return canvas.toDataURL("image/jpeg", 0.92);
+  if (!context) throw new Error("Could not isolate a detected book.");
+  context.fillStyle = "#000";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(source, region.x, region.y, region.width, region.height, 0, 0, width, height);
+  return canvasBlob(canvas, 0.8);
 }
 
-async function detectBooks(image: PreparedImage) {
+function maskPoints(value: unknown) {
+  if (!Array.isArray(value)) return [] as Array<[number, number]>;
+  return value.flatMap((point): Array<[number, number]> => {
+    if (!Array.isArray(point) || point.length !== 2) return [];
+    const x = Number(point[0]);
+    const y = Number(point[1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return [];
+    return [[clamp(x, 0, 1000), clamp(y, 0, 1000)]];
+  });
+}
+
+function makeSpinePreview(
+  source: HTMLImageElement,
+  region: Region,
+  refinement: SpineRefinement | undefined,
+): { crop: string | null; spineBox: PixelBox | null } {
+  if (!refinement?.spine_visible) return { crop: null, spineBox: null };
+  const localBox = normalizedBox(refinement.spine_box_2d, region.width, region.height);
+  if (!localBox) return { crop: null, spineBox: null };
+
+  const absoluteBox: PixelBox = {
+    x: clamp(region.x + localBox.x, 0, source.naturalWidth - 1),
+    y: clamp(region.y + localBox.y, 0, source.naturalHeight - 1),
+    width: Math.min(localBox.width, source.naturalWidth - region.x - localBox.x),
+    height: Math.min(localBox.height, source.naturalHeight - region.y - localBox.y),
+  };
+  if (absoluteBox.width < 1 || absoluteBox.height < 1) return { crop: null, spineBox: null };
+
+  const canvas = document.createElement("canvas");
+  canvas.width = absoluteBox.width;
+  canvas.height = absoluteBox.height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Could not create a spine preview.");
+  context.drawImage(
+    source,
+    absoluteBox.x,
+    absoluteBox.y,
+    absoluteBox.width,
+    absoluteBox.height,
+    0,
+    0,
+    absoluteBox.width,
+    absoluteBox.height,
+  );
+
+  const points = maskPoints(refinement.spine_mask);
+  if (points.length >= 3) {
+    context.globalCompositeOperation = "destination-in";
+    context.beginPath();
+    points.forEach(([x, y], index) => {
+      const px = (x / 1000) * canvas.width;
+      const py = (y / 1000) * canvas.height;
+      if (index === 0) context.moveTo(px, py);
+      else context.lineTo(px, py);
+    });
+    context.closePath();
+    context.fill();
+    context.globalCompositeOperation = "source-over";
+  }
+
+  return { crop: canvas.toDataURL("image/png"), spineBox: absoluteBox };
+}
+
+async function detectBooks(image: PreparedImage, token: string) {
   const form = new FormData();
   form.append("image", image.blob, "shelf.jpg");
 
@@ -200,6 +264,7 @@ async function detectBooks(image: PreparedImage) {
       body: form,
       signal: controller.signal,
       cache: "no-store",
+      headers: { Authorization: `Bearer ${token}` },
     });
     const data = await response.json() as ScanResponse;
     if (!response.ok) throw new Error(data.error || "Shelf detection could not finish.");
@@ -207,6 +272,34 @@ async function detectBooks(image: PreparedImage) {
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("Shelf detection took too long. Try a closer photo of fewer books.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+async function refineSpines(bookCrops: Blob[], token: string) {
+  const form = new FormData();
+  form.append("count", String(bookCrops.length));
+  bookCrops.forEach((blob, index) => form.append(`book_${index}`, blob, `book-${index + 1}.jpg`));
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REFINE_TIMEOUT_MS);
+  try {
+    const response = await fetch("/api/refine-spines", {
+      method: "POST",
+      body: form,
+      signal: controller.signal,
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json() as RefineResponse;
+    if (!response.ok) throw new Error(data.error || "Spine refinement could not finish.");
+    return data.books || [];
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Spine refinement took too long. Try a closer photo of fewer books.");
     }
     throw error;
   } finally {
@@ -224,6 +317,13 @@ export default function ScanShelfPrototype() {
   const [error, setError] = useState<string | null>(null);
 
   async function processFile(file: File) {
+    const token = accessToken();
+    if (!token) {
+      setError("Sign in first to use the AI shelf scanner. The account button is at the top of the page.");
+      setStatus("Sign in required.");
+      return;
+    }
+
     setProcessing(true);
     setError(null);
     setRegions([]);
@@ -232,39 +332,53 @@ export default function ScanShelfPrototype() {
     try {
       const prepared = await prepareFile(file);
       setImage(prepared);
-      setStatus("Gemini is finding the books and their visible spine faces…");
-      const detected = await detectBooks(prepared);
 
+      setStatus("Pass 1 of 2 · Gemini is locating each physical book…");
+      const detected = await detectBooks(prepared, token);
       if (!detected.length) {
         setStatus("Gemini did not find any clear individual books in this photo.");
         return;
       }
 
-      setStatus(`Cropping full visible spines from ${detected.length} detected book${detected.length === 1 ? "" : "s"}…`);
-      const source = await loadImage(prepared.dataUrl);
       const converted = detected
         .map((book, index) => regionFromApi(book, prepared, index))
-        .filter((region): region is Omit<Region, "crop"> => Boolean(region))
+        .filter((region): region is Region => Boolean(region))
         .sort((left, right) => {
           const sameShelf = Math.abs(left.y - right.y) < prepared.height * 0.12;
           return sameShelf ? left.x - right.x : left.y - right.y;
         });
 
-      const cropped = converted.map((region) => ({
-        ...region,
-        crop: makeSpineCrop(source, prepared, region.spineBox),
-      }));
+      setRegions(converted);
+      const source = await loadImage(prepared.dataUrl);
+      setStatus(`Pass 2 of 2 · isolating the actual spine face inside ${converted.length} book${converted.length === 1 ? "" : "s"}…`);
+      const isolatedCrops = await Promise.all(converted.map((region) => makeIsolatedBookCrop(source, region)));
+      const refinements = await refineSpines(isolatedCrops, token);
+      const byIndex = new Map(refinements.map((refinement) => [refinement.index, refinement]));
 
-      setRegions(cropped);
-      const visibleSpines = cropped.filter((region) => region.crop).length;
-      const readable = cropped.filter((region) => region.title || region.author).length;
+      const refined = converted.map((region, index) => {
+        const refinement = byIndex.get(index);
+        const preview = makeSpinePreview(source, region, refinement);
+        return {
+          ...region,
+          spineBox: preview.spineBox,
+          crop: preview.crop,
+          title: (refinement?.title || region.title || "").trim(),
+          author: (refinement?.author || region.author || "").trim(),
+          visibleText: (refinement?.visible_text || region.visibleText || "").trim(),
+          spineConfidence: clamp(Math.round(Number(refinement?.confidence) || 0), 0, 100),
+        };
+      });
+
+      setRegions(refined);
+      const visibleSpines = refined.filter((region) => region.crop).length;
+      const readable = refined.filter((region) => region.title || region.author).length;
       setStatus(
-        `Found ${cropped.length} book${cropped.length === 1 ? "" : "s"} · ${visibleSpines} visible spine${visibleSpines === 1 ? "" : "s"}${readable ? ` · read text on ${readable}` : ""}.`,
+        `Found ${refined.length} book${refined.length === 1 ? "" : "s"} · ${visibleSpines} complete spine face${visibleSpines === 1 ? "" : "s"} · read text on ${readable}.`,
       );
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "The shelf scan failed.";
       setError(message);
-      setStatus("Scan stopped.");
+      setStatus(regions.length ? "Book detection succeeded, but spine refinement stopped." : "Scan stopped.");
     } finally {
       setProcessing(false);
     }
@@ -292,16 +406,16 @@ export default function ScanShelfPrototype() {
       <div className={styles.shell}>
         <header className={styles.header}>
           <a className={styles.backLink} href="/">← Back to Shelf of Fame</a>
-          <p className={styles.eyebrow}>EXPERIMENTAL · GEMINI DETECTION</p>
+          <p className={styles.eyebrow}>EXPERIMENTAL · TWO-PASS GEMINI SCAN</p>
           <h1>Scan My Shelf</h1>
           <p className={styles.lead}>
-            Take a straight-on shelf photo or upload one you already have. Gemini finds each physical book, then separately finds the visible spine face so page edges are not used as the spine image.
+            Pass one finds each physical book. Pass two looks at every book by itself and segments only the complete visible binding/spine face, so page blocks are not used as spine previews.
           </p>
         </header>
 
         <section className={styles.tipCard} aria-label="Photo tips">
           <strong>Best first test</strong>
-          <span>Try 5–15 upright books, good even lighting, and keep the camera as square to the shelf as possible.</span>
+          <span>Try 5–15 books, good even lighting, and keep the camera as square to the shelf as possible. Sign in before scanning.</span>
         </section>
 
         <section className={styles.actions}>
@@ -333,74 +447,95 @@ export default function ScanShelfPrototype() {
               <span className={styles.resultCount}>{regions.length} detected</span>
             </div>
 
-            <div className={styles.imageStage}>
-              <img src={image.dataUrl} alt="Bookshelf scan preview" className={styles.shelfImage} />
-              {regions.map((region, index) => (
-                <button
-                  type="button"
-                  key={region.id}
-                  className={styles.regionBox}
-                  style={{
-                    left: `${(region.x / image.width) * 100}%`,
-                    top: `${(region.y / image.height) * 100}%`,
-                    width: `${(region.width / image.width) * 100}%`,
-                    height: `${(region.height / image.height) * 100}%`,
-                  }}
-                  title={`Possible book ${index + 1}. Click to remove this detection.`}
-                  aria-label={`Remove possible book ${index + 1}`}
-                  onClick={() => removeRegion(region.id)}
-                >
-                  <span>{index + 1}</span>
-                </button>
-              ))}
-            </div>
-
-            {regions.length ? (
-              <>
-                <div className={styles.cropHeading}>
-                  <div>
-                    <h2>Detected spine faces</h2>
-                    <p>The preview keeps Gemini's narrow spine surface but extends it across the whole physical length of the detected book, so a readable word fragment does not become the crop.</p>
-                  </div>
-                </div>
-                <div className={styles.cropGrid}>
+            <div className={styles.workspaceGrid}>
+              <div className={styles.previewColumn}>
+                <div className={styles.imageStage}>
+                  <img src={image.dataUrl} alt="Bookshelf scan preview" className={styles.shelfImage} />
                   {regions.map((region, index) => (
-                    <article className={styles.cropCard} key={region.id}>
-                      <div className={styles.cropNumber}>#{index + 1} · {region.confidence}% book</div>
-                      <div className={styles.cropImageWrap}>
-                        {region.crop ? (
-                          <img src={region.crop} alt={`Full visible spine crop ${index + 1}`} className={styles.cropImage} />
-                        ) : (
-                          <div className={styles.noSpine}>Spine face not visible</div>
-                        )}
-                      </div>
-                      <div className={styles.cropMeta}>
-                        <strong>{region.title || (region.crop ? "Needs identification" : "No visible spine")}</strong>
-                        {region.author ? <span>{region.author}</span> : null}
-                        {!region.title && region.visibleText ? <small>{region.visibleText}</small> : null}
-                      </div>
-                      <button className={styles.removeButton} type="button" onClick={() => removeRegion(region.id)}>Not a book</button>
-                    </article>
+                    <div key={region.id}>
+                      <button
+                        type="button"
+                        className={styles.regionBox}
+                        style={{
+                          left: `${(region.x / image.width) * 100}%`,
+                          top: `${(region.y / image.height) * 100}%`,
+                          width: `${(region.width / image.width) * 100}%`,
+                          height: `${(region.height / image.height) * 100}%`,
+                        }}
+                        title={`Book ${index + 1}. Click to remove this detection.`}
+                        aria-label={`Remove book ${index + 1}`}
+                        onClick={() => removeRegion(region.id)}
+                      >
+                        <span>{index + 1}</span>
+                      </button>
+                      {region.spineBox ? (
+                        <span
+                          className={styles.spineRegionBox}
+                          aria-hidden="true"
+                          style={{
+                            left: `${(region.spineBox.x / image.width) * 100}%`,
+                            top: `${(region.spineBox.y / image.height) * 100}%`,
+                            width: `${(region.spineBox.width / image.width) * 100}%`,
+                            height: `${(region.spineBox.height / image.height) * 100}%`,
+                          }}
+                        />
+                      ) : null}
+                    </div>
                   ))}
                 </div>
-              </>
-            ) : !processing ? (
-              <div className={styles.emptyState}>
-                <strong>No usable crops yet.</strong>
-                <span>Try a closer photo of a smaller shelf section with upright books and less glare.</span>
+                <p className={styles.legend}><span /> whole book <i /> refined spine face</p>
               </div>
-            ) : null}
+
+              <div className={styles.resultsColumn}>
+                <div className={styles.cropHeading}>
+                  <div>
+                    <h2>Refined spine faces</h2>
+                    <p>Each preview comes from an isolated-book second pass. Transparent/black areas are outside Gemini’s spine mask.</p>
+                  </div>
+                </div>
+
+                {regions.length ? (
+                  <div className={styles.cropGrid}>
+                    {regions.map((region, index) => (
+                      <article className={styles.cropCard} key={region.id}>
+                        <div className={styles.cropNumber}>
+                          #{index + 1} · {region.bookConfidence}% book{region.spineConfidence ? ` · ${region.spineConfidence}% spine` : ""}
+                        </div>
+                        <div className={styles.cropImageWrap}>
+                          {region.crop ? (
+                            <img src={region.crop} alt={`Refined spine crop ${index + 1}`} className={styles.cropImage} />
+                          ) : (
+                            <div className={styles.noSpine}>{processing ? "Refining…" : "Spine face not visible"}</div>
+                          )}
+                        </div>
+                        <div className={styles.cropMeta}>
+                          <strong>{region.title || (region.crop ? "Needs identification" : "No visible spine")}</strong>
+                          {region.author ? <span>{region.author}</span> : null}
+                          {!region.title && region.visibleText ? <small>{region.visibleText}</small> : null}
+                        </div>
+                        <button className={styles.removeButton} type="button" onClick={() => removeRegion(region.id)}>Not a book</button>
+                      </article>
+                    ))}
+                  </div>
+                ) : !processing ? (
+                  <div className={styles.emptyState}>
+                    <strong>No usable detections yet.</strong>
+                    <span>Try a closer photo of a smaller shelf section with less glare.</span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </section>
         ) : (
           <section className={styles.placeholder}>
             <div className={styles.placeholderIcon} aria-hidden="true">▥</div>
             <strong>Your shelf photo will appear here</strong>
-            <span>Gemini will return a whole-book detection plus a separate visible-spine crop.</span>
+            <span>Gemini will find the books first, then inspect each isolated book for its actual spine surface.</span>
           </section>
         )}
 
         <footer className={styles.footer}>
-          This prototype sends the prepared photo to Gemini for detection. Shelf of Fame does not save the photo, crops, or results to Supabase yet.
+          This draft prototype does not save the photo, book crops, spine masks, or scan results to Supabase. AI scans require a signed-in account and have a daily preview quota.
         </footer>
       </div>
     </main>
