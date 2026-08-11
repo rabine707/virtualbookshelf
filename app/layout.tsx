@@ -18,6 +18,7 @@ import "./generated-spines.css";
 import "./spine-physical-cleanup.css";
 import "./page-refresh.css";
 import "./spine-generator.css";
+import "./spine-author-correction.css";
 import "./spine-community.css";
 import "./identifier-editor.css";
 import "./book-hub.css";
