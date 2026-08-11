@@ -66,11 +66,14 @@ export async function consumeGenerationAttempt(request: Request, input: Generati
   }
 
   const row = Array.isArray(data) ? data[0] as Record<string, unknown> | undefined : undefined;
+  const allowed = Boolean(row?.allowed);
   const sharedPath = typeof row?.shared_storage_path === "string" ? row.shared_storage_path : "";
   return {
-    allowed: Boolean(row?.allowed),
+    allowed,
     attempts: Number(row?.attempts || 0),
     remaining: Number(row?.remaining || 0),
-    sharedSpineUrl: sharedPath ? publicSpineUrl(sharedPath) : undefined,
+    // A community spine is a fallback once the user's own generation allowance is exhausted.
+    // While generations remain, let the request continue so users can create and compare alternatives.
+    sharedSpineUrl: !allowed && sharedPath ? publicSpineUrl(sharedPath) : undefined,
   };
 }
