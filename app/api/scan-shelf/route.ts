@@ -1,22 +1,15 @@
 import { enforceApiRateLimit } from "../../../lib/rate-limit";
+import { consumeGenerationAttempt } from "../../../lib/spine-generation-guard";
 
 export const runtime = "nodejs";
 
 const MODEL = "gemini-3.6-flash";
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
-const MAX_BOOKS = 60;
+const MAX_BOOKS = 30;
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-type InteractionBlock = {
-  type?: string;
-  text?: string;
-};
-
-type InteractionStep = {
-  type?: string;
-  content?: InteractionBlock[];
-};
-
+type InteractionBlock = { type?: string; text?: string };
+type InteractionStep = { type?: string; content?: InteractionBlock[] };
 type GeminiInteractionResponse = {
   status?: string;
   steps?: InteractionStep[];
@@ -25,7 +18,6 @@ type GeminiInteractionResponse = {
 
 type RawBook = {
   box_2d?: unknown;
-  spine_box_2d?: unknown;
   title?: unknown;
   author?: unknown;
   visible_text?: unknown;
@@ -41,7 +33,7 @@ function cleanText(value: unknown, maxLength: number) {
     .slice(0, maxLength);
 }
 
-function sanitizeBox(value: unknown, minimumWidth = 4, minimumHeight = 20) {
+function sanitizeBox(value: unknown) {
   if (!Array.isArray(value) || value.length !== 4) return null;
   const numbers = value.map(Number);
   if (numbers.some((number) => !Number.isFinite(number))) return null;
@@ -53,7 +45,7 @@ function sanitizeBox(value: unknown, minimumWidth = 4, minimumHeight = 20) {
   const xMax = Math.max(0, Math.min(1000, Math.round(rawXMax)));
 
   if (yMax <= yMin || xMax <= xMin) return null;
-  if (yMax - yMin < minimumHeight || xMax - xMin < minimumWidth) return null;
+  if (yMax - yMin < 18 || xMax - xMin < 4) return null;
   return [yMin, xMin, yMax, xMax] as const;
 }
 
@@ -64,7 +56,6 @@ function sanitizeBooks(value: unknown) {
 
   return rows.flatMap((raw): Array<{
     box_2d: readonly [number, number, number, number];
-    spine_box_2d: readonly [number, number, number, number] | null;
     title: string;
     author: string;
     visible_text: string;
@@ -75,14 +66,11 @@ function sanitizeBooks(value: unknown) {
     const box = sanitizeBox(row.box_2d);
     if (!box) return [];
 
-    const spineBox = sanitizeBox(row.spine_box_2d, 2, 12);
-
     return [{
       box_2d: box,
-      spine_box_2d: spineBox,
-      title: spineBox ? cleanText(row.title, 240) : "",
-      author: spineBox ? cleanText(row.author, 180) : "",
-      visible_text: spineBox ? cleanText(row.visible_text, 500) : "",
+      title: cleanText(row.title, 240),
+      author: cleanText(row.author, 180),
+      visible_text: cleanText(row.visible_text, 500),
       confidence: Math.max(0, Math.min(100, Math.round(Number(row.confidence) || 0))),
     }];
   }).slice(0, MAX_BOOKS);
@@ -97,6 +85,17 @@ function outputText(result: GeminiInteractionResponse) {
     .trim();
 }
 
+async function consumeShelfScanPass(request: Request) {
+  const day = new Date().toISOString().slice(0, 10);
+  return consumeGenerationAttempt(request, {
+    title: `Shelf scan ${day}`,
+    author: "Shelf of Fame",
+    usageKey: `shelf-scan:${day}`,
+    // Two passes per full scan, so ten attempts = five complete scans/day.
+    limit: 10,
+  });
+}
+
 export async function POST(request: Request) {
   const limited = enforceApiRateLimit(request);
   if (limited) return limited;
@@ -104,6 +103,22 @@ export async function POST(request: Request) {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
     return Response.json({ error: "Shelf scanning is not configured yet." }, { status: 503 });
+  }
+
+  try {
+    const allowance = await consumeShelfScanPass(request);
+    if (!allowance.allowed) {
+      return Response.json({
+        error: "You have reached today’s shelf-scan preview limit. Try again tomorrow.",
+        remaining: allowance.remaining,
+      }, { status: 429 });
+    }
+  } catch (error) {
+    const status = typeof error === "object" && error && "status" in error
+      ? Number((error as { status?: unknown }).status)
+      : 500;
+    const message = error instanceof Error ? error.message : "Could not verify shelf-scan access.";
+    return Response.json({ error: message }, { status: status === 401 ? 401 : 502 });
   }
 
   let form: FormData;
@@ -127,16 +142,12 @@ export async function POST(request: Request) {
   const base64 = Buffer.from(await image.arrayBuffer()).toString("base64");
   const prompt = [
     "Analyze this photograph of physical books on shelves.",
-    "Detect every distinct physical book and return one box_2d around the visible physical body of that book.",
-    "For EACH detected book, also return spine_box_2d around ONLY the visible spine FACE: the narrow bound/bookbinding surface that normally carries spine artwork, title, author, publisher marks, or decoration.",
-    "IMPORTANT: spine_box_2d is a PHYSICAL-SURFACE box, not a text box. It must cover the ENTIRE continuous visible spine face from one physical end of the binding to the other and across the full visible width/thickness of that face, including blank margins, artwork, publisher marks, and unprinted areas.",
-    "Do not tighten spine_box_2d around only the readable title or author. If only part of the wording is legible but the rest of the physical spine surface is visible, still box the complete visible spine surface.",
-    "spine_box_2d must EXCLUDE exposed page blocks/fore-edges, top or bottom page edges, front covers, back covers, neighboring books, shelf boards, and empty space.",
-    "A book may be rotated, stacked horizontally, leaning, upside down, or partially occluded. Find the actual spine face regardless of orientation.",
-    "If the physical book is visible but its spine face is genuinely not visible enough to crop, return an empty array for spine_box_2d and leave title, author, and visible_text empty. Do not substitute the page block/fore-edge as the spine.",
-    "Read title and author ONLY from the pixels inside that book's visible spine face. Never infer a title from neighboring books, page edges, colors, series context, or artwork outside the spine face.",
-    "box_2d and spine_box_2d use [ymin, xmin, ymax, xmax] coordinates normalized to integers from 0 to 1000.",
-    "visible_text may contain other legible text from the spine face. confidence is 0-100 confidence that box_2d is one physical book.",
+    `Detect at most ${MAX_BOOKS} distinct physical books. If more are present, return the clearest ${MAX_BOOKS}.`,
+    "Return exactly one box_2d around the visible physical body of each detected book. Do not box shelves, gaps, decor, labels, storage boxes, screens, or multiple books as one object.",
+    "Books may be upright, stacked horizontally, leaning, upside down, or partly occluded.",
+    "box_2d must be [ymin, xmin, ymax, xmax] normalized to integers from 0 to 1000.",
+    "Read title and author when clearly visible anywhere on that same book. If uncertain, return empty strings and never borrow text from a neighboring book.",
+    "visible_text may contain other legible identifying text from that same book. confidence is 0-100 confidence that the box is one physical book.",
     "Order books top-to-bottom by shelf, then left-to-right within each shelf.",
   ].join(" ");
 
@@ -165,25 +176,23 @@ export async function POST(request: Request) {
             properties: {
               books: {
                 type: "array",
+                maxItems: MAX_BOOKS,
                 items: {
                   type: "object",
                   properties: {
                     box_2d: {
                       type: "array",
-                      items: { type: "integer" },
+                      minItems: 4,
+                      maxItems: 4,
+                      items: { type: "integer", minimum: 0, maximum: 1000 },
                       description: "Whole physical book: [ymin, xmin, ymax, xmax], normalized 0-1000",
-                    },
-                    spine_box_2d: {
-                      type: "array",
-                      items: { type: "integer" },
-                      description: "Entire visible physical spine face, not just readable text: [ymin, xmin, ymax, xmax]; empty when no spine is visible",
                     },
                     title: { type: "string" },
                     author: { type: "string" },
                     visible_text: { type: "string" },
-                    confidence: { type: "integer" },
+                    confidence: { type: "integer", minimum: 0, maximum: 100 },
                   },
-                  required: ["box_2d", "spine_box_2d", "title", "author", "visible_text", "confidence"],
+                  required: ["box_2d", "title", "author", "visible_text", "confidence"],
                 },
               },
             },
@@ -192,6 +201,7 @@ export async function POST(request: Request) {
         },
         generation_config: {
           thinking_level: "minimal",
+          max_output_tokens: 5000,
         },
       }),
     });
