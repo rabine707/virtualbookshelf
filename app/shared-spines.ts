@@ -9,6 +9,15 @@ export type SharedBookIdentity = {
   asin?: string;
 };
 
+export type SharedSpineRenderMode = "integrated" | "overlay";
+export type SharedSpinePosition = "left" | "center" | "right";
+
+export type SharedSpineEntry = {
+  url: string;
+  renderMode: SharedSpineRenderMode;
+  position?: SharedSpinePosition;
+};
+
 type StoredSession = {
   access_token?: string;
   user?: { id?: string; email?: string };
@@ -18,6 +27,8 @@ type SharedSpineRow = {
   storage_path: string;
   source_cover_url?: string | null;
   vote_score?: number | null;
+  provider?: string | null;
+  model?: string | null;
   books?: {
     title?: string | null;
     author?: string | null;
@@ -29,10 +40,10 @@ type SharedSpineRow = {
 };
 
 export type SharedSpineCatalog = {
-  byCover: Map<string, string>;
-  byIsbn: Map<string, string>;
-  byAsin: Map<string, string>;
-  byTitleAuthor: Map<string, string>;
+  byCover: Map<string, SharedSpineEntry>;
+  byIsbn: Map<string, SharedSpineEntry>;
+  byAsin: Map<string, SharedSpineEntry>;
+  byTitleAuthor: Map<string, SharedSpineEntry>;
 };
 
 export function normalizeBookText(value: string) {
@@ -104,6 +115,18 @@ function extensionFor(type: string) {
   return "png";
 }
 
+function sharedEntry(row: SharedSpineRow): SharedSpineEntry {
+  const integrated = row.provider === "AI-integrated";
+  const position = row.provider === "cover-crop" && (row.model === "left" || row.model === "center" || row.model === "right")
+    ? row.model
+    : undefined;
+  return {
+    url: publicSpineUrl(row.storage_path),
+    renderMode: integrated ? "integrated" : "overlay",
+    position,
+  };
+}
+
 export async function publishSharedSpine(identity: SharedBookIdentity, image: string, sourceCoverUrl: string, provider?: string, model?: string) {
   const session = readSession();
   const userId = session?.user?.id;
@@ -155,7 +178,7 @@ export function loadSharedSpineCatalog(force = false) {
   if (catalogPromise && !force) return catalogPromise;
   catalogPromise = (async () => {
     const rows = await supabaseJson(
-      "/rest/v1/spines?select=storage_path,source_cover_url,vote_score,books(title,author,normalized_title,normalized_author,isbn,asin)&status=eq.approved&order=vote_score.desc,created_at.desc&limit=1000",
+      "/rest/v1/spines?select=storage_path,source_cover_url,vote_score,provider,model,books(title,author,normalized_title,normalized_author,isbn,asin)&status=eq.approved&order=vote_score.desc,created_at.desc&limit=1000",
       { cache: "no-store" },
     ) as SharedSpineRow[];
 
@@ -168,17 +191,17 @@ export function loadSharedSpineCatalog(force = false) {
 
     for (const row of rows || []) {
       if (!row.storage_path || !row.books) continue;
-      const url = publicSpineUrl(row.storage_path);
+      const entry = sharedEntry(row);
       const cover = row.source_cover_url?.trim();
       const isbn = row.books.isbn?.trim();
       const asin = row.books.asin?.trim();
       const title = row.books.title || row.books.normalized_title || "";
       const author = row.books.author || row.books.normalized_author || "";
-      if (cover && !catalog.byCover.has(cover)) catalog.byCover.set(cover, url);
-      if (isbn && !catalog.byIsbn.has(isbn)) catalog.byIsbn.set(isbn, url);
-      if (asin && !catalog.byAsin.has(asin)) catalog.byAsin.set(asin, url);
+      if (cover && !catalog.byCover.has(cover)) catalog.byCover.set(cover, entry);
+      if (isbn && !catalog.byIsbn.has(isbn)) catalog.byIsbn.set(isbn, entry);
+      if (asin && !catalog.byAsin.has(asin)) catalog.byAsin.set(asin, entry);
       const key = titleAuthorKey(title, author);
-      if (key !== "::" && !catalog.byTitleAuthor.has(key)) catalog.byTitleAuthor.set(key, url);
+      if (key !== "::" && !catalog.byTitleAuthor.has(key)) catalog.byTitleAuthor.set(key, entry);
     }
     return catalog;
   })().catch(() => ({ byCover: new Map(), byIsbn: new Map(), byAsin: new Map(), byTitleAuthor: new Map() }));
