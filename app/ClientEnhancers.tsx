@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import BookSearchAdd from "./BookSearchAdd";
+import CloudAccountSettings from "./CloudAccountSettings";
+import CloudSyncEnricher from "./CloudSyncEnricher";
 import CommunityCoverSync from "./CommunityCoverSync";
 import CoreInteractionEnricher from "./CoreInteractionEnricher";
 import CoverDecisionSafety from "./CoverDecisionSafety";
@@ -19,6 +21,7 @@ import ReaderUiCleanup from "./ReaderUiCleanup";
 import RemoveAudibleImport from "./RemoveAudibleImport";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import SavedCoverChoices from "./SavedCoverChoices";
+import ShelfScanner from "./ShelfScanner";
 import SharedSpineEnricher from "./SharedSpineEnricher";
 import SpineArtEnricher from "./SpineArtEnricher";
 import SpineAuthorCorrector from "./SpineAuthorCorrector";
@@ -116,7 +119,10 @@ export default function ClientEnhancers() {
   if (!mounted) return null;
   return <>
     <AuthEnricher />
+    <CloudSyncEnricher />
     <BookSearchAdd />
+    <ShelfScanner />
+    <CloudAccountSettings />
     <HelpShelfLauncher />
     <CoreInteractionEnricher />
     <ModalScrollLock />
