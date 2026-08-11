@@ -17,6 +17,8 @@ type CandidateRow = {
   status?: string;
   source_title?: string | null;
   source_author?: string | null;
+  uploaded_by?: string | null;
+  storage_path?: string | null;
 };
 type UserRow = { id?: string };
 
@@ -37,7 +39,7 @@ function cleanIsbn(value: string) {
 function authHeader(request: Request) {
   const authorization = request.headers.get("authorization") || "";
   if (!/^Bearer\s+\S+/i.test(authorization)) {
-    throw Object.assign(new Error("Sign in to upload a community cover."), { status: 401 });
+    throw Object.assign(new Error("Sign in to manage community covers."), { status: 401 });
   }
   return authorization;
 }
@@ -124,7 +126,7 @@ async function deleteUploadedObject(path: string, authorization: string) {
       headers: { apikey: SUPABASE_KEY, Authorization: authorization },
     });
   } catch {
-    // Best-effort cleanup only. The metadata unique index remains the source of truth.
+    // Best-effort cleanup only. The metadata row is the shared-library source of truth.
   }
 }
 
@@ -161,7 +163,7 @@ export async function POST(request: Request) {
     const userId = await authenticatedUser(authorization);
     const sha256 = createHash("sha256").update(bytes).digest("hex");
     const duplicateParams = new URLSearchParams({
-      select: "id,book_id,image_url,status,source_title,source_author",
+      select: "id,book_id,image_url,status,source_title,source_author,uploaded_by,storage_path",
       image_sha256: `eq.${sha256}`,
       limit: "1",
     });
@@ -185,7 +187,7 @@ export async function POST(request: Request) {
     }
 
     const existingParams = new URLSearchParams({
-      select: "id,image_url,status,source_title,source_author",
+      select: "id,image_url,status,source_title,source_author,uploaded_by,storage_path",
       book_id: `eq.${book.id}`,
       uploaded_by: "not.is.null",
       status: "neq.rejected",
@@ -219,7 +221,7 @@ export async function POST(request: Request) {
     }
 
     const imageUrl = publicCoverUrl(storagePath);
-    const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/cover_candidates?select=id,book_id,image_url,status,source_title,source_author`, {
+    const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/cover_candidates?select=id,book_id,image_url,status,source_title,source_author,uploaded_by,storage_path`, {
       method: "POST",
       headers: {
         apikey: SUPABASE_KEY,
@@ -263,6 +265,63 @@ export async function POST(request: Request) {
   } catch (error) {
     const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: unknown }).status) : 500;
     const message = error instanceof Error ? error.message : "Community cover upload failed.";
+    return Response.json({ error: message }, { status: status === 401 ? 401 : 502 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  const limited = enforceApiRateLimit(request);
+  if (limited) return limited;
+
+  let authorization: string;
+  try { authorization = authHeader(request); }
+  catch (error) {
+    const message = error instanceof Error ? error.message : "Sign in to delete an uploaded cover.";
+    return Response.json({ error: message }, { status: 401 });
+  }
+
+  let body: { imageUrl?: unknown } = {};
+  try { body = await request.json() as { imageUrl?: unknown }; }
+  catch { return Response.json({ error: "Invalid cover deletion request." }, { status: 400 }); }
+
+  const imageUrl = cleanText(body.imageUrl, 2400);
+  if (!imageUrl) return Response.json({ error: "Choose an uploaded cover to delete." }, { status: 400 });
+
+  try {
+    const userId = await authenticatedUser(authorization);
+    const params = new URLSearchParams({
+      select: "id,image_url,uploaded_by,storage_path,status",
+      image_url: `eq.${imageUrl}`,
+      limit: "1",
+    });
+    const found = await restGet<CandidateRow>(`cover_candidates?${params}`, authorization);
+    const candidate = found[0];
+    if (!candidate) {
+      return Response.json({ removed: false, sharedDeleted: false, message: "That cover is no longer in the shared upload library." });
+    }
+    if (candidate.uploaded_by !== userId) {
+      return Response.json({ error: "Only the person who uploaded this cover can delete the shared copy." }, { status: 403 });
+    }
+
+    const deleteParams = new URLSearchParams({ id: `eq.${candidate.id}`, uploaded_by: `eq.${userId}` });
+    const deleteResponse = await fetch(`${SUPABASE_URL}/rest/v1/cover_candidates?${deleteParams}`, {
+      method: "DELETE",
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: authorization,
+        Prefer: "return=representation",
+      },
+      cache: "no-store",
+    });
+    if (!deleteResponse.ok) {
+      return Response.json({ error: "Could not remove that cover from the shared library." }, { status: 502 });
+    }
+
+    if (candidate.storage_path) await deleteUploadedObject(candidate.storage_path, authorization);
+    return Response.json({ removed: true, sharedDeleted: true });
+  } catch (error) {
+    const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: unknown }).status) : 500;
+    const message = error instanceof Error ? error.message : "Could not delete that uploaded cover.";
     return Response.json({ error: message }, { status: status === 401 ? 401 : 502 });
   }
 }
