@@ -13,6 +13,7 @@ import MobileTapFix from "./MobileTapFix";
 import ModalScrollLock from "./ModalScrollLock";
 import PageRefreshButton from "./PageRefreshButton";
 import QoLEnricher from "./QoLEnricher";
+import ReaderUiCleanup from "./ReaderUiCleanup";
 import RemoveAudibleImport from "./RemoveAudibleImport";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import SavedCoverChoices from "./SavedCoverChoices";
@@ -54,6 +55,7 @@ export default function ClientEnhancers() {
     <PageRefreshButton />
     <RemoveAudibleImport />
     <ThemeEnricher />
+    <ReaderUiCleanup />
     <QoLEnricher />
   </>;
 }
