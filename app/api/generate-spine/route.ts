@@ -106,7 +106,7 @@ async function generateWithPollinationsEdit(
     form.append("size", "512x2048");
     form.append("response_format", "b64_json");
     form.append("safe", "true");
-    if (model === "gpt-image-2") form.append("quality", "medium");
+    if (model === "gpt-image-2") form.append("quality", "high");
 
     const response = await fetch("https://gen.pollinations.ai/v1/images/edits", {
       method: "POST",
@@ -298,13 +298,18 @@ export async function POST(request: Request) {
   }
 
   const prompt = [
-    `Using the supplied confirmed front cover for “${title}”${author ? ` by ${author}` : ""} as the visual reference, create new artwork specifically for the narrow physical spine of this same book.`,
-    "The final canvas is an exact 1:4 vertical book-spine aspect ratio. Compose for that narrow format from the start; do not make a front cover, poster, mockup, or wide image that needs side cropping.",
-    "Preserve the reference cover's recognizable visual identity: palette, central subject or motif, clothing and character features when present, scenery, symbols, lighting, textures, and overall mood.",
-    "Recompose the important visual elements so they remain readable and attractive in a very narrow vertical strip. Simplify or extend background details as needed rather than stretching the original cover.",
-    "Avoid inventing unrelated characters, faces, objects, or a new genre aesthetic. This should clearly feel derived from the supplied cover.",
-    "Do not include any title, author name, words, letters, logos, publisher marks, badges, barcodes, frames, borders, book mockups, or typography. The app adds accurate text separately.",
-    "Return polished standalone spine artwork only, edge-to-edge.",
+    `Using the supplied confirmed front cover for “${title}”${author ? ` by ${author}` : ""} as the authoritative design reference, create a realistic professionally designed physical book spine for this exact book.`,
+    "Treat the provided cover as the source of truth for the book's visual identity. Recompose its existing imagery, colors, textures, motifs, symbols, and typography into a narrow vertical spine format rather than inventing a new design.",
+    "The final canvas is an exact 1:4 vertical book-spine aspect ratio. Create only the flat spine artwork, edge-to-edge, and compose for that narrow format from the start.",
+    `Include the exact book title: “${title}”.`,
+    author ? `Include the exact author name: “${author}”.` : "If an author name is provided, include it exactly and spell it correctly.",
+    "Arrange the title prominently along the length of the spine like a real published physical book spine. Make the title the primary focal point.",
+    "Place the author name smaller than the title but still clear and readable, positioned naturally as a professionally published book spine would.",
+    "Preserve the title and author's recognizable branding from the cover wherever possible, including capitalization, approximate typography style, colors, and overall design language.",
+    "Preserve the reference cover's recognizable visual identity: palette, central subject or motif, character features when present, scenery, symbols, lighting, textures, and overall mood.",
+    "Recompose the important visual elements so they remain readable and attractive in a very narrow vertical strip. Simplify, extend, or reposition background details as needed rather than stretching the original cover.",
+    "Avoid inventing unrelated characters, faces, objects, or a new genre aesthetic. This should clearly feel derived from the supplied cover and look like the actual matching spine for this edition.",
+    "Do not create a front cover, back cover, poster, mockup, bookshelf scene, 3D book, wraparound spread, or wide image that needs cropping. Return only the finished flat spine artwork.",
   ].join(" ");
 
   try {
