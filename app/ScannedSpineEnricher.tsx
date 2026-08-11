@@ -3,11 +3,17 @@
 import { useEffect } from "react";
 
 const STORAGE_KEY = "shelf-of-fame-library-v1";
+const SOURCE_STORAGE_KEY = "shelf-of-fame-spine-source-v1";
 
 type StoredBook = {
   title?: unknown;
   author?: unknown;
   scannedSpine?: unknown;
+};
+
+type SpineSourcePreference = {
+  mode?: unknown;
+  coverUrl?: unknown;
 };
 
 function normalize(value: string) {
@@ -24,9 +30,27 @@ function splitBookIdentity(button: HTMLButtonElement) {
   };
 }
 
+function readCoverBasedIdentities() {
+  const result = new Set<string>();
+  try {
+    const raw = window.localStorage.getItem(SOURCE_STORAGE_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return result;
+    for (const [key, value] of Object.entries(parsed)) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      const preference = value as SpineSourcePreference;
+      if (preference.mode === "cover") result.add(key);
+    }
+  } catch {
+    // Keep photographed spines as the safe default.
+  }
+  return result;
+}
+
 function readScannedSpines() {
   const byIdentity = new Map<string, string>();
   const byTitle = new Map<string, string | null>();
+  const coverBased = readCoverBasedIdentities();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : [];
@@ -38,9 +62,10 @@ function readScannedSpines() {
       const title = typeof book.title === "string" ? book.title.trim() : "";
       const author = typeof book.author === "string" ? book.author.trim() : "";
       const spine = typeof book.scannedSpine === "string" ? book.scannedSpine.trim() : "";
-      if (!title || !spine.startsWith("data:image/")) continue;
+      const identity = `${normalize(title)}::${normalize(author)}`;
+      if (!title || !spine.startsWith("data:image/") || coverBased.has(identity)) continue;
 
-      byIdentity.set(`${normalize(title)}::${normalize(author)}`, spine);
+      byIdentity.set(identity, spine);
       const titleKey = normalize(title);
       if (!byTitle.has(titleKey)) byTitle.set(titleKey, spine);
       else if (byTitle.get(titleKey) !== spine) byTitle.set(titleKey, null);
@@ -101,11 +126,13 @@ export default function ScannedSpineEnricher() {
       attributeFilter: ["title", "class"],
     });
     window.addEventListener("focus", scan);
+    window.addEventListener("shelf-spine-source-changed", scan);
     scan();
 
     return () => {
       observer.disconnect();
       window.removeEventListener("focus", scan);
+      window.removeEventListener("shelf-spine-source-changed", scan);
       if (raf) window.cancelAnimationFrame(raf);
     };
   }, []);
