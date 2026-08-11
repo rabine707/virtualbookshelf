@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import BookSearchAdd from "./BookSearchAdd";
+import CommunityCoverSync from "./CommunityCoverSync";
 import CoreInteractionEnricher from "./CoreInteractionEnricher";
 import CoverDecisionSafety from "./CoverDecisionSafety";
 import CoverSearchCleanup from "./CoverSearchCleanup";
@@ -109,6 +110,7 @@ export default function ClientEnhancers() {
     <CoverDecisionSafety />
     <CoverSearchCleanup />
     <SavedCoverChoices />
+    <CommunityCoverSync />
     <WebCoverEnricher />
     <RomanceShelfEnricher />
     <AudibleCoverEnricher />
