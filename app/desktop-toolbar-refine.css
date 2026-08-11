@@ -1,11 +1,11 @@
-/* Desktop toolbar refinement: keep related secondary actions on one clean line. */
+/* Toolbar refinement while the Decor Store is intentionally disabled. */
 
 @media (min-width: 761px) {
   .reader-toolbar {
     grid-template-columns: minmax(0, 1fr) 160px 160px !important;
   }
 
-  /* Row 2: Help the Shelf + Theme. Decor Store is intentionally disabled. */
+  /* Row 2: Help the Shelf + Theme. */
   .reader-toolbar > .spine-review-launch {
     grid-column: 1 / 2;
   }
@@ -33,5 +33,16 @@
     grid-row: 3;
     width: 100%;
     min-height: 46px;
+  }
+}
+
+@media (max-width: 760px) {
+  /* With the store hidden, split the utility row evenly between community and cleanup. */
+  .reader-toolbar > .spine-review-launch {
+    grid-column: 1 / 4 !important;
+  }
+
+  .reader-toolbar > .qol-toolbar {
+    grid-column: 4 / 7 !important;
   }
 }
