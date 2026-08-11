@@ -116,30 +116,58 @@ export default function CommunityCoverUploadEnricher() {
   useEffect(() => {
     const mount = () => {
       const modal = document.querySelector<HTMLElement>(".modal");
-      const feedback = modal?.querySelector<HTMLElement>('[aria-label="Cover feedback"]');
-      if (!modal || !feedback || feedback.querySelector("[data-community-cover-upload]")) return;
+      const picker = modal?.querySelector<HTMLElement>('.cover-picker[aria-label="Choose a cover"]');
+      if (!modal || !picker) return;
+
+      const existingHolder = modal.querySelector<HTMLElement>("[data-community-cover-upload]");
+      if (existingHolder) {
+        if (existingHolder.parentElement !== picker) {
+          const heading = picker.querySelector(".cover-picker-heading");
+          if (heading?.nextSibling) picker.insertBefore(existingHolder, heading.nextSibling);
+          else picker.prepend(existingHolder);
+        }
+        return;
+      }
 
       const holder = document.createElement("div");
       holder.setAttribute("data-community-cover-upload", "1");
       holder.style.display = "grid";
-      holder.style.gap = "6px";
-      holder.style.marginTop = "2px";
+      holder.style.gridTemplateColumns = "minmax(0, 1fr) auto";
+      holder.style.gap = "8px 10px";
+      holder.style.alignItems = "center";
+      holder.style.margin = "10px 0 12px";
+      holder.style.padding = "10px";
+      holder.style.border = "1px dashed rgba(78, 57, 43, 0.28)";
+      holder.style.borderRadius = "12px";
+      holder.style.background = "rgba(255, 255, 255, 0.28)";
 
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "primary";
-      button.textContent = "📷 Upload your cover";
-      button.title = "Add a cover photo that is missing from the cover databases";
+      const copy = document.createElement("div");
+      copy.style.display = "grid";
+      copy.style.gap = "2px";
+
+      const label = document.createElement("strong");
+      label.textContent = "Don't see your cover?";
+      label.style.fontSize = "0.95rem";
 
       const note = document.createElement("small");
       note.style.opacity = "0.72";
       note.style.lineHeight = "1.35";
-      note.textContent = "For special editions or covers our databases do not have. Exact duplicate images are reused automatically.";
+      note.textContent = "Upload a special edition or missing cover. Exact duplicate images are reused automatically.";
+      copy.append(label, note);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "primary";
+      button.textContent = "📷 Upload missing cover";
+      button.title = "Add a cover photo that is missing from the cover databases";
+      button.style.whiteSpace = "nowrap";
+      button.style.minHeight = "40px";
 
       const status = document.createElement("small");
       status.setAttribute("role", "status");
       status.style.lineHeight = "1.35";
       status.style.minHeight = "1.2em";
+      status.style.gridColumn = "1 / -1";
 
       const input = document.createElement("input");
       input.type = "file";
@@ -194,14 +222,16 @@ export default function CommunityCoverUploadEnricher() {
           window.setTimeout(() => window.location.reload(), 650);
         } catch (error) {
           status.textContent = error instanceof Error ? error.message : "Community cover upload failed.";
-          button.textContent = "📷 Upload your cover";
+          button.textContent = "📷 Upload missing cover";
         } finally {
           if (document.contains(button) && button.textContent !== "✓ Cover saved") button.disabled = false;
         }
       });
 
-      holder.append(button, note, status, input);
-      feedback.appendChild(holder);
+      holder.append(copy, button, status, input);
+      const heading = picker.querySelector(".cover-picker-heading");
+      if (heading?.nextSibling) picker.insertBefore(holder, heading.nextSibling);
+      else picker.prepend(holder);
     };
 
     mount();
