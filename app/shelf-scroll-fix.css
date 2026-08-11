@@ -1,0 +1,13 @@
+/* Shelf rows only scroll horizontally. Vertical page movement belongs to the page. */
+.shelf-row .books {
+  overflow-y: hidden !important;
+  overscroll-behavior-y: auto;
+}
+
+@media (max-width: 720px) {
+  .shelf-row .books {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
