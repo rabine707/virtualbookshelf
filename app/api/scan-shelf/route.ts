@@ -161,11 +161,14 @@ export async function POST(request: Request) {
   const prompt = [
     "Analyze this photograph of physical books on shelves.",
     `Detect at most ${MAX_BOOKS} distinct physical books. If more are present, return the clearest ${MAX_BOOKS}.`,
-    "Return exactly one box_2d around the visible physical body of each detected book. Do not box shelves, gaps, decor, labels, storage boxes, screens, or multiple books as one object.",
-    "Books may be upright, stacked horizontally, leaning, upside down, or partly occluded.",
+    "A valid detection must show physical book geometry: a bound cover/spine and/or a visible page block belonging to that same volume. Do not classify an object as a book merely because it is rectangular or contains text.",
+    "Return exactly one tight box_2d around the visible physical body of each separately bound volume. Never combine neighboring books, a horizontal stack, or multiple visible titles into one box.",
+    "If several books are stacked horizontally, return one separate box for every visible volume. If a candidate box contains more than one distinct binding or title, split it into separate books.",
+    "Do not box shelves, gaps, decor, signs, storage boxes, screens, frames, plants, loose paper, or other non-book objects.",
+    "Books may be upright, stacked horizontally, leaning, upside down, or partly occluded. Partial books are allowed when enough of one physical volume is visible to localize it confidently.",
     "box_2d must be [ymin, xmin, ymax, xmax] normalized to integers from 0 to 1000.",
     "Read title and author when clearly visible anywhere on that same book. If uncertain, return empty strings and never borrow text from a neighboring book.",
-    "visible_text may contain other legible identifying text from that same book. confidence is 0-100 confidence that the box is one physical book.",
+    "visible_text may contain other legible identifying text from that same book. confidence is 0-100 confidence that the box is exactly one physical book.",
     "Order books top-to-bottom by shelf, then left-to-right within each shelf.",
   ].join(" ");
 
