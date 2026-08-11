@@ -83,10 +83,11 @@ export async function consumeGenerationAttempt(request: Request, input: Generati
   const authorization = authenticatedHeader(request);
   const limit = Math.max(1, Math.min(100, Math.round(input.limit || 3)));
 
-  // Shelf scanning has a separate quota/table. The AI-spine usage table is intentionally
-  // constrained to three attempts per book and must not be reused for multi-pass scans.
+  // Shelf scanning has a separate quota/table. Keep a generous authenticated allowance
+  // on the experimental scan branch so repeated real-photo testing is not blocked.
+  // Before merging this prototype, restore the intended production scan allowance.
   if (input.usageKey?.startsWith("shelf-scan:")) {
-    return consumeShelfScanAttempt(authorization, limit);
+    return consumeShelfScanAttempt(authorization, 100);
   }
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/consume_spine_generation_attempt`, {
