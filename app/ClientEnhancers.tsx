@@ -10,7 +10,6 @@ import CommunityCoverSync from "./CommunityCoverSync";
 import CoreInteractionEnricher from "./CoreInteractionEnricher";
 import CoverDecisionSafety from "./CoverDecisionSafety";
 import CoverSearchCleanup from "./CoverSearchCleanup";
-import DecorStoreEnricher from "./DecorStoreEnricher";
 import HelpShelfLauncher from "./HelpShelfLauncher";
 import IdentifierEditor from "./IdentifierEditor";
 import MobileTapFix from "./MobileTapFix";
@@ -141,7 +140,6 @@ export default function ClientEnhancers() {
     <SpineAuthorCorrector />
     <SpineCommunityEnricher />
     <IdentifierEditor />
-    <DecorStoreEnricher />
     <MobileTapFix />
     <PageRefreshButton />
     <RemoveAudibleImport />
