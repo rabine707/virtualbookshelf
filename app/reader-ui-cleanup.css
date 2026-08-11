@@ -1,0 +1,304 @@
+/* Reader-first cleanup: keep the full power-user feature set available while
+   making the default shelf and book view feel like a consumer reading app. */
+
+.reader-hero {
+  align-items: center;
+  gap: 18px;
+}
+
+.reader-hero .hero-copy {
+  max-width: 720px;
+}
+
+.reader-hero .hero-copy .subhead {
+  max-width: 580px;
+}
+
+.reader-original-import {
+  display: none !important;
+}
+
+.reader-add-books {
+  position: relative;
+  margin-left: auto;
+}
+
+.reader-add-books-trigger {
+  min-height: 44px;
+  padding-inline: 18px;
+  white-space: nowrap;
+}
+
+.reader-add-books-menu {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(330px, calc(100vw - 28px));
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  background: rgba(15, 14, 13, .97);
+  box-shadow: 0 18px 50px rgba(0,0,0,.42);
+  backdrop-filter: blur(18px);
+}
+
+.reader-add-books-menu[hidden] {
+  display: none !important;
+}
+
+.reader-add-books-heading {
+  display: grid;
+  gap: 3px;
+  padding: 8px 9px 10px;
+}
+
+.reader-add-books-heading strong {
+  font-size: 15px;
+}
+
+.reader-add-books-heading span {
+  color: rgba(255,255,255,.62);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.reader-add-books-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reader-add-books-item:hover,
+.reader-add-books-item:focus-visible {
+  background: rgba(255,255,255,.08);
+}
+
+.reader-add-books-item > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.reader-add-books-item strong {
+  font-size: 14px;
+}
+
+.reader-add-books-item small {
+  color: rgba(255,255,255,.58);
+  font-size: 11px;
+}
+
+.reader-add-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.07);
+  font-size: 17px;
+}
+
+.reader-add-books-advanced-label {
+  display: block;
+  padding: 10px 10px 2px;
+  color: rgba(255,255,255,.42);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.reader-toolbar {
+  align-items: center;
+}
+
+.reader-toolbar .search-wrap {
+  flex: 1 1 320px;
+}
+
+.reader-modal .details > .eyebrow {
+  opacity: .56;
+  letter-spacing: .13em;
+}
+
+.reader-modal .details h2 {
+  margin-bottom: 5px;
+}
+
+.reader-modal .details .author {
+  margin-top: 0;
+  color: rgba(255,255,255,.68);
+}
+
+.reader-book-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 13px 0 4px;
+}
+
+.reader-book-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 999px;
+  background: rgba(255,255,255,.045);
+  color: rgba(255,255,255,.78);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.reader-book-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+
+.reader-book-action {
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 12px;
+  background: rgba(255,255,255,.055);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.reader-book-action:hover,
+.reader-book-action:focus-visible {
+  background: rgba(255,255,255,.1);
+}
+
+.reader-book-action-primary {
+  background: rgba(255,255,255,.12);
+}
+
+.reader-book-action-more {
+  grid-column: 1 / -1;
+  min-height: 34px;
+  padding-block: 6px;
+  border-color: transparent;
+  background: transparent;
+  color: rgba(255,255,255,.55);
+  font-size: 11px;
+}
+
+.reader-modal:not(.reader-show-advanced) .reader-advanced-row {
+  display: none !important;
+}
+
+.reader-modal .details dl {
+  margin-top: 8px;
+}
+
+.reader-modal .reader-advanced-row {
+  opacity: .7;
+}
+
+.reader-modal .reader-technical-note {
+  display: none;
+}
+
+.reader-modal.reader-show-advanced .reader-technical-note {
+  display: block;
+  opacity: .65;
+}
+
+.reader-modal [aria-label="Cover feedback"] {
+  margin-top: 14px !important;
+}
+
+.reader-modal [aria-label="Cover feedback"] > .primary:first-child {
+  min-height: 43px;
+}
+
+.reader-modal .cover-picker {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.reader-modal .cover-picker-heading strong {
+  font-size: 14px;
+}
+
+.reader-modal .cover-picker-heading span {
+  opacity: .55;
+  font-size: 11px;
+}
+
+.reader-modal .cover-option span {
+  opacity: .58;
+  font-size: 9px;
+}
+
+@media (max-width: 760px) {
+  .reader-hero {
+    gap: 12px;
+  }
+
+  .reader-hero .hero-copy .eyebrow {
+    font-size: 10px;
+  }
+
+  .reader-hero .hero-copy h1 {
+    margin-bottom: 5px;
+  }
+
+  .reader-add-books {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .reader-add-books-trigger {
+    width: 100%;
+  }
+
+  .reader-add-books-menu {
+    left: 0;
+    right: auto;
+    width: min(360px, calc(100vw - 28px));
+  }
+
+  .reader-toolbar {
+    gap: 8px;
+  }
+
+  .reader-toolbar .search-wrap {
+    flex-basis: 100%;
+  }
+
+  .reader-modal .details {
+    padding-top: 2px;
+  }
+
+  .reader-book-actions {
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 14px;
+  }
+
+  .reader-book-action {
+    min-height: 44px;
+    padding-inline: 8px;
+    font-size: 11.5px;
+  }
+
+  .reader-book-chip {
+    font-size: 10.5px;
+  }
+}
