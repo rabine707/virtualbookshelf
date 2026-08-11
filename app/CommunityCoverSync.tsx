@@ -6,6 +6,7 @@ const SUPABASE_URL = "https://vrkuimrfdkejfhpxlwlf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mf0u925xGBkP4iNgxSCjuQ_H4Dp8r1S";
 const SESSION_KEY = "shelf-of-fame-supabase-session";
 const LIBRARY_KEY = "shelf-of-fame-library-v1";
+const PENDING_WEB_COVER_KEY = "shelf-of-fame-community-cover-submit-v1";
 
 type Cover = { url: string; source?: string };
 type CoverFeedback = { accepted?: string; rejected?: string[]; wrongEdition?: string[] };
@@ -40,6 +41,10 @@ function normalize(value?: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function identity(title?: string, author?: string) {
+  return `${normalize(title)}::${normalize(author)}`;
 }
 
 function readLibrary(): StoredBook[] {
@@ -101,9 +106,9 @@ function expandedSource(value: string) {
 }
 
 function clickedCover(target: Element, modal: Element): Cover | null {
-  if (target.closest(".saved-cover-remove")) return null;
+  if (target.closest(".saved-cover-remove, .web-cover-result")) return null;
 
-  const option = target.closest(".saved-cover-option, .cover-option, .web-cover-result");
+  const option = target.closest(".saved-cover-option, .cover-option");
   if (option) {
     const image = option.querySelector<HTMLImageElement>("img");
     if (!image?.src) return null;
@@ -124,10 +129,10 @@ function clickedCover(target: Element, modal: Element): Cover | null {
 
 async function submitCoverChoice(book: ModalBook, cover: Cover) {
   const token = accessToken();
-  if (!token || !book.title || !book.author || !/^https?:\/\//i.test(cover.url)) return;
+  if (!token || !book.title || !book.author || !/^https?:\/\//i.test(cover.url)) return false;
 
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/rpc/submit_user_cover_choice`, {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/submit_user_cover_choice`, {
       method: "POST",
       headers: headers(token),
       keepalive: true,
@@ -140,8 +145,49 @@ async function submitCoverChoice(book: ModalBook, cover: Cover) {
         p_asin: book.asin || null,
       }),
     });
+    return response.ok;
   } catch {
     // Personal cover selection still works even if community sync is unavailable.
+    return false;
+  }
+}
+
+function queueCanonicalWebCover(book: ModalBook) {
+  try {
+    window.sessionStorage.setItem(PENDING_WEB_COVER_KEY, JSON.stringify({
+      title: book.title,
+      author: book.author,
+    }));
+  } catch {
+    // The personal web-cover selection can still complete without session storage.
+  }
+}
+
+async function flushCanonicalWebCover() {
+  let pending: { title?: string; author?: string } | null = null;
+  try {
+    const raw = window.sessionStorage.getItem(PENDING_WEB_COVER_KEY);
+    if (!raw) return;
+    pending = JSON.parse(raw) as { title?: string; author?: string };
+  } catch {
+    return;
+  }
+
+  if (!pending?.title || !pending?.author) return;
+  const key = identity(pending.title, pending.author);
+  const stored = readLibrary().find((book) => identity(book.title, book.author) === key);
+  const cover = stored?.preferredCover;
+  if (!cover?.url) return;
+
+  const ok = await submitCoverChoice({
+    title: String(stored?.title || pending.title),
+    author: String(stored?.author || pending.author),
+    isbn: String(stored?.isbn || ""),
+    asin: String(stored?.asin || ""),
+  }, cover);
+
+  if (ok) {
+    try { window.sessionStorage.removeItem(PENDING_WEB_COVER_KEY); } catch { /* optional */ }
   }
 }
 
@@ -243,14 +289,28 @@ export default function CommunityCoverSync() {
       const modal = target.closest(".modal");
       if (!modal) return;
       const book = modalBook(modal);
+      if (!book) return;
+
+      if (target.closest(".web-cover-result")) {
+        queueCanonicalWebCover(book);
+        return;
+      }
+
       const cover = clickedCover(target, modal);
-      if (!book || !cover) return;
+      if (!cover) return;
       void submitCoverChoice(book, cover);
     };
 
+    void flushCanonicalWebCover();
     void checkLibrary();
-    const interval = window.setInterval(() => void checkLibrary(), 7000);
-    const onFocus = () => void checkLibrary();
+    const interval = window.setInterval(() => {
+      void flushCanonicalWebCover();
+      void checkLibrary();
+    }, 7000);
+    const onFocus = () => {
+      void flushCanonicalWebCover();
+      void checkLibrary();
+    };
     window.addEventListener("focus", onFocus);
     document.addEventListener("click", handleClick, true);
 
