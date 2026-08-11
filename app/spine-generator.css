@@ -50,8 +50,8 @@
 .spine-crop-preview {
   position: relative;
   width: 72px;
-  height: 360px;
-  aspect-ratio: 1 / 5;
+  height: 288px;
+  aspect-ratio: 1 / 4;
   overflow: hidden;
   border: 3px solid rgba(76,132,105,.85);
   border-radius: 11px;
@@ -80,7 +80,7 @@
   z-index: 2;
   left: 50%;
   top: 46%;
-  width: 286px;
+  width: 230px;
   transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center;
   color: #ffe978;
@@ -101,8 +101,8 @@
   position: absolute;
   z-index: 2;
   left: 50%;
-  bottom: 50px;
-  width: 142px;
+  bottom: 42px;
+  width: 122px;
   transform: translateX(-50%) rotate(90deg);
   transform-origin: center;
   color: #fff;
@@ -168,17 +168,18 @@
 
   .spine-crop-preview {
     width: 64px;
-    height: 320px;
+    height: 256px;
+    aspect-ratio: 1 / 4;
   }
 
   .spine-crop-preview-title {
-    width: 254px;
+    width: 204px;
     font-size: 17px;
   }
 
   .spine-crop-preview-author {
-    bottom: 44px;
-    width: 126px;
+    bottom: 38px;
+    width: 112px;
     font-size: 7.2px;
   }
 
