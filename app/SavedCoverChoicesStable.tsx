@@ -6,11 +6,7 @@ const LIBRARY_KEY = "shelf-of-fame-library-v1";
 const HISTORY_KEY = "shelf-of-fame-saved-cover-history-v1";
 const SESSION_KEY = "shelf-of-fame-supabase-session";
 
-type Cover = {
-  url: string;
-  source?: string;
-};
-
+type Cover = { url: string; source?: string };
 type StoredBook = {
   title?: string;
   author?: string;
@@ -22,15 +18,10 @@ type StoredBook = {
     wrongEdition?: string[];
   };
 } & Record<string, unknown>;
-
 type SavedCoverHistory = Record<string, Cover[]>;
 
 function normalize(value?: string) {
-  return (value || "")
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
+  return (value || "").normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function identity(title: string, author: string) {
@@ -39,9 +30,7 @@ function identity(title: string, author: string) {
 
 function modalBook(modal: Element) {
   const title = modal.querySelector(".details h2")?.textContent?.trim() || "";
-  const author = (modal.querySelector(".details .author")?.textContent || "")
-    .replace(/^by\s+/i, "")
-    .trim();
+  const author = (modal.querySelector(".details .author")?.textContent || "").replace(/^by\s+/i, "").trim();
   return { title, author, key: identity(title, author) };
 }
 
@@ -54,15 +43,21 @@ function readLibrary(): StoredBook[] {
   }
 }
 
+function writeLibrary(books: StoredBook[]) {
+  window.localStorage.setItem(LIBRARY_KEY, JSON.stringify(books));
+}
+
 function readHistory(): SavedCoverHistory {
   try {
     const value = JSON.parse(window.localStorage.getItem(HISTORY_KEY) || "{}");
-    return value && typeof value === "object" && !Array.isArray(value)
-      ? value as SavedCoverHistory
-      : {};
+    return value && typeof value === "object" && !Array.isArray(value) ? value as SavedCoverHistory : {};
   } catch {
     return {};
   }
+}
+
+function writeHistory(history: SavedCoverHistory) {
+  try { window.localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch {}
 }
 
 function accessToken() {
@@ -85,40 +80,36 @@ function uniqueCovers(covers: Cover[]) {
   });
 }
 
-function sameCoverList(left: Cover[], right: Cover[]) {
-  if (left.length !== right.length) return false;
-  return left.every((cover, index) => cover.url === right[index]?.url && cover.source === right[index]?.source);
-}
-
-function historyFor(title: string, author: string) {
-  return uniqueCovers(readHistory()[identity(title, author)] || []);
-}
-
-function rememberHistory(title: string, author: string, covers: Cover[]) {
+function findBook(title: string, author: string) {
   const key = identity(title, author);
-  if (!key) return [];
-
-  const history = readHistory();
-  const current = uniqueCovers(history[key] || []);
-  const next = uniqueCovers([...current, ...covers]);
-  if (sameCoverList(current, next)) return current;
-
-  history[key] = next;
-  try {
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  } catch {
-    // The book-local savedCovers field remains as a fallback.
-  }
-  return next;
+  return readLibrary().find((book) => identity(book.title || "", book.author || "") === key) || null;
 }
 
-function forgetHistory(title: string, author: string, url: string) {
+function coversFor(title: string, author: string, book = findBook(title, author)) {
+  const history = readHistory()[identity(title, author)] || [];
+  return uniqueCovers([
+    ...history,
+    ...(book?.savedCovers || []),
+    ...(book?.preferredCover?.url ? [book.preferredCover] : []),
+  ]);
+}
+
+function rememberCovers(title: string, author: string, covers: Cover[]) {
+  const key = identity(title, author);
+  if (!key) return;
+  const history = readHistory();
+  history[key] = uniqueCovers([...(history[key] || []), ...covers]);
+  writeHistory(history);
+}
+
+function forgetCover(title: string, author: string, url: string) {
   const key = identity(title, author);
   const history = readHistory();
   if (!history[key]) return;
-  history[key] = uniqueCovers(history[key].filter((cover) => cover.url !== url));
-  if (!history[key].length) delete history[key];
-  try { window.localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch {}
+  const next = uniqueCovers(history[key].filter((cover) => cover.url !== url));
+  if (next.length) history[key] = next;
+  else delete history[key];
+  writeHistory(history);
 }
 
 function updateBook(title: string, author: string, updater: (book: StoredBook) => StoredBook) {
@@ -131,19 +122,14 @@ function updateBook(title: string, author: string, updater: (book: StoredBook) =
     return updater(book);
   });
   if (!changed) return false;
-  try {
-    window.localStorage.setItem(LIBRARY_KEY, JSON.stringify(next));
-    return true;
-  } catch {
-    return false;
-  }
+  writeLibrary(next);
+  return true;
 }
 
 function sourceFromChoice(choice: Element) {
   const title = choice.getAttribute("title") || "";
   const titleMatch = title.match(/(?:use this|preview)\s+(.+?)\s+cover/i);
   if (titleMatch?.[1]) return titleMatch[1].trim();
-
   const label = choice.querySelector("span")?.textContent?.trim() || "";
   if (label === "OL") return "Open Library";
   if (label === "Google") return "Google Books";
@@ -152,32 +138,11 @@ function sourceFromChoice(choice: Element) {
   return label || "Saved cover";
 }
 
-function coverFromChoice(choice: Element): Cover | undefined {
-  if (choice.classList.contains("web-cover-result")) return undefined;
+function coverFromChoice(choice: Element): Cover | null {
+  if (choice.classList.contains("web-cover-result")) return null;
   const image = choice.querySelector<HTMLImageElement>("img");
-  if (!image?.src) return undefined;
+  if (!image?.src) return null;
   return { url: image.src, source: sourceFromChoice(choice) };
-}
-
-function rememberTransition(title: string, author: string, previous?: Cover, target?: Cover) {
-  const currentBook = readLibrary().find((book) => identity(book.title || "", book.author || "") === identity(title, author));
-  const current = currentBook?.preferredCover;
-  const history = rememberHistory(title, author, [
-    ...(previous?.url ? [previous] : []),
-    ...(target?.url ? [target] : []),
-    ...(current?.url ? [current] : []),
-  ]);
-
-  return updateBook(title, author, (book) => ({
-    ...book,
-    savedCovers: uniqueCovers([
-      ...(book.savedCovers || []),
-      ...history,
-      ...(previous?.url ? [previous] : []),
-      ...(target?.url ? [target] : []),
-      ...(current?.url ? [current] : []),
-    ]),
-  }));
 }
 
 function updateCoverSourceLabel(modal: Element, source?: string) {
@@ -188,16 +153,24 @@ function updateCoverSourceLabel(modal: Element, source?: string) {
   }
 }
 
+function forceImageSource(image: HTMLImageElement | null | undefined, url: string) {
+  if (!image) return;
+  image.removeAttribute("srcset");
+  image.src = url;
+  const picture = image.closest("picture");
+  for (const source of picture?.querySelectorAll<HTMLSourceElement>("source") || []) {
+    source.srcset = url;
+  }
+}
+
 function syncVisibleCover(modal: Element, cover: Cover) {
   const { title, author } = modalBook(modal);
-  const modalImage = modal.querySelector<HTMLImageElement>(".cover-image");
-  if (modalImage) modalImage.src = cover.url;
+  forceImageSource(modal.querySelector<HTMLImageElement>(".cover-image"), cover.url);
   updateCoverSourceLabel(modal, cover.source);
 
   const shelfButton = [...document.querySelectorAll<HTMLButtonElement>("button.book")]
     .find((button) => button.title === `${title} — ${author}`);
-  const shelfImage = shelfButton?.querySelector<HTMLImageElement>(".book-cover-art");
-  if (shelfImage) shelfImage.src = cover.url;
+  forceImageSource(shelfButton?.querySelector<HTMLImageElement>(".book-cover-art"), cover.url);
 
   window.dispatchEvent(new CustomEvent("shelf-cover-changed", {
     detail: { title, author, coverUrl: cover.url, source: cover.source || "Saved cover" },
@@ -205,23 +178,16 @@ function syncVisibleCover(modal: Element, cover: Cover) {
 }
 
 function applySavedCover(modal: Element, cover: Cover) {
-  const { title, author, key } = modalBook(modal);
-  if (!title) return;
-
-  const currentBook = readLibrary().find((book) => identity(book.title || "", book.author || "") === key);
-  const current = currentBook?.preferredCover;
-  const history = rememberHistory(title, author, [
-    ...(currentBook?.savedCovers || []),
-    ...(current?.url ? [current] : []),
-    cover,
-  ]);
+  const { title, author } = modalBook(modal);
+  if (!title || !cover.url) return;
+  const current = findBook(title, author)?.preferredCover;
+  rememberCovers(title, author, [...(current?.url ? [current] : []), cover]);
 
   const ok = updateBook(title, author, (book) => ({
     ...book,
     preferredCover: { url: cover.url, source: cover.source || "Saved cover" },
     savedCovers: uniqueCovers([
       ...(book.savedCovers || []),
-      ...history,
       ...(current?.url ? [current] : []),
       cover,
     ]),
@@ -233,9 +199,8 @@ function applySavedCover(modal: Element, cover: Cover) {
     },
   }));
   if (!ok) return;
-
   syncVisibleCover(modal, cover);
-  renderSavedChoices(modal);
+  renderSavedChoices(modal, true);
 }
 
 function isCommunityUpload(cover: Cover) {
@@ -244,39 +209,30 @@ function isCommunityUpload(cover: Cover) {
 }
 
 async function deleteSharedUpload(cover: Cover) {
-  if (!isCommunityUpload(cover)) return { ok: true, sharedDeleted: false };
+  if (!isCommunityUpload(cover)) return { ok: true };
   const token = accessToken();
   if (!token) return { ok: false, error: "Sign in before deleting an uploaded cover." };
 
   const response = await fetch("/api/community-cover", {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ imageUrl: cover.url }),
   });
-  let data: { error?: string; sharedDeleted?: boolean } = {};
-  try { data = await response.json() as { error?: string; sharedDeleted?: boolean }; } catch {}
-
-  if (response.status === 403) {
-    // The user may have reused someone else's community upload. Removing it from
-    // their own saved choices is still safe; only the shared object remains.
-    return { ok: true, sharedDeleted: false };
-  }
-  if (!response.ok) return { ok: false, error: data.error || "Could not delete that uploaded cover." };
-  return { ok: true, sharedDeleted: Boolean(data.sharedDeleted) };
+  let data: { error?: string } = {};
+  try { data = await response.json() as { error?: string }; } catch {}
+  if (response.status === 403) return { ok: true };
+  return response.ok ? { ok: true } : { ok: false, error: data.error || "Could not delete that uploaded cover." };
 }
 
 async function deleteSavedCover(modal: Element, cover: Cover) {
-  const { title, author, key } = modalBook(modal);
+  const { title, author } = modalBook(modal);
   if (!title) return;
-  const currentBook = readLibrary().find((book) => identity(book.title || "", book.author || "") === key);
-  if (!currentBook) return;
+  const book = findBook(title, author);
+  if (!book) return;
 
-  const isActive = currentBook.preferredCover?.url === cover.url;
+  const active = book.preferredCover?.url === cover.url;
   const confirmed = window.confirm(
-    `${isActive ? "This cover is currently active. " : ""}Remove this saved cover?${isCommunityUpload(cover) ? "\n\nIf this is your own community upload, its shared file will also be removed." : ""}`,
+    `${active ? "This cover is currently active. " : ""}Delete this saved cover?${isCommunityUpload(cover) ? "\n\nIf you uploaded it, its shared copy will also be deleted." : ""}`,
   );
   if (!confirmed) return;
 
@@ -286,25 +242,24 @@ async function deleteSavedCover(modal: Element, cover: Cover) {
     return;
   }
 
-  forgetHistory(title, author, cover.url);
-  const remaining = uniqueCovers([
-    ...(currentBook.savedCovers || []),
-    ...historyFor(title, author),
-  ].filter((item) => item.url !== cover.url));
-  const fallback = isActive ? remaining.at(-1) : currentBook.preferredCover;
+  forgetCover(title, author, cover.url);
+  const remaining = uniqueCovers(coversFor(title, author, book).filter((item) => item.url !== cover.url));
+  const fallback = active
+    ? remaining.find((item) => !isCommunityUpload(item)) || remaining.at(-1)
+    : book.preferredCover;
 
-  updateBook(title, author, (book) => {
+  updateBook(title, author, (current) => {
     const next: StoredBook = {
-      ...book,
-      savedCovers: uniqueCovers((book.savedCovers || []).filter((item) => item.url !== cover.url)),
+      ...current,
+      savedCovers: uniqueCovers((current.savedCovers || []).filter((item) => item.url !== cover.url)),
       coverFeedback: {
-        ...book.coverFeedback,
-        accepted: book.coverFeedback?.accepted === cover.url ? fallback?.url : book.coverFeedback?.accepted,
-        rejected: (book.coverFeedback?.rejected || []).filter((url) => url !== cover.url),
-        wrongEdition: (book.coverFeedback?.wrongEdition || []).filter((url) => url !== cover.url),
+        ...current.coverFeedback,
+        accepted: current.coverFeedback?.accepted === cover.url ? fallback?.url : current.coverFeedback?.accepted,
+        rejected: (current.coverFeedback?.rejected || []).filter((url) => url !== cover.url),
+        wrongEdition: (current.coverFeedback?.wrongEdition || []).filter((url) => url !== cover.url),
       },
     };
-    if (book.preferredCover?.url === cover.url) {
+    if (current.preferredCover?.url === cover.url) {
       if (fallback?.url) next.preferredCover = fallback;
       else delete next.preferredCover;
     }
@@ -312,25 +267,26 @@ async function deleteSavedCover(modal: Element, cover: Cover) {
   });
 
   if (fallback?.url) syncVisibleCover(modal, fallback);
-  renderSavedChoices(modal);
+  renderSavedChoices(modal, true);
+  if (!fallback?.url) window.location.reload();
 }
 
-function renderSavedChoices(modal: Element) {
+function renderKey(book: StoredBook | null, covers: Cover[]) {
+  return JSON.stringify({
+    active: book?.preferredCover?.url || "",
+    covers: covers.map((cover) => [cover.url, cover.source || ""]),
+  });
+}
+
+function renderSavedChoices(modal: Element, force = false) {
   const picker = modal.querySelector<HTMLElement>(".cover-picker");
   if (!picker) return;
-
   const { title, author } = modalBook(modal);
   if (!title) return;
 
-  const book = readLibrary().find((item) => identity(item.title || "", item.author || "") === identity(title, author));
-  const priorHistory = historyFor(title, author);
-  const covers = uniqueCovers([
-    ...priorHistory,
-    ...(book?.savedCovers || []),
-    ...(book?.preferredCover?.url ? [book.preferredCover] : []),
-  ]);
-
-  if (covers.length > priorHistory.length) rememberHistory(title, author, covers);
+  const book = findBook(title, author);
+  const covers = coversFor(title, author, book);
+  if (covers.length) rememberCovers(title, author, covers);
 
   let section = picker.querySelector<HTMLElement>("[data-saved-cover-choices]");
   if (!covers.length) {
@@ -338,19 +294,19 @@ function renderSavedChoices(modal: Element) {
     return;
   }
 
+  const key = renderKey(book, covers);
+  if (!force && section?.dataset.savedCoverRenderKey === key) return;
+
   if (!section) {
     section = document.createElement("section");
     section.className = "saved-cover-choices";
     section.setAttribute("data-saved-cover-choices", "1");
-
     const heading = document.createElement("div");
     heading.className = "saved-cover-heading";
     heading.innerHTML = "<strong>Saved covers</strong><span>click any cover to use it instantly</span>";
-
     const holder = document.createElement("div");
     holder.className = "saved-cover-grid";
     holder.setAttribute("data-saved-cover-grid", "1");
-
     section.append(heading, holder);
     const upload = picker.querySelector("[data-community-cover-upload]");
     if (upload) upload.insertAdjacentElement("afterend", section);
@@ -367,59 +323,57 @@ function renderSavedChoices(modal: Element) {
     item.style.display = "inline-grid";
     item.style.justifyItems = "center";
 
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `saved-cover-option${book?.preferredCover?.url === cover.url ? " active" : ""}`;
-    button.title = book?.preferredCover?.url === cover.url ? "Currently on your shelf — click another cover to switch" : "Use this saved cover now";
-    button.setAttribute("aria-label", button.title);
+    const use = document.createElement("button");
+    use.type = "button";
+    use.className = `saved-cover-option${book?.preferredCover?.url === cover.url ? " active" : ""}`;
+    use.dataset.savedCoverUse = cover.url;
+    use.title = book?.preferredCover?.url === cover.url ? "Currently on your shelf" : "Use this saved cover now";
+    use.setAttribute("aria-label", use.title);
 
     const image = document.createElement("img");
     image.src = cover.url;
     image.alt = "";
     image.loading = "lazy";
     image.decoding = "async";
-
     const label = document.createElement("span");
     label.textContent = cover.source || "Saved";
-
-    button.append(image, label);
-    button.addEventListener("click", () => applySavedCover(modal, cover));
-    item.appendChild(button);
+    use.append(image, label);
+    item.appendChild(use);
 
     if (isCommunityUpload(cover)) {
       const remove = document.createElement("button");
       remove.type = "button";
+      remove.dataset.savedCoverDelete = cover.url;
       remove.textContent = "×";
       remove.title = "Delete this uploaded cover";
       remove.setAttribute("aria-label", "Delete this uploaded cover");
-      remove.style.position = "absolute";
-      remove.style.top = "-7px";
-      remove.style.right = "-7px";
-      remove.style.zIndex = "2";
-      remove.style.width = "24px";
-      remove.style.height = "24px";
-      remove.style.borderRadius = "999px";
-      remove.style.border = "1px solid rgba(255,255,255,.7)";
-      remove.style.background = "#8f3f3d";
-      remove.style.color = "#fff";
-      remove.style.fontWeight = "800";
-      remove.style.lineHeight = "1";
-      remove.style.cursor = "pointer";
-      remove.addEventListener("click", (event) => {
-        event.stopPropagation();
-        void deleteSavedCover(modal, cover);
+      Object.assign(remove.style, {
+        position: "absolute",
+        top: "-7px",
+        right: "-7px",
+        zIndex: "5",
+        width: "26px",
+        height: "26px",
+        borderRadius: "999px",
+        border: "1px solid rgba(255,255,255,.8)",
+        background: "#8f3f3d",
+        color: "#fff",
+        fontWeight: "800",
+        lineHeight: "1",
+        cursor: "pointer",
+        pointerEvents: "auto",
       });
       item.appendChild(remove);
     }
-
     holder.appendChild(item);
   }
+
+  section.dataset.savedCoverRenderKey = key;
 }
 
-export default function SavedCoverChoices() {
+export default function SavedCoverChoicesStable() {
   useEffect(() => {
     let raf = 0;
-
     const refresh = () => {
       if (raf) return;
       raf = window.requestAnimationFrame(() => {
@@ -429,39 +383,60 @@ export default function SavedCoverChoices() {
       });
     };
 
-    function handleClick(event: MouseEvent) {
+    const handleClick = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
+
+      const remove = target.closest<HTMLElement>("[data-saved-cover-delete]");
+      if (remove) {
+        const modal = remove.closest(".modal");
+        const url = remove.dataset.savedCoverDelete || "";
+        if (!modal || !url) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const { title, author } = modalBook(modal);
+        const cover = coversFor(title, author).find((item) => item.url === url);
+        if (cover) void deleteSavedCover(modal, cover);
+        return;
+      }
+
+      const use = target.closest<HTMLElement>("[data-saved-cover-use]");
+      if (use) {
+        const modal = use.closest(".modal");
+        const url = use.dataset.savedCoverUse || "";
+        if (!modal || !url) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const { title, author } = modalBook(modal);
+        const cover = coversFor(title, author).find((item) => item.url === url);
+        if (cover) applySavedCover(modal, cover);
+        return;
+      }
+
       const choice = target.closest(".web-cover-result, .cover-option");
       if (!choice) return;
       const modal = choice.closest(".modal");
       if (!modal) return;
-
       const { title, author } = modalBook(modal);
-      if (!title) return;
-      const current = readLibrary().find((item) => identity(item.title || "", item.author || "") === identity(title, author));
-      const previous = current?.preferredCover;
-      const targetCover = coverFromChoice(choice);
-
-      rememberHistory(title, author, [
+      const previous = findBook(title, author)?.preferredCover;
+      const chosen = coverFromChoice(choice);
+      rememberCovers(title, author, [
         ...(previous?.url ? [previous] : []),
-        ...(targetCover?.url ? [targetCover] : []),
+        ...(chosen?.url ? [chosen] : []),
       ]);
-
-      window.setTimeout(() => {
-        rememberTransition(title, author, previous, targetCover);
-        refresh();
-      }, 120);
-    }
+      window.setTimeout(refresh, 180);
+    };
 
     const observer = new MutationObserver(refresh);
     observer.observe(document.body, { childList: true, subtree: true });
     document.addEventListener("click", handleClick, true);
+    window.addEventListener("shelf-cover-changed", refresh);
     refresh();
 
     return () => {
       observer.disconnect();
       document.removeEventListener("click", handleClick, true);
+      window.removeEventListener("shelf-cover-changed", refresh);
       if (raf) window.cancelAnimationFrame(raf);
     };
   }, []);

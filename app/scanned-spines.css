@@ -1,0 +1,100 @@
+.book.has-scanned-spine {
+  width: 48px !important;
+  min-width: 48px !important;
+  max-width: 48px !important;
+  height: 204px !important;
+  min-height: 204px !important;
+  max-height: 204px !important;
+  aspect-ratio: 1 / 4.25 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border-radius: 4px 2px 2px 4px !important;
+  background: #17100c !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.16),
+    1px 0 0 rgba(255,255,255,.10),
+    2px 1px 0 #eee5d5,
+    3px 1px 0 #d7c8ae,
+    4px 2px 0 rgba(91,66,47,.58),
+    6px 7px 11px rgba(35,21,13,.28) !important;
+}
+
+.book.has-scanned-spine > .book-cover-art,
+.book.has-scanned-spine > .book-title,
+.book.has-scanned-spine > .book-author,
+.book.has-scanned-spine > .spine-mark {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.scanned-spine {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #0b0908;
+  box-shadow:
+    inset 1px 0 rgba(255,255,255,.10),
+    inset -1px 0 rgba(0,0,0,.28),
+    inset 0 1px rgba(255,255,255,.06),
+    inset 0 -1px rgba(0,0,0,.20);
+  pointer-events: none;
+}
+
+.scanned-spine-art {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.01) contrast(1.03) brightness(.98);
+  user-select: none;
+  pointer-events: none;
+}
+
+.scanned-spine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg,
+      rgba(0,0,0,.24) 0%,
+      rgba(255,255,255,.08) 7%,
+      transparent 17%,
+      transparent 78%,
+      rgba(0,0,0,.28) 100%),
+    linear-gradient(180deg,
+      rgba(255,255,255,.045) 0%,
+      transparent 12%,
+      transparent 88%,
+      rgba(0,0,0,.14) 100%);
+}
+
+.book.has-scanned-spine:hover,
+.book.has-scanned-spine:focus-visible {
+  transform: translateY(-8px) rotate(var(--lean)) perspective(900px) rotateY(-1.5deg) !important;
+}
+
+.book.has-scanned-spine:hover .scanned-spine-art,
+.book.has-scanned-spine:focus-visible .scanned-spine-art {
+  filter: saturate(1.01) contrast(1.05) brightness(.88);
+}
+
+@media (max-width: 720px) {
+  .book.has-scanned-spine {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 200px !important;
+    min-height: 200px !important;
+    max-height: 200px !important;
+    aspect-ratio: 1 / 5 !important;
+  }
+}

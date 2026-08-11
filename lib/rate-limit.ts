@@ -10,6 +10,10 @@ type RateLimitPolicy = {
 
 const POLICIES: Record<string, RateLimitPolicy> = {
   "/api/generate-spine": { limit: 10, windowMs: 10 * 60_000 },
+  "/api/scan-shelf": { limit: 12, windowMs: 10 * 60_000 },
+  "/api/refine-spines": { limit: 12, windowMs: 10 * 60_000 },
+  "/api/scan-shelf-spines": { limit: 18, windowMs: 10 * 60_000 },
+  "/api/resolve-scan-book": { limit: 30, windowMs: 60_000 },
   "/api/web-covers": { limit: 60, windowMs: 60_000 },
   "/api/cover": { limit: 240, windowMs: 60_000 },
   "/api/romance-cover": { limit: 120, windowMs: 60_000 },
