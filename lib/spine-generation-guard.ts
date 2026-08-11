@@ -6,6 +6,8 @@ export type GenerationGuardInput = {
   author: string;
   isbn?: string;
   asin?: string;
+  usageKey?: string;
+  limit?: number;
 };
 
 export type GenerationGuardResult = {
@@ -20,6 +22,7 @@ function normalize(value: string) {
 }
 
 function bookKey(input: GenerationGuardInput) {
+  if (input.usageKey) return input.usageKey.slice(0, 240);
   if (input.isbn) return `isbn:${input.isbn}`;
   if (input.asin) return `asin:${input.asin}`;
   return `title:${normalize(input.title)}::${normalize(input.author)}`;
@@ -32,9 +35,10 @@ function publicSpineUrl(path: string) {
 export async function consumeGenerationAttempt(request: Request, input: GenerationGuardInput): Promise<GenerationGuardResult> {
   const authorization = request.headers.get("authorization") || "";
   if (!/^Bearer\s+\S+/i.test(authorization)) {
-    throw Object.assign(new Error("Sign in to generate AI spines."), { status: 401 });
+    throw Object.assign(new Error("Sign in to use AI features."), { status: 401 });
   }
 
+  const limit = Math.max(1, Math.min(100, Math.round(input.limit || 3)));
   const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/consume_spine_generation_attempt`, {
     method: "POST",
     headers: {
@@ -48,7 +52,7 @@ export async function consumeGenerationAttempt(request: Request, input: Generati
       p_author: input.author,
       p_isbn: input.isbn || null,
       p_asin: input.asin || null,
-      p_limit: 3,
+      p_limit: limit,
     }),
     cache: "no-store",
   });
