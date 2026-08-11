@@ -14,93 +14,6 @@ type ActiveBook = {
 const SERIES_KEY = "shelf-of-fame-series-mode-v1";
 const FAVORITES_KEY = "shelf-of-fame-favorites-v1";
 
-function bookInfo(button: HTMLButtonElement): ActiveBook {
-  return {
-    button,
-    title: button.querySelector<HTMLElement>(".book-title")?.textContent?.trim() || button.title.split(" — ")[0] || "Book",
-    author: button.querySelector<HTMLElement>(".book-author")?.textContent?.trim() || button.title.split(" — ")[1] || "",
-    hasCover: button.classList.contains("has-cover"),
-    hasSpine: button.dataset.generatedSpine === "1",
-  };
-}
-
-function normalized(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-}
-
-function seriesInfo(button: HTMLButtonElement) {
-  const title = button.querySelector<HTMLElement>(".book-title")?.textContent?.trim() || "";
-  const author = button.querySelector<HTMLElement>(".book-author")?.textContent?.trim() || "";
-
-  const paren = title.match(/^(.*?)\s*[\[(]([^\)\]]+?)(?:,|\s)(?:#|book\s*|vol(?:ume)?\s*|part\s*)?(\d+(?:\.\d+)?)[\])]\s*$/i);
-  if (paren) {
-    const seriesName = normalized(paren[2].replace(/(?:#|book|volume|vol|part)\s*\d+(?:\.\d+)?/ig, ""));
-    return { key: `${normalized(author)}::${seriesName || normalized(paren[1])}`, number: Number(paren[3]) };
-  }
-
-  const explicit = title.match(/^(.*?)(?:\s*[:\-–—]?\s*)(?:book|volume|vol\.?|part)\s*#?\s*(\d+(?:\.\d+)?)\s*$/i);
-  if (explicit && normalized(explicit[1])) {
-    return { key: `${normalized(author)}::${normalized(explicit[1])}`, number: Number(explicit[2]) };
-  }
-
-  const hash = title.match(/^(.*?)\s+#(\d+(?:\.\d+)?)\s*$/i);
-  if (hash && normalized(hash[1])) {
-    return { key: `${normalized(author)}::${normalized(hash[1])}`, number: Number(hash[2]) };
-  }
-
-  const trailing = title.match(/^(.*?\D)\s+(\d{2,3})\s*$/);
-  if (trailing && normalized(trailing[1]).length >= 4) {
-    return { key: `${normalized(author)}::${normalized(trailing[1])}`, number: Number(trailing[2]) };
-  }
-
-  return null;
-}
-
-function distribute(nodes: HTMLButtonElement[]) {
-  const rows = [...document.querySelectorAll<HTMLElement>(".shelf-row .books")];
-  if (!rows.length) return;
-  rows.forEach((row) => row.querySelectorAll(":scope > .book").forEach((node) => node.remove()));
-  nodes.forEach((node, index) => rows[Math.min(Math.floor(index / 8), rows.length - 1)]?.appendChild(node));
-}
-
-function groupSeriesInDom() {
-  const buttons = [...document.querySelectorAll<HTMLButtonElement>(".shelf-row .book")];
-  if (buttons.length < 2) return;
-
-  const groups = new Map<string, { button: HTMLButtonElement; number: number }[]>();
-  for (const button of buttons) {
-    const info = seriesInfo(button);
-    if (!info) continue;
-    const list = groups.get(info.key) || [];
-    list.push({ button, number: info.number });
-    groups.set(info.key, list);
-  }
-
-  const repeated = new Map([...groups].filter(([, members]) => members.length > 1));
-  if (!repeated.size) return;
-
-  const used = new Set<HTMLButtonElement>();
-  const ordered: HTMLButtonElement[] = [];
-  for (const button of buttons) {
-    if (used.has(button)) continue;
-    const info = seriesInfo(button);
-    const group = info ? repeated.get(info.key) : undefined;
-    if (!group) {
-      ordered.push(button);
-      used.add(button);
-      continue;
-    }
-    [...group].sort((a, b) => a.number - b.number).forEach((member) => {
-      ordered.push(member.button);
-      used.add(member.button);
-      member.button.dataset.seriesGrouped = "1";
-    });
-  }
-
-  if (ordered.every((button, index) => button === buttons[index])) return;
-  distribute(ordered);
-}
-
 function waitFor<T extends Element>(selector: string, timeout = 6000): Promise<T | null> {
   const existing = document.querySelector<T>(selector);
   if (existing) return Promise.resolve(existing);
@@ -116,7 +29,12 @@ function waitFor<T extends Element>(selector: string, timeout = 6000): Promise<T
       observer.disconnect();
       resolve(found);
     });
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "class", "data-generated-spine"] });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["src", "class", "data-generated-spine"],
+    });
   });
 }
 
@@ -128,26 +46,21 @@ export default function QoLEnricher() {
   const [toolbar, setToolbar] = useState<Element | null>(null);
   const [active, setActive] = useState<ActiveBook | null>(null);
   const [fixOpen, setFixOpen] = useState(false);
-  const [seriesMode, setSeriesMode] = useState(false);
   const [bulkStatus, setBulkStatus] = useState("");
   const [bulkBusy, setBulkBusy] = useState(false);
   const [version, setVersion] = useState(0);
   const bypass = useRef(false);
-  const originalOrder = useRef<HTMLButtonElement[]>([]);
   const cancelBulk = useRef(false);
 
   useEffect(() => {
-    const savedSeries = window.localStorage.getItem(SERIES_KEY) === "on";
-    setSeriesMode(savedSeries);
+    // The old Series mode physically moved React-owned .book nodes between shelf rows.
+    // That made any React shelf update (especially search/filtering) unsafe. Clear the
+    // persisted flag and keep all shelf ordering owned by React.
+    window.localStorage.removeItem(SERIES_KEY);
 
     const sync = () => {
       setToolbar(document.querySelector(".toolbar"));
       setVersion((value) => value + 1);
-      if (savedSeries || window.localStorage.getItem(SERIES_KEY) === "on") {
-        requestAnimationFrame(groupSeriesInDom);
-      } else {
-        originalOrder.current = [...document.querySelectorAll<HTMLButtonElement>(".shelf-row .book")];
-      }
     };
     sync();
 
@@ -160,7 +73,12 @@ export default function QoLEnricher() {
         sync();
       });
     });
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "data-generated-spine"] });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "data-generated-spine"],
+    });
 
     return () => {
       observer.disconnect();
@@ -207,19 +125,6 @@ export default function QoLEnricher() {
     window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
     book.button.classList.toggle("qol-favorite", next.includes(identity));
     setVersion((value) => value + 1);
-  }
-
-  function toggleSeries() {
-    const next = !seriesMode;
-    setSeriesMode(next);
-    window.localStorage.setItem(SERIES_KEY, next ? "on" : "off");
-    if (next) {
-      originalOrder.current = [...document.querySelectorAll<HTMLButtonElement>(".shelf-row .book")];
-      requestAnimationFrame(groupSeriesInDom);
-    } else if (originalOrder.current.length) {
-      document.querySelectorAll<HTMLButtonElement>(".book[data-series-grouped]").forEach((button) => delete button.dataset.seriesGrouped);
-      distribute(originalOrder.current.filter((button) => button.isConnected));
-    }
   }
 
   async function fixMissingCovers() {
@@ -303,10 +208,6 @@ export default function QoLEnricher() {
             <span><small>Library</small><strong>Fix Missing</strong></span>
             {(counts.covers + counts.spines) > 0 && <b>{counts.covers + counts.spines}</b>}
           </button>
-          <button type="button" className={`qol-series-button ${seriesMode ? "active" : ""}`} onClick={toggleSeries} aria-pressed={seriesMode}>
-            <span aria-hidden="true">▥</span>
-            <span><small>Arrange</small><strong>Series {seriesMode ? "On" : "Off"}</strong></span>
-          </button>
         </div>,
         toolbar,
       )}
@@ -337,7 +238,7 @@ export default function QoLEnricher() {
             <header><div><small>Library cleanup</small><h2>Fix Missing</h2><p>Run only the recovery jobs you need.</p></div><button type="button" className="qol-close" disabled={bulkBusy} onClick={() => setFixOpen(false)} aria-label="Close">×</button></header>
             <div className="qol-fix-options">
               <button type="button" disabled={bulkBusy || counts.covers === 0} onClick={fixMissingCovers}><span className="qol-count">{counts.covers}</span><span><strong>Find missing covers</strong><small>Search and save the strongest match automatically</small></span></button>
-              <button type="button" disabled={bulkBusy || counts.spines === 0} onClick={generateMissingSpines}><span className="qol-count">{counts.spines}</span><span><strong>Generate missing spines</strong><small>Uses your configured FLUX generator</small></span></button>
+              <button type="button" disabled={bulkBusy || counts.spines === 0} onClick={generateMissingSpines}><span className="qol-count">{counts.spines}</span><span><strong>Generate missing spines</strong><small>Uses your configured image generator</small></span></button>
             </div>
             {bulkStatus && <div className="qol-progress" role="status">{bulkBusy && <i />}<span>{bulkStatus}</span></div>}
             {bulkBusy && <button type="button" className="qol-stop" onClick={() => { cancelBulk.current = true; setBulkStatus("Stopping after the current book…"); }}>Stop after current book</button>}
