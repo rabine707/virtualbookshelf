@@ -1,5 +1,6 @@
 import { enforceApiRateLimit } from "../../../lib/rate-limit";
 import { consumeGenerationAttempt } from "../../../lib/spine-generation-guard";
+import { imageMimeMatches } from "../../../lib/image-signature";
 
 export const runtime = "nodejs";
 
@@ -121,6 +122,16 @@ function outputText(result: GeminiInteractionResponse) {
     .trim();
 }
 
+async function providerJson(response: Response): Promise<GeminiInteractionResponse> {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text) as GeminiInteractionResponse;
+  } catch {
+    return { error: { message: text.slice(0, 500) } };
+  }
+}
+
 async function consumeShelfScanPass(request: Request) {
   const day = new Date().toISOString().slice(0, 10);
   return consumeGenerationAttempt(request, {
@@ -169,10 +180,16 @@ export async function POST(request: Request) {
     if (totalBytes > MAX_TOTAL_IMAGE_BYTES) {
       return Response.json({ error: "The detected-book crops are too large together. Try fewer books in one photo." }, { status: 413 });
     }
+
+    const bytes = new Uint8Array(await image.arrayBuffer());
+    if (!imageMimeMatches(bytes, image.type)) {
+      return Response.json({ error: `Detected book ${index + 1} is not a valid image crop.` }, { status: 415 });
+    }
+
     images.push({
       index,
       type: image.type,
-      base64: Buffer.from(await image.arrayBuffer()).toString("base64"),
+      base64: Buffer.from(bytes).toString("base64"),
     });
   }
 
@@ -276,7 +293,7 @@ export async function POST(request: Request) {
       }),
     });
 
-    const result = await response.json() as GeminiInteractionResponse;
+    const result = await providerJson(response);
     if (!response.ok) {
       const message = cleanText(result.error?.message, 500) || "Gemini could not isolate the detected spine faces.";
       return Response.json({ error: message }, { status: response.status === 429 ? 429 : 502 });
