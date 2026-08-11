@@ -101,7 +101,7 @@ async function generateWithPollinationsImage(
         size: "512x2048",
         response_format: "b64_json",
         safe: true,
-        ...(model === "gpt-image-2" ? { quality: "high" } : {}),
+        ...(model === "gpt-image-2" ? { quality: "medium" } : {}),
       }),
     });
 
@@ -287,21 +287,17 @@ export async function POST(request: Request) {
   }
 
   const prompt = [
-    `Using the supplied confirmed front cover for “${title}”${author ? ` by ${author}` : ""} as the authoritative design reference, create a realistic professionally designed physical book spine for this exact book.`,
-    "Treat the provided cover as the source of truth for the book's visual identity. Recompose its existing imagery, colors, textures, motifs, symbols, and typography into a narrow vertical spine format rather than inventing a new design.",
-    "The final canvas is an exact 1:4 vertical book-spine aspect ratio. Create only the flat spine artwork, edge-to-edge, and compose for that narrow format from the start.",
-    `The literal title text that MUST appear is exactly: “${title}”. Spell it character-for-character and do not substitute, shorten, paraphrase, or replace it with placeholder text.`,
+    `Using the supplied confirmed front cover for “${title}” as the authoritative design reference, create a realistic professionally designed physical book spine for this exact book.`,
+    "Treat the cover as the source of truth for imagery, colors, textures, motifs, symbols, typography style, lighting, and mood. Recompose those elements for the narrow spine instead of inventing a different design.",
+    "The final canvas must be an exact 1:4 vertical book-spine aspect ratio. Return only flat edge-to-edge spine artwork, not a front cover, mockup, 3D book, poster, bookshelf scene, or wraparound spread.",
+    `Render the literal title exactly as “${title}”. The title should be the main focal point and arranged naturally along the length of a professionally published spine.`,
     author
-      ? `The literal author text that MUST appear is exactly: “${author}”. Spell it character-for-character. Never use placeholders such as {NAME}, [NAME], {AUTHOR}, [AUTHOR], AUTHOR, NAME, or any generic substitute.`
-      : "Do not invent an author name or use any author placeholder.",
-    "Before returning the image, visually verify that every visible title and author character matches the supplied title and author exactly. If you cannot render a secondary line correctly, omit that secondary line rather than outputting a placeholder or incorrect name.",
-    "Arrange the title prominently along the length of the spine like a real published physical book spine. Make the title the primary focal point.",
-    "Place the author name smaller than the title but still clear and readable, positioned naturally as a professionally published book spine would.",
-    "Preserve the title and author's recognizable branding from the cover wherever possible, including capitalization, approximate typography style, colors, and overall design language.",
-    "Preserve the reference cover's recognizable visual identity: palette, central subject or motif, character features when present, scenery, symbols, lighting, textures, and overall mood.",
-    "Recompose the important visual elements so they remain readable and attractive in a very narrow vertical strip. Simplify, extend, or reposition background details as needed rather than stretching the original cover.",
-    "Avoid inventing unrelated characters, faces, objects, or a new genre aesthetic. This should clearly feel derived from the supplied cover and look like the actual matching spine for this edition.",
-    "Do not create a front cover, back cover, poster, mockup, bookshelf scene, 3D book, wraparound spread, or wide image that needs cropping. Return only the finished flat spine artwork.",
+      ? `The author is “${author}” for book identity only. DO NOT render the author name, initials, any author placeholder, or any other author text into the image. The app adds the exact author separately after generation.`
+      : "Do not invent or render any author name or author placeholder.",
+    "Reserve the lower 24% of the spine as a visually quiet author zone: continue the cover's colors and texture there, but keep that area low-detail and free of faces, key objects, title text, logos, letters, badges, or important artwork so a small author label can sit there cleanly.",
+    "Preserve the title's recognizable capitalization, approximate typography style, colors, and overall branding from the reference cover wherever possible.",
+    "Keep important artwork readable in the remaining upper 76% of the narrow strip. Simplify, extend, or reposition background details rather than stretching the original cover.",
+    "Avoid unrelated characters, faces, objects, or a new genre aesthetic. The result should look like the actual matching spine for this edition.",
   ].join(" ");
 
   try {
