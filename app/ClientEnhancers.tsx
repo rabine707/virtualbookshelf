@@ -18,6 +18,7 @@ import SavedCoverChoices from "./SavedCoverChoices";
 import SharedSpineEnricher from "./SharedSpineEnricher";
 import SpineArtEnricher from "./SpineArtEnricher";
 import SpineCommunityEnricher from "./SpineCommunityEnricher";
+import SpineGallery from "./SpineGallery";
 import SpineGenerator from "./SpineGenerator";
 import ThemeEnricher from "./ThemeEnricher";
 import WebCoverEnricher from "./WebCoverEnricher";
@@ -39,6 +40,7 @@ export default function ClientEnhancers() {
     <SpineArtEnricher />
     <SharedSpineEnricher />
     <SpineGenerator />
+    <SpineGallery />
     <SpineCommunityEnricher />
     <IdentifierEditor />
     <DecorStoreEnricher />
