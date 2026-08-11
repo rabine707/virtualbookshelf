@@ -54,7 +54,8 @@ function syncDecor(theme: ShelfTheme, force = false) {
     if (current) current.remove();
     row.querySelectorAll(".shelf-decor-set:not(.asset-decor-set)").forEach((node) => node.remove());
 
-    if (theme === "classic") return;
+    // Botanical v3 has a dedicated scene compositor with real cabinet/window assets.
+    if (theme === "classic" || theme === "botanical") return;
 
     const assets = THEME_ASSETS[theme];
     if (index % 4 === 2 && theme !== "dark-academia") return;

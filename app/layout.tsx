@@ -33,6 +33,7 @@ import "./mobile-shelf-compression.css";
 import "./theme-ui-polish.css";
 import "./desktop-toolbar-refine.css";
 import "./shelf-art-polish.css";
+import "./botanical-v3.css";
 import ClientEnhancers from "./ClientEnhancers";
 
 export const metadata: Metadata = {

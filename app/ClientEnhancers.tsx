@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import BookSearchAdd from "./BookSearchAdd";
+import BotanicalSceneEnricher from "./BotanicalSceneEnricher";
 import CloudAccountSettings from "./CloudAccountSettings";
 import CloudSyncEnricher from "./CloudSyncEnricher";
 import CommunityCoverSync from "./CommunityCoverSync";
@@ -144,6 +145,7 @@ export default function ClientEnhancers() {
     <PageRefreshButton />
     <RemoveAudibleImport />
     <ThemeEnricher />
+    <BotanicalSceneEnricher />
     <ReaderUiCleanup />
     <QoLEnricher />
     <MobileBottomNav />
