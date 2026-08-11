@@ -442,6 +442,11 @@ async function renderGallery(modal: Element) {
   }
 }
 
+function mutationIsInsideGallery(mutation: MutationRecord) {
+  const target = mutation.target;
+  return target instanceof Element && Boolean(target.closest("[data-spine-gallery]"));
+}
+
 export default function SpineGallery() {
   useEffect(() => {
     let timer = 0;
@@ -510,7 +515,10 @@ export default function SpineGallery() {
       schedule();
     };
 
-    const observer = new MutationObserver(schedule);
+    const observer = new MutationObserver((mutations) => {
+      if (mutations.length && mutations.every(mutationIsInsideGallery)) return;
+      schedule();
+    });
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "data-mode"] });
     document.addEventListener("click", onClick, true);
     window.addEventListener("shelf-spine-generated", onGenerated);
