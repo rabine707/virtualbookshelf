@@ -23,7 +23,6 @@ type SpineRefinement = {
   index: number;
   spine_visible?: boolean;
   spine_box_2d?: number[] | null;
-  spine_mask?: number[][];
   title?: string;
   author?: string;
   visible_text?: string;
@@ -49,6 +48,8 @@ type PixelBox = {
   height: number;
 };
 
+type ReviewState = "unreviewed" | "correct" | "wrong" | "needs-identification";
+
 type Region = PixelBox & {
   id: string;
   spineBox: PixelBox | null;
@@ -58,9 +59,13 @@ type Region = PixelBox & {
   visibleText: string;
   bookConfidence: number;
   spineConfidence: number;
+  reviewState: ReviewState;
+  addedToShelf: boolean;
 };
 
 const SESSION_KEY = "shelf-of-fame-supabase-session";
+const LIBRARY_STORAGE_KEY = "shelf-of-fame-library-v1";
+const SCAN_BOOK_COLOR = "#6f4e37";
 const MAX_IMAGE_DIMENSION = 1600;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_PREPARED_BYTES = 4 * 1024 * 1024;
@@ -187,6 +192,8 @@ function regionFromApi(book: ApiBook, image: PreparedImage, index: number): Regi
     visibleText: (book.visible_text || "").trim(),
     bookConfidence: clamp(Math.round(Number(book.confidence) || 0), 0, 100),
     spineConfidence: 0,
+    reviewState: "unreviewed",
+    addedToShelf: false,
   };
 }
 
@@ -203,17 +210,6 @@ async function makeIsolatedBookCrop(source: HTMLImageElement, region: Region) {
   context.fillRect(0, 0, width, height);
   context.drawImage(source, region.x, region.y, region.width, region.height, 0, 0, width, height);
   return canvasBlob(canvas, 0.8);
-}
-
-function maskPoints(value: unknown) {
-  if (!Array.isArray(value)) return [] as Array<[number, number]>;
-  return value.flatMap((point): Array<[number, number]> => {
-    if (!Array.isArray(point) || point.length !== 2) return [];
-    const x = Number(point[0]);
-    const y = Number(point[1]);
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return [];
-    return [[clamp(x, 0, 1000), clamp(y, 0, 1000)]];
-  });
 }
 
 function makeSpinePreview(
@@ -250,22 +246,12 @@ function makeSpinePreview(
     absoluteBox.height,
   );
 
-  const points = maskPoints(refinement.spine_mask);
-  if (points.length >= 3) {
-    context.globalCompositeOperation = "destination-in";
-    context.beginPath();
-    points.forEach(([x, y], index) => {
-      const px = (x / 1000) * canvas.width;
-      const py = (y / 1000) * canvas.height;
-      if (index === 0) context.moveTo(px, py);
-      else context.lineTo(px, py);
-    });
-    context.closePath();
-    context.fill();
-    context.globalCompositeOperation = "source-over";
-  }
-
   return { crop: canvas.toDataURL("image/png"), spineBox: absoluteBox };
+}
+
+function normalizedIdentity(title: string, author: string) {
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return `${normalize(title)}::${normalize(author)}`;
 }
 
 async function detectBooks(image: PreparedImage, token: string) {
@@ -391,7 +377,7 @@ export default function ScanShelfPrototype() {
       const visibleSpines = refined.filter((region) => region.crop).length;
       const readable = refined.filter((region) => region.title || region.author).length;
       setStatus(
-        `Found ${refined.length} book${refined.length === 1 ? "" : "s"} · ${visibleSpines} complete spine face${visibleSpines === 1 ? "" : "s"} · read text on ${readable}.`,
+        `Found ${refined.length} book${refined.length === 1 ? "" : "s"} · ${visibleSpines} complete spine face${visibleSpines === 1 ? "" : "s"} · read text on ${readable}. Review each result before adding it to your shelf.`,
       );
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "The shelf scan failed.";
@@ -412,6 +398,56 @@ export default function ScanShelfPrototype() {
     setRegions((current) => current.filter((region) => region.id !== id));
   }
 
+  function reviewRegion(id: string, reviewState: ReviewState) {
+    setRegions((current) => current.map((region) => region.id === id
+      ? { ...region, reviewState }
+      : region));
+  }
+
+  function addRegionToShelf(id: string) {
+    const region = regions.find((candidate) => candidate.id === id);
+    if (!region?.title.trim()) {
+      setError("This result needs a confirmed title before it can be added to your shelf.");
+      return;
+    }
+
+    try {
+      const saved = window.localStorage.getItem(LIBRARY_STORAGE_KEY);
+      const parsed: unknown = saved ? JSON.parse(saved) : [];
+      const library = Array.isArray(parsed)
+        ? parsed.filter((entry) => entry && typeof entry === "object") as Record<string, unknown>[]
+        : [];
+      const author = region.author.trim() || "Unknown author";
+      const identity = normalizedIdentity(region.title, author);
+      const alreadyExists = library.some((entry) => {
+        const existingTitle = typeof entry.title === "string" ? entry.title : "";
+        const existingAuthor = typeof entry.author === "string" ? entry.author : "";
+        return normalizedIdentity(existingTitle, existingAuthor) === identity;
+      });
+
+      if (!alreadyExists) {
+        library.push({
+          id: `scan-${Date.now()}-${region.id}`,
+          title: region.title,
+          author,
+          color: SCAN_BOOK_COLOR,
+          importSource: "Shelf scan",
+        });
+        window.localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(library));
+      }
+
+      setRegions((current) => current.map((candidate) => candidate.id === id
+        ? { ...candidate, reviewState: "correct", addedToShelf: true }
+        : candidate));
+      setError(null);
+      setStatus(alreadyExists
+        ? `${region.title} is already on your Shelf of Fame.`
+        : `${region.title} was added to your Shelf of Fame.`);
+    } catch {
+      setError("Could not add this book to your browser shelf. Try again.");
+    }
+  }
+
   function reset() {
     setImage(null);
     setRegions([]);
@@ -427,7 +463,7 @@ export default function ScanShelfPrototype() {
           <p className={styles.eyebrow}>EXPERIMENTAL · TWO-PASS GEMINI SCAN</p>
           <h1>Scan My Shelf</h1>
           <p className={styles.lead}>
-            Pass one finds each physical book. Pass two looks at every book by itself and segments only the complete visible binding/spine face, so page blocks are not used as spine previews.
+            Pass one finds each physical book. Pass two looks at every book by itself and locates the complete visible binding/spine face, so page blocks are not used as spine previews.
           </p>
         </header>
 
@@ -508,7 +544,7 @@ export default function ScanShelfPrototype() {
                 <div className={styles.cropHeading}>
                   <div>
                     <h2>Refined spine faces</h2>
-                    <p>Each preview comes from an isolated-book second pass. Transparent/black areas are outside Gemini’s spine mask.</p>
+                    <p>Each preview comes from an isolated-book second pass and shows the physical spine area Gemini localized inside that book.</p>
                   </div>
                 </div>
 
@@ -531,7 +567,44 @@ export default function ScanShelfPrototype() {
                           {region.author ? <span>{region.author}</span> : null}
                           {!region.title && region.visibleText ? <small>{region.visibleText}</small> : null}
                         </div>
-                        <button className={styles.removeButton} type="button" onClick={() => removeRegion(region.id)}>Not a book</button>
+                        <div className={styles.reviewActions} aria-label={`Review book ${index + 1}`}>
+                          <button
+                            className={`${styles.reviewButton} ${region.reviewState === "correct" ? styles.reviewButtonSelected : ""}`}
+                            type="button"
+                            disabled={processing}
+                            aria-pressed={region.reviewState === "correct"}
+                            onClick={() => reviewRegion(region.id, "correct")}
+                          >
+                            ✓ Correct
+                          </button>
+                          <button
+                            className={`${styles.reviewButton} ${region.reviewState === "wrong" ? styles.reviewButtonSelected : ""}`}
+                            type="button"
+                            disabled={processing}
+                            aria-pressed={region.reviewState === "wrong"}
+                            onClick={() => reviewRegion(region.id, "wrong")}
+                          >
+                            Wrong book
+                          </button>
+                          <button
+                            className={`${styles.reviewButton} ${region.reviewState === "needs-identification" ? styles.reviewButtonSelected : ""}`}
+                            type="button"
+                            disabled={processing}
+                            aria-pressed={region.reviewState === "needs-identification"}
+                            onClick={() => reviewRegion(region.id, "needs-identification")}
+                          >
+                            Needs ID
+                          </button>
+                        </div>
+                        <button
+                          className={styles.addButton}
+                          type="button"
+                          disabled={processing || region.addedToShelf || region.reviewState !== "correct" || !region.title}
+                          onClick={() => addRegionToShelf(region.id)}
+                        >
+                          {region.addedToShelf ? "Added to Shelf ✓" : "Add to Shelf"}
+                        </button>
+                        <button className={styles.removeButton} type="button" disabled={processing} onClick={() => removeRegion(region.id)}>Not a book</button>
                       </article>
                     ))}
                   </div>
@@ -553,7 +626,7 @@ export default function ScanShelfPrototype() {
         )}
 
         <footer className={styles.footer}>
-          This draft prototype does not save the photo, book crops, spine masks, or scan results to Supabase. AI scans require a signed-in account and have a daily preview quota.
+          The photo, isolated crops, and scan results are not saved to Supabase. Only a book you explicitly mark Correct and choose Add to Shelf is written to your browser library. AI scans require a signed-in account and have a daily preview quota.
         </footer>
       </div>
     </main>
