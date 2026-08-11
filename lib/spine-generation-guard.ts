@@ -32,13 +32,63 @@ function publicSpineUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/spines/${path.split("/").map(encodeURIComponent).join("/")}`;
 }
 
-export async function consumeGenerationAttempt(request: Request, input: GenerationGuardInput): Promise<GenerationGuardResult> {
+function authenticatedHeader(request: Request) {
   const authorization = request.headers.get("authorization") || "";
   if (!/^Bearer\s+\S+/i.test(authorization)) {
     throw Object.assign(new Error("Sign in to use AI features."), { status: 401 });
   }
+  return authorization;
+}
 
+async function parseRpcResponse(response: Response, fallbackMessage: string) {
+  const text = await response.text();
+  let data: unknown = null;
+  try { data = text ? JSON.parse(text) : null; } catch {}
+
+  if (!response.ok) {
+    const message = data && typeof data === "object" && "message" in data
+      ? String((data as { message?: unknown }).message || "")
+      : "";
+    const status = response.status === 401 || response.status === 403 ? 401 : 502;
+    throw Object.assign(new Error(message || fallbackMessage), { status });
+  }
+
+  return Array.isArray(data) ? data[0] as Record<string, unknown> | undefined : undefined;
+}
+
+async function consumeShelfScanAttempt(
+  authorization: string,
+  limit: number,
+): Promise<GenerationGuardResult> {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/consume_shelf_scan_pass`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: authorization,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ p_limit: limit }),
+    cache: "no-store",
+  });
+
+  const row = await parseRpcResponse(response, "Could not verify shelf-scan allowance.");
+  return {
+    allowed: Boolean(row?.allowed),
+    attempts: Number(row?.passes || 0),
+    remaining: Number(row?.remaining || 0),
+  };
+}
+
+export async function consumeGenerationAttempt(request: Request, input: GenerationGuardInput): Promise<GenerationGuardResult> {
+  const authorization = authenticatedHeader(request);
   const limit = Math.max(1, Math.min(100, Math.round(input.limit || 3)));
+
+  // Shelf scanning has a separate quota/table. The AI-spine usage table is intentionally
+  // constrained to three attempts per book and must not be reused for multi-pass scans.
+  if (input.usageKey?.startsWith("shelf-scan:")) {
+    return consumeShelfScanAttempt(authorization, limit);
+  }
+
   const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/consume_spine_generation_attempt`, {
     method: "POST",
     headers: {
@@ -57,19 +107,7 @@ export async function consumeGenerationAttempt(request: Request, input: Generati
     cache: "no-store",
   });
 
-  const text = await response.text();
-  let data: unknown = null;
-  try { data = text ? JSON.parse(text) : null; } catch {}
-
-  if (!response.ok) {
-    const message = data && typeof data === "object" && "message" in data
-      ? String((data as { message?: unknown }).message || "")
-      : "";
-    const status = response.status === 401 || response.status === 403 ? 401 : 502;
-    throw Object.assign(new Error(message || "Could not verify AI generation allowance."), { status });
-  }
-
-  const row = Array.isArray(data) ? data[0] as Record<string, unknown> | undefined : undefined;
+  const row = await parseRpcResponse(response, "Could not verify AI generation allowance.");
   const sharedPath = typeof row?.shared_storage_path === "string" ? row.shared_storage_path : "";
   return {
     allowed: Boolean(row?.allowed),
