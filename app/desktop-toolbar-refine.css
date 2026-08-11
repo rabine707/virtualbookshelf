@@ -5,17 +5,13 @@
     grid-template-columns: minmax(0, 1fr) 160px 160px !important;
   }
 
-  /* Row 2 keeps Help the Shelf, Decor Store, and Theme balanced. */
+  /* Row 2: Help the Shelf + Theme. Decor Store is intentionally disabled. */
   .reader-toolbar > .spine-review-launch {
     grid-column: 1 / 2;
   }
 
-  .reader-toolbar > .decor-store-launch {
-    grid-column: 2 / 3;
-  }
-
   .reader-toolbar > .theme-picker-trigger {
-    grid-column: 3 / 4;
+    grid-column: 2 / 4;
     width: 100%;
   }
 
