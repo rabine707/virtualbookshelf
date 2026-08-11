@@ -1,5 +1,6 @@
 import { enforceApiRateLimit } from "../../../lib/rate-limit";
 import { consumeGenerationAttempt } from "../../../lib/spine-generation-guard";
+import { imageMimeMatches } from "../../../lib/image-signature";
 
 export const runtime = "nodejs";
 
@@ -85,6 +86,16 @@ function outputText(result: GeminiInteractionResponse) {
     .trim();
 }
 
+async function providerJson(response: Response): Promise<GeminiInteractionResponse> {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text) as GeminiInteractionResponse;
+  } catch {
+    return { error: { message: text.slice(0, 500) } };
+  }
+}
+
 async function consumeShelfScanPass(request: Request) {
   const day = new Date().toISOString().slice(0, 10);
   return consumeGenerationAttempt(request, {
@@ -105,22 +116,6 @@ export async function POST(request: Request) {
     return Response.json({ error: "Shelf scanning is not configured yet." }, { status: 503 });
   }
 
-  try {
-    const allowance = await consumeShelfScanPass(request);
-    if (!allowance.allowed) {
-      return Response.json({
-        error: "You have reached today’s shelf-scan preview limit. Try again tomorrow.",
-        remaining: allowance.remaining,
-      }, { status: 429 });
-    }
-  } catch (error) {
-    const status = typeof error === "object" && error && "status" in error
-      ? Number((error as { status?: unknown }).status)
-      : 500;
-    const message = error instanceof Error ? error.message : "Could not verify shelf-scan access.";
-    return Response.json({ error: message }, { status: status === 401 ? 401 : 502 });
-  }
-
   let form: FormData;
   try {
     form = await request.formData();
@@ -139,7 +134,28 @@ export async function POST(request: Request) {
     return Response.json({ error: "Shelf photos must be 4 MB or smaller after preparation." }, { status: 413 });
   }
 
-  const base64 = Buffer.from(await image.arrayBuffer()).toString("base64");
+  const imageBytes = new Uint8Array(await image.arrayBuffer());
+  if (!imageMimeMatches(imageBytes, image.type)) {
+    return Response.json({ error: "That upload does not contain a valid JPEG, PNG, or WebP image." }, { status: 415 });
+  }
+
+  try {
+    const allowance = await consumeShelfScanPass(request);
+    if (!allowance.allowed) {
+      return Response.json({
+        error: "You have reached today’s shelf-scan preview limit. Try again tomorrow.",
+        remaining: allowance.remaining,
+      }, { status: 429 });
+    }
+  } catch (error) {
+    const status = typeof error === "object" && error && "status" in error
+      ? Number((error as { status?: unknown }).status)
+      : 500;
+    const message = error instanceof Error ? error.message : "Could not verify shelf-scan access.";
+    return Response.json({ error: message }, { status: status === 401 ? 401 : 502 });
+  }
+
+  const base64 = Buffer.from(imageBytes).toString("base64");
   const prompt = [
     "Analyze this photograph of physical books on shelves.",
     `Detect at most ${MAX_BOOKS} distinct physical books. If more are present, return the clearest ${MAX_BOOKS}.`,
@@ -206,7 +222,7 @@ export async function POST(request: Request) {
       }),
     });
 
-    const result = await response.json() as GeminiInteractionResponse;
+    const result = await providerJson(response);
     if (!response.ok) {
       const message = cleanText(result.error?.message, 500) || "Gemini could not analyze this shelf photo.";
       return Response.json({ error: message }, { status: response.status === 429 ? 429 : 502 });
