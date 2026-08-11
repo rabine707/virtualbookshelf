@@ -301,8 +301,11 @@ export async function POST(request: Request) {
     `Using the supplied confirmed front cover for “${title}”${author ? ` by ${author}` : ""} as the authoritative design reference, create a realistic professionally designed physical book spine for this exact book.`,
     "Treat the provided cover as the source of truth for the book's visual identity. Recompose its existing imagery, colors, textures, motifs, symbols, and typography into a narrow vertical spine format rather than inventing a new design.",
     "The final canvas is an exact 1:4 vertical book-spine aspect ratio. Create only the flat spine artwork, edge-to-edge, and compose for that narrow format from the start.",
-    `Include the exact book title: “${title}”.`,
-    author ? `Include the exact author name: “${author}”.` : "If an author name is provided, include it exactly and spell it correctly.",
+    `The literal title text that MUST appear is exactly: “${title}”. Spell it character-for-character and do not substitute, shorten, paraphrase, or replace it with placeholder text.`,
+    author
+      ? `The literal author text that MUST appear is exactly: “${author}”. Spell it character-for-character. Never use placeholders such as {NAME}, [NAME], {AUTHOR}, [AUTHOR], AUTHOR, NAME, or any generic substitute.`
+      : "Do not invent an author name or use any author placeholder.",
+    "Before returning the image, visually verify that every visible title and author character matches the supplied title and author exactly. If you cannot render a secondary line correctly, omit that secondary line rather than outputting a placeholder or incorrect name.",
     "Arrange the title prominently along the length of the spine like a real published physical book spine. Make the title the primary focal point.",
     "Place the author name smaller than the title but still clear and readable, positioned naturally as a professionally published book spine would.",
     "Preserve the title and author's recognizable branding from the cover wherever possible, including capitalization, approximate typography style, colors, and overall design language.",
