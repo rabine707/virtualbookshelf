@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 
 const LIBRARY_KEY = "shelf-of-fame-library-v1";
-const REOPEN_KEY = "shelf-of-fame-web-cover-reopen-v1";
 const HISTORY_KEY = "shelf-of-fame-saved-cover-history-v1";
+const SESSION_KEY = "shelf-of-fame-supabase-session";
 
 type Cover = {
   url: string;
@@ -65,6 +65,17 @@ function readHistory(): SavedCoverHistory {
   }
 }
 
+function accessToken() {
+  try {
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    if (!raw) return "";
+    const parsed = JSON.parse(raw) as { access_token?: string };
+    return parsed.access_token || "";
+  } catch {
+    return "";
+  }
+}
+
 function uniqueCovers(covers: Cover[]) {
   const seen = new Set<string>();
   return covers.filter((cover) => {
@@ -99,6 +110,15 @@ function rememberHistory(title: string, author: string, covers: Cover[]) {
     // The book-local savedCovers field remains as a fallback.
   }
   return next;
+}
+
+function forgetHistory(title: string, author: string, url: string) {
+  const key = identity(title, author);
+  const history = readHistory();
+  if (!history[key]) return;
+  history[key] = uniqueCovers(history[key].filter((cover) => cover.url !== url));
+  if (!history[key].length) delete history[key];
+  try { window.localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch {}
 }
 
 function updateBook(title: string, author: string, updater: (book: StoredBook) => StoredBook) {
@@ -160,6 +180,30 @@ function rememberTransition(title: string, author: string, previous?: Cover, tar
   }));
 }
 
+function updateCoverSourceLabel(modal: Element, source?: string) {
+  for (const dt of modal.querySelectorAll<HTMLElement>(".details dt")) {
+    if (dt.textContent?.trim().toLowerCase() !== "cover source") continue;
+    const value = dt.nextElementSibling;
+    if (value) value.textContent = source || "Saved cover";
+  }
+}
+
+function syncVisibleCover(modal: Element, cover: Cover) {
+  const { title, author } = modalBook(modal);
+  const modalImage = modal.querySelector<HTMLImageElement>(".cover-image");
+  if (modalImage) modalImage.src = cover.url;
+  updateCoverSourceLabel(modal, cover.source);
+
+  const shelfButton = [...document.querySelectorAll<HTMLButtonElement>("button.book")]
+    .find((button) => button.title === `${title} — ${author}`);
+  const shelfImage = shelfButton?.querySelector<HTMLImageElement>(".book-cover-art");
+  if (shelfImage) shelfImage.src = cover.url;
+
+  window.dispatchEvent(new CustomEvent("shelf-cover-changed", {
+    detail: { title, author, coverUrl: cover.url, source: cover.source || "Saved cover" },
+  }));
+}
+
 function applySavedCover(modal: Element, cover: Cover) {
   const { title, author, key } = modalBook(modal);
   if (!title) return;
@@ -190,12 +234,85 @@ function applySavedCover(modal: Element, cover: Cover) {
   }));
   if (!ok) return;
 
-  try {
-    window.sessionStorage.setItem(REOPEN_KEY, key);
-  } catch {
-    // The cover still saves even if sessionStorage is unavailable.
+  syncVisibleCover(modal, cover);
+  renderSavedChoices(modal);
+}
+
+function isCommunityUpload(cover: Cover) {
+  return /uploaded cover|community cover/i.test(cover.source || "")
+    || /\/storage\/v1\/object\/public\/covers\//i.test(cover.url);
+}
+
+async function deleteSharedUpload(cover: Cover) {
+  if (!isCommunityUpload(cover)) return { ok: true, sharedDeleted: false };
+  const token = accessToken();
+  if (!token) return { ok: false, error: "Sign in before deleting an uploaded cover." };
+
+  const response = await fetch("/api/community-cover", {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ imageUrl: cover.url }),
+  });
+  let data: { error?: string; sharedDeleted?: boolean } = {};
+  try { data = await response.json() as { error?: string; sharedDeleted?: boolean }; } catch {}
+
+  if (response.status === 403) {
+    // The user may have reused someone else's community upload. Removing it from
+    // their own saved choices is still safe; only the shared object remains.
+    return { ok: true, sharedDeleted: false };
   }
-  window.location.reload();
+  if (!response.ok) return { ok: false, error: data.error || "Could not delete that uploaded cover." };
+  return { ok: true, sharedDeleted: Boolean(data.sharedDeleted) };
+}
+
+async function deleteSavedCover(modal: Element, cover: Cover) {
+  const { title, author, key } = modalBook(modal);
+  if (!title) return;
+  const currentBook = readLibrary().find((book) => identity(book.title || "", book.author || "") === key);
+  if (!currentBook) return;
+
+  const isActive = currentBook.preferredCover?.url === cover.url;
+  const confirmed = window.confirm(
+    `${isActive ? "This cover is currently active. " : ""}Remove this saved cover?${isCommunityUpload(cover) ? "\n\nIf this is your own community upload, its shared file will also be removed." : ""}`,
+  );
+  if (!confirmed) return;
+
+  const shared = await deleteSharedUpload(cover);
+  if (!shared.ok) {
+    window.alert(shared.error || "Could not delete that cover.");
+    return;
+  }
+
+  forgetHistory(title, author, cover.url);
+  const remaining = uniqueCovers([
+    ...(currentBook.savedCovers || []),
+    ...historyFor(title, author),
+  ].filter((item) => item.url !== cover.url));
+  const fallback = isActive ? remaining.at(-1) : currentBook.preferredCover;
+
+  updateBook(title, author, (book) => {
+    const next: StoredBook = {
+      ...book,
+      savedCovers: uniqueCovers((book.savedCovers || []).filter((item) => item.url !== cover.url)),
+      coverFeedback: {
+        ...book.coverFeedback,
+        accepted: book.coverFeedback?.accepted === cover.url ? fallback?.url : book.coverFeedback?.accepted,
+        rejected: (book.coverFeedback?.rejected || []).filter((url) => url !== cover.url),
+        wrongEdition: (book.coverFeedback?.wrongEdition || []).filter((url) => url !== cover.url),
+      },
+    };
+    if (book.preferredCover?.url === cover.url) {
+      if (fallback?.url) next.preferredCover = fallback;
+      else delete next.preferredCover;
+    }
+    return next;
+  });
+
+  if (fallback?.url) syncVisibleCover(modal, fallback);
+  renderSavedChoices(modal);
 }
 
 function renderSavedChoices(modal: Element) {
@@ -228,15 +345,16 @@ function renderSavedChoices(modal: Element) {
 
     const heading = document.createElement("div");
     heading.className = "saved-cover-heading";
-    heading.innerHTML = "<strong>Saved covers</strong><span>pick any previous choice</span>";
+    heading.innerHTML = "<strong>Saved covers</strong><span>click any cover to use it instantly</span>";
 
     const holder = document.createElement("div");
     holder.className = "saved-cover-grid";
     holder.setAttribute("data-saved-cover-grid", "1");
 
     section.append(heading, holder);
-    const headingNode = picker.querySelector(".cover-picker-heading");
-    headingNode?.insertAdjacentElement("afterend", section);
+    const upload = picker.querySelector("[data-community-cover-upload]");
+    if (upload) upload.insertAdjacentElement("afterend", section);
+    else picker.querySelector(".cover-picker-heading")?.insertAdjacentElement("afterend", section);
   }
 
   const holder = section.querySelector<HTMLElement>("[data-saved-cover-grid]");
@@ -244,10 +362,15 @@ function renderSavedChoices(modal: Element) {
   holder.replaceChildren();
 
   for (const cover of covers) {
+    const item = document.createElement("div");
+    item.style.position = "relative";
+    item.style.display = "inline-grid";
+    item.style.justifyItems = "center";
+
     const button = document.createElement("button");
     button.type = "button";
     button.className = `saved-cover-option${book?.preferredCover?.url === cover.url ? " active" : ""}`;
-    button.title = book?.preferredCover?.url === cover.url ? "Currently on your shelf" : "Use this saved cover on the shelf";
+    button.title = book?.preferredCover?.url === cover.url ? "Currently on your shelf — click another cover to switch" : "Use this saved cover now";
     button.setAttribute("aria-label", button.title);
 
     const image = document.createElement("img");
@@ -260,10 +383,36 @@ function renderSavedChoices(modal: Element) {
     label.textContent = cover.source || "Saved";
 
     button.append(image, label);
-    if (book?.preferredCover?.url !== cover.url) {
-      button.addEventListener("click", () => applySavedCover(modal, cover));
+    button.addEventListener("click", () => applySavedCover(modal, cover));
+    item.appendChild(button);
+
+    if (isCommunityUpload(cover)) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.title = "Delete this uploaded cover";
+      remove.setAttribute("aria-label", "Delete this uploaded cover");
+      remove.style.position = "absolute";
+      remove.style.top = "-7px";
+      remove.style.right = "-7px";
+      remove.style.zIndex = "2";
+      remove.style.width = "24px";
+      remove.style.height = "24px";
+      remove.style.borderRadius = "999px";
+      remove.style.border = "1px solid rgba(255,255,255,.7)";
+      remove.style.background = "#8f3f3d";
+      remove.style.color = "#fff";
+      remove.style.fontWeight = "800";
+      remove.style.lineHeight = "1";
+      remove.style.cursor = "pointer";
+      remove.addEventListener("click", (event) => {
+        event.stopPropagation();
+        void deleteSavedCover(modal, cover);
+      });
+      item.appendChild(remove);
     }
-    holder.appendChild(button);
+
+    holder.appendChild(item);
   }
 }
 
