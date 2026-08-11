@@ -1,0 +1,36 @@
+html.book-modal-open,
+body.book-modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+.modal-backdrop {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.modal-backdrop .modal {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  max-height: min(90dvh, 90vh) !important;
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+@media (max-width: 720px) {
+  .modal-backdrop {
+    align-items: center;
+    padding: max(12px, env(safe-area-inset-top)) 10px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .modal-backdrop .modal {
+    width: 100%;
+    max-height: calc(100dvh - max(24px, env(safe-area-inset-top) + env(safe-area-inset-bottom))) !important;
+    scroll-padding-top: 18px;
+    scroll-padding-bottom: 24px;
+  }
+}
