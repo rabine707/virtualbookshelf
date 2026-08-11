@@ -1,0 +1,247 @@
+/* Mobile-first shelf compression.
+   Keep the full feature set, but get readers to their books much faster. */
+
+@media (max-width: 760px) {
+  main {
+    padding-top: 8px;
+  }
+
+  .reader-hero {
+    gap: 10px !important;
+    padding: 14px 16px 15px !important;
+  }
+
+  .reader-hero .hero-copy .eyebrow {
+    margin-bottom: 4px;
+    font-size: 9px;
+  }
+
+  .reader-hero .hero-copy h1 {
+    font-size: clamp(42px, 12vw, 54px) !important;
+    line-height: .9;
+  }
+
+  .reader-hero .hero-copy .subhead {
+    margin-top: 6px;
+    max-width: 34rem;
+    font-size: 14px;
+    line-height: 1.28;
+  }
+
+  .reader-add-books {
+    width: auto !important;
+    margin: 0 auto !important;
+  }
+
+  .reader-add-books-trigger {
+    width: auto !important;
+    min-width: 176px;
+    min-height: 40px !important;
+    padding: 8px 16px !important;
+  }
+
+  /* Row 1: search + sort. Row 2: refresh + count. Row 3: compact utilities. */
+  .reader-toolbar {
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    margin: 10px 0 9px !important;
+    align-items: stretch !important;
+  }
+
+  .reader-toolbar > .search-wrap {
+    order: 1;
+    grid-column: 1 / 5 !important;
+    min-width: 0;
+  }
+
+  .reader-toolbar > select {
+    order: 2;
+    grid-column: 5 / 7 !important;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 9px;
+  }
+
+  .reader-toolbar .search {
+    min-height: 44px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  .reader-toolbar > .toolbar-actions {
+    order: 3;
+    grid-column: 1 / 7 !important;
+    width: 100% !important;
+    gap: 7px !important;
+  }
+
+  .toolbar-actions .count-pill {
+    min-height: 38px;
+    flex-direction: row !important;
+    gap: 6px;
+    padding: 6px 10px !important;
+  }
+
+  .toolbar-actions .count-pill strong {
+    font-size: 15px;
+  }
+
+  .toolbar-actions .count-pill span {
+    margin-top: 0;
+    font-size: 8px;
+  }
+
+  .page-refresh-button {
+    width: 40px !important;
+    min-width: 40px !important;
+    min-height: 38px !important;
+    flex: 0 0 40px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .page-refresh-icon {
+    font-size: 19px !important;
+  }
+
+  .reader-toolbar > .spine-review-launch {
+    order: 4;
+    grid-column: 1 / 3 !important;
+  }
+
+  .reader-toolbar > .decor-store-launch {
+    order: 5;
+    grid-column: 3 / 5 !important;
+  }
+
+  .reader-toolbar > .qol-toolbar {
+    order: 6;
+    grid-column: 5 / 7 !important;
+    display: block !important;
+    margin: 0 !important;
+  }
+
+  .reader-toolbar > .qol-toolbar .qol-fix-button {
+    width: 100%;
+  }
+
+  .reader-toolbar > .spine-review-launch,
+  .reader-toolbar > .decor-store-launch,
+  .reader-toolbar > .qol-toolbar .qol-fix-button {
+    min-width: 0;
+    min-height: 46px !important;
+    gap: 5px !important;
+    padding: 6px 7px !important;
+    border-radius: 12px !important;
+  }
+
+  .reader-toolbar > .spine-review-launch > span:first-child,
+  .reader-toolbar > .decor-store-launch > span:first-child,
+  .reader-toolbar > .qol-toolbar .qol-fix-button > span:first-child {
+    flex: 0 0 auto;
+    font-size: 15px !important;
+  }
+
+  .reader-toolbar > .spine-review-launch > span:nth-child(2),
+  .reader-toolbar > .decor-store-launch > span:nth-child(2),
+  .reader-toolbar > .qol-toolbar .qol-fix-button > span:nth-child(2) {
+    min-width: 0;
+  }
+
+  .reader-toolbar > .spine-review-launch small,
+  .reader-toolbar > .decor-store-launch small,
+  .reader-toolbar > .qol-toolbar small {
+    display: none !important;
+  }
+
+  .reader-toolbar > .spine-review-launch strong,
+  .reader-toolbar > .decor-store-launch strong,
+  .reader-toolbar > .qol-toolbar strong {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 10.5px !important;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .reader-toolbar > .spine-review-launch b,
+  .reader-toolbar > .decor-store-launch b,
+  .reader-toolbar > .qol-toolbar b {
+    min-width: 18px !important;
+    height: 18px !important;
+    margin-left: auto !important;
+    padding: 0 4px !important;
+    font-size: 8.5px !important;
+    line-height: 18px !important;
+    white-space: nowrap;
+  }
+
+  /* Style now lives in the persistent mobile nav. The hidden trigger stays in
+     the DOM so the Style tab can still open the picker programmatically. */
+  .reader-toolbar > .theme-picker-trigger,
+  .reader-toolbar > .spine-label-toggle {
+    display: none !important;
+  }
+
+  .bookcase {
+    margin-top: 4px;
+  }
+
+  .theme-picker-spine-setting {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 12px;
+    padding: 11px 12px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 13px;
+    background: rgba(255,255,255,.055);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .theme-picker-spine-setting > span {
+    display: grid;
+    gap: 2px;
+  }
+
+  .theme-picker-spine-setting strong {
+    font-size: 13px;
+  }
+
+  .theme-picker-spine-setting small {
+    opacity: .62;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .theme-picker-spine-setting b {
+    flex: 0 0 auto;
+    min-width: 42px;
+    padding: 6px 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.09);
+    font: 800 10px/1 Arial, sans-serif;
+    text-align: center;
+  }
+}
+
+@media (max-width: 390px) {
+  .reader-toolbar > .spine-review-launch > span:first-child,
+  .reader-toolbar > .decor-store-launch > span:first-child,
+  .reader-toolbar > .qol-toolbar .qol-fix-button > span:first-child {
+    display: none;
+  }
+
+  .reader-toolbar > .spine-review-launch strong,
+  .reader-toolbar > .decor-store-launch strong,
+  .reader-toolbar > .qol-toolbar strong {
+    font-size: 10px !important;
+  }
+}
