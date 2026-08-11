@@ -17,6 +17,7 @@ import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import SavedCoverChoices from "./SavedCoverChoices";
 import SharedSpineEnricher from "./SharedSpineEnricher";
 import SpineArtEnricher from "./SpineArtEnricher";
+import SpineAuthorCorrector from "./SpineAuthorCorrector";
 import SpineCommunityEnricher from "./SpineCommunityEnricher";
 import SpineGallery from "./SpineGallery";
 import SpineGenerator from "./SpineGenerator";
@@ -41,6 +42,7 @@ export default function ClientEnhancers() {
     <SharedSpineEnricher />
     <SpineGenerator />
     <SpineGallery />
+    <SpineAuthorCorrector />
     <SpineCommunityEnricher />
     <IdentifierEditor />
     <DecorStoreEnricher />
