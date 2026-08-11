@@ -10,6 +10,7 @@ import DecorStoreEnricher from "./DecorStoreEnricher";
 import HelpShelfLauncher from "./HelpShelfLauncher";
 import IdentifierEditor from "./IdentifierEditor";
 import MobileTapFix from "./MobileTapFix";
+import ModalScrollLock from "./ModalScrollLock";
 import PageRefreshButton from "./PageRefreshButton";
 import QoLEnricher from "./QoLEnricher";
 import RemoveAudibleImport from "./RemoveAudibleImport";
@@ -32,6 +33,7 @@ export default function ClientEnhancers() {
     <AuthEnricher />
     <HelpShelfLauncher />
     <CoreInteractionEnricher />
+    <ModalScrollLock />
     <CoverDecisionSafety />
     <CoverSearchCleanup />
     <SavedCoverChoices />
