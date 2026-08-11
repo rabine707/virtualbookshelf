@@ -14,6 +14,7 @@ const POLICIES: Record<string, RateLimitPolicy> = {
   "/api/cover": { limit: 240, windowMs: 60_000 },
   "/api/romance-cover": { limit: 120, windowMs: 60_000 },
   "/api/asin": { limit: 120, windowMs: 60_000 },
+  "/api/book-search": { limit: 90, windowMs: 60_000 },
 };
 
 const globalRateLimit = globalThis as typeof globalThis & {

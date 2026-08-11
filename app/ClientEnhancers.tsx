@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
+import BookSearchAdd from "./BookSearchAdd";
 import CoreInteractionEnricher from "./CoreInteractionEnricher";
 import CoverDecisionSafety from "./CoverDecisionSafety";
 import CoverSearchCleanup from "./CoverSearchCleanup";
@@ -78,7 +79,7 @@ function MobileBottomNav() {
       <button type="button" onClick={() => document.querySelector<HTMLElement>(".bookcase")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
         <span aria-hidden="true">▤</span><b>Shelf</b>
       </button>
-      <button type="button" onClick={() => click(".reader-add-books-trigger")}>
+      <button type="button" onClick={() => window.dispatchEvent(new Event("shelf-open-book-search"))}>
         <span aria-hidden="true">＋</span><b>Add</b>
       </button>
       <button type="button" onClick={() => click(".theme-picker-trigger")}>
@@ -101,6 +102,7 @@ export default function ClientEnhancers() {
   if (!mounted) return null;
   return <>
     <AuthEnricher />
+    <BookSearchAdd />
     <HelpShelfLauncher />
     <CoreInteractionEnricher />
     <ModalScrollLock />

@@ -18,7 +18,7 @@ function textButton(root: ParentNode, label: RegExp) {
     .find((button) => label.test((button.textContent || "").trim()));
 }
 
-function addBooksMenu(hero: HTMLElement) {
+function addBooksTrigger(hero: HTMLElement) {
   if (hero.querySelector(".reader-add-books")) return;
 
   const goodreads = textButton(hero, /^Import Goodreads$/i);
@@ -35,64 +35,16 @@ function addBooksMenu(hero: HTMLElement) {
   trigger.type = "button";
   trigger.className = "primary reader-add-books-trigger";
   trigger.textContent = "＋ Add books";
-  trigger.setAttribute("aria-haspopup", "menu");
-  trigger.setAttribute("aria-expanded", "false");
-
-  const menu = document.createElement("div");
-  menu.className = "reader-add-books-menu";
-  menu.setAttribute("role", "menu");
-  menu.hidden = true;
-
-  const heading = document.createElement("div");
-  heading.className = "reader-add-books-heading";
-  heading.innerHTML = "<strong>Add to your shelf</strong><span>Choose where your books are coming from.</span>";
-  menu.appendChild(heading);
-
-  if (goodreads) {
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = "reader-add-books-item";
-    item.setAttribute("role", "menuitem");
-    item.innerHTML = "<span class=\"reader-add-icon\">📚</span><span><strong>Import Goodreads</strong><small>Bring in your Goodreads shelf</small></span>";
-    item.addEventListener("click", () => {
-      menu.hidden = true;
-      trigger.setAttribute("aria-expanded", "false");
-      goodreads.click();
-    });
-    menu.appendChild(item);
-  }
-
-  if (audible) {
-    const advancedLabel = document.createElement("span");
-    advancedLabel.className = "reader-add-books-advanced-label";
-    advancedLabel.textContent = "Advanced import";
-    menu.appendChild(advancedLabel);
-
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = "reader-add-books-item reader-add-books-item-secondary";
-    item.setAttribute("role", "menuitem");
-    item.innerHTML = "<span class=\"reader-add-icon\">🎧</span><span><strong>Import Audible CSV</strong><small>Merge an exported Audible library</small></span>";
-    item.addEventListener("click", () => {
-      menu.hidden = true;
-      trigger.setAttribute("aria-expanded", "false");
-      audible.click();
-    });
-    menu.appendChild(item);
-  }
-
+  trigger.setAttribute("aria-haspopup", "dialog");
   trigger.addEventListener("click", (event) => {
     event.stopPropagation();
-    const open = menu.hidden;
-    menu.hidden = !open;
-    trigger.setAttribute("aria-expanded", String(open));
+    window.dispatchEvent(new Event("shelf-open-book-search"));
   });
-  menu.addEventListener("click", (event) => event.stopPropagation());
 
   const originalActions = goodreads?.parentElement || audible?.parentElement;
   if (originalActions) originalActions.appendChild(wrap);
   else hero.appendChild(wrap);
-  wrap.append(trigger, menu);
+  wrap.appendChild(trigger);
 }
 
 function detailValue(modal: HTMLElement, label: string) {
@@ -212,7 +164,7 @@ function scan() {
   const hero = document.querySelector<HTMLElement>(".hero");
   if (hero) {
     hero.classList.add("reader-hero");
-    addBooksMenu(hero);
+    addBooksTrigger(hero);
   }
 
   document.querySelector<HTMLElement>(".toolbar")?.classList.add("reader-toolbar");
@@ -231,19 +183,12 @@ export default function ReaderUiCleanup() {
       });
     };
 
-    const closeMenus = () => {
-      for (const menu of document.querySelectorAll<HTMLElement>(".reader-add-books-menu")) menu.hidden = true;
-      for (const trigger of document.querySelectorAll<HTMLElement>(".reader-add-books-trigger")) trigger.setAttribute("aria-expanded", "false");
-    };
-
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true });
-    document.addEventListener("click", closeMenus);
     schedule();
 
     return () => {
       observer.disconnect();
-      document.removeEventListener("click", closeMenus);
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
