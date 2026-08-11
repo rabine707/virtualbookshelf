@@ -116,7 +116,6 @@ export default function BotanicalSceneEnricher() {
       {createPortal(
         <div className="botanical-v3-room" aria-hidden="true">
           <img className="botanical-room-window" src={`${ASSET_ROOT}/window-left.webp`} alt="" draggable={false} />
-          <img className="botanical-room-sunlight" src={`${ASSET_ROOT}/sunlight-shadow-overlay.webp`} alt="" draggable={false} />
         </div>,
         document.body,
       )}
@@ -124,7 +123,6 @@ export default function BotanicalSceneEnricher() {
       {createPortal(
         <div className="botanical-v3-foreground" aria-hidden="true">
           <img className="botanical-room-vine-right" src={`${ASSET_ROOT}/hanging-vine-right.webp`} alt="" draggable={false} />
-          <img className="botanical-room-leaves" src={`${ASSET_ROOT}/foreground-leaves.webp`} alt="" draggable={false} />
         </div>,
         document.body,
       )}
