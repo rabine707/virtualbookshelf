@@ -75,7 +75,6 @@ function sanitizeBooks(value: unknown) {
     const box = sanitizeBox(row.box_2d);
     if (!box) return [];
 
-    // A spine may be much narrower than the whole physical book.
     const spineBox = sanitizeBox(row.spine_box_2d, 2, 12);
 
     return [{
@@ -130,6 +129,8 @@ export async function POST(request: Request) {
     "Analyze this photograph of physical books on shelves.",
     "Detect every distinct physical book and return one box_2d around the visible physical body of that book.",
     "For EACH detected book, also return spine_box_2d around ONLY the visible spine FACE: the narrow bound/bookbinding surface that normally carries spine artwork, title, author, publisher marks, or decoration.",
+    "IMPORTANT: spine_box_2d is a PHYSICAL-SURFACE box, not a text box. It must cover the ENTIRE continuous visible spine face from one physical end of the binding to the other and across the full visible width/thickness of that face, including blank margins, artwork, publisher marks, and unprinted areas.",
+    "Do not tighten spine_box_2d around only the readable title or author. If only part of the wording is legible but the rest of the physical spine surface is visible, still box the complete visible spine surface.",
     "spine_box_2d must EXCLUDE exposed page blocks/fore-edges, top or bottom page edges, front covers, back covers, neighboring books, shelf boards, and empty space.",
     "A book may be rotated, stacked horizontally, leaning, upside down, or partially occluded. Find the actual spine face regardless of orientation.",
     "If the physical book is visible but its spine face is genuinely not visible enough to crop, return an empty array for spine_box_2d and leave title, author, and visible_text empty. Do not substitute the page block/fore-edge as the spine.",
@@ -175,7 +176,7 @@ export async function POST(request: Request) {
                     spine_box_2d: {
                       type: "array",
                       items: { type: "integer" },
-                      description: "Visible spine face only, [ymin, xmin, ymax, xmax]; empty array when no spine face is visible",
+                      description: "Entire visible physical spine face, not just readable text: [ymin, xmin, ymax, xmax]; empty when no spine is visible",
                     },
                     title: { type: "string" },
                     author: { type: "string" },
