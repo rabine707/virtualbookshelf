@@ -6,23 +6,22 @@ import { createPortal } from "react-dom";
 const ASSET_ROOT = "/themes/botanical/v3";
 
 type PropSpec = {
-  kind: "lamp" | "planter" | "propagation";
   side: "left" | "right";
-  src: string;
 };
 
+// Sparse, deterministic composition. The user's books stay visually dominant.
 const PROP_PLAN: Array<PropSpec | null> = [
-  { kind: "lamp", side: "right", src: `${ASSET_ROOT}/brass-library-lamp.webp` },
-  { kind: "planter", side: "left", src: `${ASSET_ROOT}/ceramic-pothos-planter.webp` },
   null,
-  { kind: "propagation", side: "right", src: `${ASSET_ROOT}/propagation-bottle.webp` },
+  { side: "left" },
   null,
   null,
   null,
-  { kind: "planter", side: "right", src: `${ASSET_ROOT}/ceramic-pothos-planter.webp` },
   null,
   null,
-  { kind: "propagation", side: "left", src: `${ASSET_ROOT}/propagation-bottle.webp` },
+  { side: "right" },
+  null,
+  null,
+  null,
   null,
 ];
 
@@ -57,17 +56,16 @@ function syncRowProps(active: boolean) {
     row.classList.toggle("botanical-prop-right", spec.side === "right");
 
     const existing = row.querySelector<HTMLElement>(".botanical-row-prop");
-    if (existing?.dataset.kind === spec.kind && existing.dataset.side === spec.side) return;
+    if (existing?.dataset.side === spec.side) return;
     existing?.remove();
 
     const wrapper = document.createElement("div");
-    wrapper.className = `botanical-row-prop botanical-row-prop-${spec.side} botanical-row-prop-${spec.kind}`;
-    wrapper.dataset.kind = spec.kind;
+    wrapper.className = `botanical-row-prop botanical-row-prop-${spec.side}`;
     wrapper.dataset.side = spec.side;
     wrapper.setAttribute("aria-hidden", "true");
 
     const image = document.createElement("img");
-    image.src = spec.src;
+    image.src = `${ASSET_ROOT}/ceramic-pothos-planter.webp`;
     image.alt = "";
     image.loading = index < 2 ? "eager" : "lazy";
     image.decoding = "async";
@@ -78,7 +76,6 @@ function syncRowProps(active: boolean) {
 
 export default function BotanicalSceneEnricher() {
   const [active, setActive] = useState(false);
-  const [bookcase, setBookcase] = useState<Element | null>(null);
 
   useEffect(() => {
     let raf = 0;
@@ -87,9 +84,7 @@ export default function BotanicalSceneEnricher() {
       raf = requestAnimationFrame(() => {
         raf = 0;
         const nextActive = botanicalActive();
-        const nextBookcase = document.querySelector(".bookcase");
         setActive(nextActive);
-        setBookcase(nextBookcase);
         syncRowProps(nextActive);
       });
     };
@@ -109,7 +104,7 @@ export default function BotanicalSceneEnricher() {
     };
   }, []);
 
-  if (!active || !bookcase) return null;
+  if (!active) return null;
 
   return (
     <>
@@ -119,22 +114,11 @@ export default function BotanicalSceneEnricher() {
         </div>,
         document.body,
       )}
-
       {createPortal(
         <div className="botanical-v3-foreground" aria-hidden="true">
           <img className="botanical-room-vine-right" src={`${ASSET_ROOT}/hanging-vine-right.webp`} alt="" draggable={false} />
         </div>,
         document.body,
-      )}
-
-      {createPortal(
-        <div className="botanical-case-frame" aria-hidden="true">
-          <img className="botanical-frame-top" src={`${ASSET_ROOT}/top-frame.webp`} alt="" draggable={false} />
-          <img className="botanical-frame-left" src={`${ASSET_ROOT}/left-frame.webp`} alt="" draggable={false} />
-          <img className="botanical-frame-right" src={`${ASSET_ROOT}/right-frame.webp`} alt="" draggable={false} />
-          <img className="botanical-frame-bottom" src={`${ASSET_ROOT}/bottom-frame.webp`} alt="" draggable={false} />
-        </div>,
-        bookcase,
       )}
     </>
   );
