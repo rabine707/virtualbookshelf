@@ -22,7 +22,6 @@ type RawRefinement = {
   index?: unknown;
   spine_visible?: unknown;
   spine_box_2d?: unknown;
-  spine_mask?: unknown;
   title?: unknown;
   author?: unknown;
   visible_text?: unknown;
@@ -58,20 +57,6 @@ function sanitizeBox(value: unknown) {
   return [yMin, xMin, yMax, xMax] as const;
 }
 
-function sanitizeMask(value: unknown) {
-  if (!Array.isArray(value)) return [] as Array<readonly [number, number]>;
-  return value.flatMap((point): Array<readonly [number, number]> => {
-    if (!Array.isArray(point) || point.length !== 2) return [];
-    const x = Number(point[0]);
-    const y = Number(point[1]);
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return [];
-    return [[
-      Math.max(0, Math.min(1000, Math.round(x))),
-      Math.max(0, Math.min(1000, Math.round(y))),
-    ] as const];
-  }).slice(0, 160);
-}
-
 function sanitizeRefinements(value: unknown, imageCount: number) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return [];
   const rows = (value as { books?: unknown }).books;
@@ -96,13 +81,12 @@ function sanitizeRefinements(value: unknown, imageCount: number) {
 
     const spineVisible = row.spine_visible === true;
     const box = spineVisible ? sanitizeBox(row.spine_box_2d) : null;
-    const mask = box ? sanitizeMask(row.spine_mask) : [];
 
     return [{
       index,
       spine_visible: Boolean(box),
       spine_box_2d: box,
-      spine_mask: mask.length >= 3 ? mask : [],
+      spine_mask: [],
       title: box ? cleanText(row.title, 240) : "",
       author: box ? cleanText(row.author, 180) : "",
       visible_text: box ? cleanText(row.visible_text, 500) : "",
@@ -215,10 +199,9 @@ export async function POST(request: Request) {
     "The spine face is the binding surface that may carry title, author, publisher marks, artwork, or blank decoration. It is NOT the exposed page block/fore-edge, top or bottom page edges, front cover, or back cover.",
     "Books may be upright, horizontal, leaning, rotated, partially occluded, or viewed from above/below. Use the actual physical binding surface, regardless of orientation.",
     "spine_box_2d must surround the ENTIRE visible spine face, not merely the readable text. Include blank spine margins and artwork from one visible end of the binding to the other.",
-    "spine_mask should trace the visible spine face inside spine_box_2d. Give polygon points as [x,y] normalized 0-1000 RELATIVE TO spine_box_2d, matching Gemini segmentation-mask convention.",
-    "If no actual spine face is visible, set spine_visible=false and return empty arrays for spine_box_2d and spine_mask. Never substitute pages as a spine.",
+    "If no actual spine face is visible, set spine_visible=false and return [0,0,0,0] for spine_box_2d. Never substitute pages as a spine.",
     "Read title, author, and visible_text only from that isolated book's actual spine face. Empty strings are better than guesses.",
-    "Return exactly one result for each numbered input image, preserving its index.",
+    "Return one result for every numbered input image and preserve its index.",
   ].join(" ");
 
   const input: Array<Record<string, unknown>> = [{ type: "text", text: prompt }];
@@ -249,37 +232,23 @@ export async function POST(request: Request) {
             properties: {
               books: {
                 type: "array",
-                minItems: images.length,
-                maxItems: images.length,
+                maxItems: MAX_BOOKS,
                 items: {
                   type: "object",
                   properties: {
-                    index: { type: "integer", minimum: 0, maximum: images.length - 1 },
+                    index: { type: "integer" },
                     spine_visible: { type: "boolean" },
                     spine_box_2d: {
                       type: "array",
-                      minItems: 0,
-                      maxItems: 4,
-                      items: { type: "integer", minimum: 0, maximum: 1000 },
-                      description: "Complete visible spine face [ymin,xmin,ymax,xmax] normalized to the isolated book image; empty if no spine is visible",
-                    },
-                    spine_mask: {
-                      type: "array",
-                      maxItems: 160,
-                      items: {
-                        type: "array",
-                        minItems: 2,
-                        maxItems: 2,
-                        items: { type: "integer", minimum: 0, maximum: 1000 },
-                      },
-                      description: "Polygon [x,y] points normalized 0-1000 relative to spine_box_2d; empty if no spine is visible",
+                      items: { type: "integer" },
+                      description: "Complete visible spine face [ymin,xmin,ymax,xmax] normalized 0-1000 to the isolated book image; [0,0,0,0] when no spine is visible",
                     },
                     title: { type: "string" },
                     author: { type: "string" },
                     visible_text: { type: "string" },
-                    confidence: { type: "integer", minimum: 0, maximum: 100 },
+                    confidence: { type: "integer" },
                   },
-                  required: ["index", "spine_visible", "spine_box_2d", "spine_mask", "title", "author", "visible_text", "confidence"],
+                  required: ["index", "spine_visible", "spine_box_2d", "title", "author", "visible_text", "confidence"],
                 },
               },
             },
@@ -288,7 +257,7 @@ export async function POST(request: Request) {
         },
         generation_config: {
           thinking_level: "minimal",
-          max_output_tokens: 6500,
+          max_output_tokens: 4200,
         },
       }),
     });
