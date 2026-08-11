@@ -4,6 +4,8 @@ import { imageMimeMatches } from "../../../lib/image-signature";
 
 export const runtime = "nodejs";
 
+// Pass 1 finds physical books only. Pass 2 (/api/refine-spines) receives isolated
+// book crops and finds the actual bound spine face without confusing page blocks.
 const MODEL = "gemini-3.6-flash";
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const MAX_BOOKS = 30;
@@ -201,7 +203,7 @@ export async function POST(request: Request) {
                       minItems: 4,
                       maxItems: 4,
                       items: { type: "integer", minimum: 0, maximum: 1000 },
-                      description: "Whole physical book: [ymin, xmin, ymax, xmax], normalized 0-1000",
+                      description: "Whole physical book: [ymin, xmin,ymax,xmax], normalized 0-1000",
                     },
                     title: { type: "string" },
                     author: { type: "string" },
