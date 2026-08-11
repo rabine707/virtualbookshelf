@@ -126,10 +126,37 @@ function normalizedBoxToPixels(value: unknown, image: PreparedImage): PixelBox |
   };
 }
 
+function extendSpineAcrossBookLength(bookBox: PixelBox, spineBox: PixelBox | null): PixelBox | null {
+  if (!spineBox) return null;
+
+  // Gemini is best at locating which narrow surface is the spine, but it can
+  // tighten that box around the readable words. The physical spine should run
+  // along the same long axis as the book itself, so preserve Gemini's narrow
+  // cross-axis and borrow the whole book's long-axis extent.
+  const bookIsUpright = bookBox.height >= bookBox.width;
+
+  if (bookIsUpright) {
+    return {
+      x: spineBox.x,
+      y: bookBox.y,
+      width: spineBox.width,
+      height: bookBox.height,
+    };
+  }
+
+  return {
+    x: bookBox.x,
+    y: spineBox.y,
+    width: bookBox.width,
+    height: spineBox.height,
+  };
+}
+
 function regionFromApi(book: ApiBook, image: PreparedImage, index: number): Omit<Region, "crop"> | null {
   const bookBox = normalizedBoxToPixels(book.box_2d, image);
   if (!bookBox) return null;
-  const spineBox = normalizedBoxToPixels(book.spine_box_2d, image);
+  const detectedSpineBox = normalizedBoxToPixels(book.spine_box_2d, image);
+  const spineBox = extendSpineAcrossBookLength(bookBox, detectedSpineBox);
 
   return {
     id: `${Date.now()}-${index}`,
@@ -145,10 +172,8 @@ function regionFromApi(book: ApiBook, image: PreparedImage, index: number): Omit
 function makeSpineCrop(source: HTMLImageElement, image: PreparedImage, spineBox: PixelBox | null) {
   if (!spineBox) return null;
 
-  // Keep just enough context to avoid shaving off the spine's printed edge,
-  // but do not expand far enough to turn a page block into the thumbnail.
-  const horizontalPad = Math.max(2, Math.round(spineBox.width * 0.06));
-  const verticalPad = Math.max(2, Math.round(spineBox.height * 0.015));
+  const horizontalPad = Math.max(2, Math.round(spineBox.width * 0.035));
+  const verticalPad = Math.max(2, Math.round(spineBox.height * 0.01));
   const x = Math.max(0, spineBox.x - horizontalPad);
   const y = Math.max(0, spineBox.y - verticalPad);
   const width = Math.min(image.width - x, spineBox.width + horizontalPad * 2);
@@ -215,7 +240,7 @@ export default function ScanShelfPrototype() {
         return;
       }
 
-      setStatus(`Cropping visible spines from ${detected.length} detected book${detected.length === 1 ? "" : "s"}…`);
+      setStatus(`Cropping full visible spines from ${detected.length} detected book${detected.length === 1 ? "" : "s"}…`);
       const source = await loadImage(prepared.dataUrl);
       const converted = detected
         .map((book, index) => regionFromApi(book, prepared, index))
@@ -335,7 +360,7 @@ export default function ScanShelfPrototype() {
                 <div className={styles.cropHeading}>
                   <div>
                     <h2>Detected spine faces</h2>
-                    <p>The cards now crop the actual visible binding/spine face, not the page block. If Gemini cannot see a spine, the card says so instead of showing pages.</p>
+                    <p>The preview keeps Gemini's narrow spine surface but extends it across the whole physical length of the detected book, so a readable word fragment does not become the crop.</p>
                   </div>
                 </div>
                 <div className={styles.cropGrid}>
@@ -344,7 +369,7 @@ export default function ScanShelfPrototype() {
                       <div className={styles.cropNumber}>#{index + 1} · {region.confidence}% book</div>
                       <div className={styles.cropImageWrap}>
                         {region.crop ? (
-                          <img src={region.crop} alt={`Visible spine crop ${index + 1}`} className={styles.cropImage} />
+                          <img src={region.crop} alt={`Full visible spine crop ${index + 1}`} className={styles.cropImage} />
                         ) : (
                           <div className={styles.noSpine}>Spine face not visible</div>
                         )}
