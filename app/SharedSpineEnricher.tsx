@@ -7,10 +7,14 @@ const DB_NAME = "shelf-of-fame-art";
 const STORE_NAME = "generated-spines";
 const DB_VERSION = 1;
 
+type SpineRenderMode = "integrated" | "overlay";
+
 type SpineEventDetail = {
   coverUrl: string;
   image: string;
   position?: "left" | "center" | "right";
+  renderMode?: SpineRenderMode;
+  shared?: boolean;
 };
 
 function openDb() {
@@ -39,6 +43,17 @@ async function hasLocalSpine(coverUrl: string) {
   } catch {
     return false;
   }
+}
+
+function setTypographyMode(button: HTMLButtonElement, renderMode: SpineRenderMode) {
+  const spine = button.querySelector<HTMLElement>(".generated-spine");
+  if (!spine) return;
+  spine.dataset.typography = renderMode;
+  const hidden = renderMode === "integrated";
+  const title = spine.querySelector<HTMLElement>(".generated-spine-title");
+  const author = spine.querySelector<HTMLElement>(".generated-spine-author");
+  if (title) title.hidden = hidden;
+  if (author) author.hidden = hidden;
 }
 
 function splitBookIdentity(button: HTMLButtonElement) {
@@ -90,11 +105,12 @@ async function applySharedSpines() {
     const shared = catalog.byCover.get(coverUrl) || catalog.byTitleAuthor.get(titleAuthorKey(identity.title, identity.author));
     if (!shared || !art.isConnected) return;
 
-    art.src = shared;
+    art.src = shared.url;
     art.classList.add("generated-spine-art-picked", "generated-spine-art-community");
     art.classList.remove("generated-spine-art-fallback");
-    button.dataset.spineCrop = "community";
+    button.dataset.spineCrop = shared.position || (shared.renderMode === "integrated" ? "custom" : "community");
     button.dataset.communitySpine = "1";
+    setTypographyMode(button, shared.renderMode);
   }));
 }
 
@@ -109,14 +125,24 @@ export default function SharedSpineEnricher() {
     const onGenerated = (event: Event) => {
       const detail = (event as CustomEvent<SpineEventDetail>).detail;
       if (!detail?.coverUrl || !detail.image) return;
+      if (detail.shared) {
+        scheduleApply();
+        return;
+      }
       const identity = selectedBookIdentity();
       if (!identity) return;
+
+      const provider = detail.position
+        ? "cover-crop"
+        : detail.renderMode === "integrated"
+          ? "AI-integrated"
+          : "AI";
 
       void publishSharedSpine(
         identity,
         detail.image,
         detail.coverUrl,
-        detail.position ? "cover-crop" : "AI",
+        provider,
         detail.position || undefined,
       ).then((result) => {
         if (!result.shared) return;
