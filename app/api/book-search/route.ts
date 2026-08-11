@@ -42,6 +42,21 @@ type GoogleBooksResponse = {
   items?: GoogleBook[];
 };
 
+type RomanceIoAuthor = {
+  name?: string;
+};
+
+type RomanceIoBook = {
+  _id?: string;
+  info?: { title?: string };
+  authors?: RomanceIoAuthor[];
+};
+
+type RomanceIoResponse = {
+  success?: boolean;
+  books?: RomanceIoBook[];
+};
+
 type SearchCandidate = {
   id: string;
   title: string;
@@ -49,7 +64,7 @@ type SearchCandidate = {
   year?: number;
   isbn?: string;
   coverUrl?: string;
-  source: "Google Books" | "Open Library";
+  source: "Google Books" | "Open Library" | "Romance.io";
   score: number;
 };
 
@@ -198,6 +213,10 @@ async function fetchJson<T>(url: string): Promise<T | null> {
     const response = await fetch(url, {
       signal: controller.signal,
       next: { revalidate: 3600 },
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Shelf-of-Fame book search",
+      },
     });
     if (!response.ok) return null;
     return await response.json() as T;
@@ -301,6 +320,37 @@ async function searchOpenLibrary(title: string, author: string, broad: boolean):
   return results;
 }
 
+async function searchRomanceIo(title: string, author: string): Promise<SearchCandidate[]> {
+  const searchText = [title, author].filter(Boolean).join(" ").trim();
+  if (!searchText) return [];
+
+  const params = new URLSearchParams({ search: searchText });
+  const data = await fetchJson<RomanceIoResponse>(`https://www.romance.io/json/search_books?${params.toString()}`);
+  if (data?.success !== true || !Array.isArray(data.books)) return [];
+
+  const results: SearchCandidate[] = [];
+  for (const [index, book] of data.books.entries()) {
+    const id = (book._id || "").trim();
+    const candidateTitle = book.info?.title?.trim();
+    const authors = (book.authors || []).map((entry) => entry.name?.trim() || "").filter(Boolean);
+    if (!/^[a-f0-9]{24}$/i.test(id) || !candidateTitle || !authors.length) continue;
+
+    const baseScore = candidateScore(title, author, candidateTitle, authors);
+    if (!baseScore) continue;
+
+    results.push({
+      id: `romanceio:${id}`,
+      title: candidateTitle,
+      author: authors.slice(0, 3).join(", "),
+      coverUrl: `https://s3.amazonaws.com/romance.io/books/large/${id}.jpg`,
+      source: "Romance.io",
+      score: baseScore + 13 - index * 0.15,
+    });
+  }
+
+  return results;
+}
+
 function mergeResults(candidates: SearchCandidate[]) {
   const byBook = new Map<string, SearchCandidate>();
 
@@ -343,14 +393,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results: [], error: "Search is too long." }, { status: 400 });
   }
 
-  const [googleExact, googleBroad, openLibraryExact, openLibraryBroad] = await Promise.all([
+  const [googleExact, googleBroad, openLibraryExact, openLibraryBroad, romance] = await Promise.all([
     searchGoogle(title, author, false),
     searchGoogle(title, author, true),
     searchOpenLibrary(title, author, false),
     searchOpenLibrary(title, author, true),
+    searchRomanceIo(title, author),
   ]);
 
   const results = mergeResults([
+    ...romance,
     ...googleExact,
     ...openLibraryExact,
     ...googleBroad,
