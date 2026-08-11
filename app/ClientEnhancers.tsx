@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
+import CommunalCoverSync from "./CommunalCoverSync";
 import CoreInteractionEnricher from "./CoreInteractionEnricher";
 import CoverDecisionSafety from "./CoverDecisionSafety";
 import CoverSearchCleanup from "./CoverSearchCleanup";
@@ -35,6 +36,7 @@ export default function ClientEnhancers() {
     <CoreInteractionEnricher />
     <ModalScrollLock />
     <CoverDecisionSafety />
+    <CommunalCoverSync />
     <CoverSearchCleanup />
     <SavedCoverChoices />
     <WebCoverEnricher />
