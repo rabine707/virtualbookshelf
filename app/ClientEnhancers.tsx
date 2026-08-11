@@ -16,7 +16,7 @@ import PageRefreshButton from "./PageRefreshButton";
 import QoLEnricher from "./QoLEnricher";
 import RemoveAudibleImport from "./RemoveAudibleImport";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
-import SavedCoverChoices from "./SavedCoverChoices";
+import SavedCoverChoicesStable from "./SavedCoverChoicesStable";
 import ScannedSpineEnricher from "./ScannedSpineEnricher";
 import SharedSpineEnricher from "./SharedSpineEnricher";
 import SpineArtEnricher from "./SpineArtEnricher";
@@ -36,7 +36,7 @@ export default function ClientEnhancers() {
     <CoreInteractionEnricher />
     <CoverDecisionSafety />
     <CoverSearchCleanup />
-    <SavedCoverChoices />
+    <SavedCoverChoicesStable />
     <WebCoverEnricher />
     <RomanceShelfEnricher />
     <AudibleCoverEnricher />
