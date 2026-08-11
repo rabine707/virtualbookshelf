@@ -29,202 +29,50 @@
   white-space: nowrap;
 }
 
-.reader-add-books-backdrop {
-  position: fixed;
-  z-index: 180;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(7, 6, 5, .7);
-  backdrop-filter: blur(12px);
+.reader-add-books-menu {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(330px, calc(100vw - 28px));
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  background: rgba(15, 14, 13, .97);
+  box-shadow: 0 18px 50px rgba(0,0,0,.42);
+  backdrop-filter: blur(18px);
 }
 
-.reader-add-books-backdrop[hidden] {
+.reader-add-books-menu[hidden] {
   display: none !important;
 }
 
-body.reader-add-books-open {
-  overflow: hidden;
-}
-
-.reader-add-books-dialog {
-  width: min(520px, calc(100vw - 28px));
-  max-height: min(760px, calc(100vh - 36px));
-  overflow: auto;
-  padding: 20px;
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 22px;
-  background: rgba(18, 17, 15, .985);
-  color: inherit;
-  box-shadow: 0 28px 80px rgba(0,0,0,.56);
-}
-
-.reader-add-books-dialog > header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 20px;
-}
-
-.reader-add-books-dialog > header > div {
+.reader-add-books-heading {
   display: grid;
-  gap: 4px;
+  gap: 3px;
+  padding: 8px 9px 10px;
 }
 
-.reader-add-books-dialog header small {
-  color: rgba(255,255,255,.43);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .15em;
+.reader-add-books-heading strong {
+  font-size: 15px;
 }
 
-.reader-add-books-dialog header h2 {
-  margin: 0;
-  font-size: clamp(24px, 4vw, 32px);
-  line-height: 1.05;
-}
-
-.reader-add-books-dialog header p {
-  margin: 2px 0 0;
-  color: rgba(255,255,255,.58);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.reader-add-books-close {
-  flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
-  border: 1px solid rgba(255,255,255,.09);
-  border-radius: 50%;
-  background: rgba(255,255,255,.045);
-  color: inherit;
-  font-size: 22px;
-  cursor: pointer;
-}
-
-.reader-add-section-heading {
-  display: grid;
-  gap: 2px;
-  margin-bottom: 10px;
-}
-
-.reader-add-section-heading strong {
-  font-size: 14px;
-}
-
-.reader-add-section-heading span {
-  color: rgba(255,255,255,.48);
-  font-size: 11px;
-}
-
-.reader-manual-add {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding: 15px;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 16px;
-  background: rgba(255,255,255,.03);
-}
-
-.reader-manual-add .reader-add-section-heading,
-.reader-manual-add-status,
-.reader-manual-add-submit {
-  grid-column: 1 / -1;
-}
-
-.reader-manual-add label {
-  display: grid;
-  gap: 5px;
-}
-
-.reader-manual-add label > span {
-  color: rgba(255,255,255,.58);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.reader-manual-add input {
-  width: 100%;
-  min-height: 42px;
-  padding: 9px 11px;
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 11px;
-  background: rgba(0,0,0,.22);
-  color: inherit;
-  font: inherit;
-  outline: none;
-}
-
-.reader-manual-add input:focus {
-  border-color: rgba(255,255,255,.3);
-  box-shadow: 0 0 0 3px rgba(255,255,255,.055);
-}
-
-.reader-manual-add-status {
-  min-height: 0;
+.reader-add-books-heading span {
   color: rgba(255,255,255,.62);
-  font-size: 11px;
-}
-
-.reader-manual-add-status:empty {
-  display: none;
-}
-
-.reader-manual-add-status.error {
-  color: #e9b2a9;
-}
-
-.reader-manual-add-submit {
-  min-height: 44px;
-  margin-top: 2px;
-}
-
-.reader-add-divider {
-  position: relative;
-  display: grid;
-  place-items: center;
-  height: 34px;
-  color: rgba(255,255,255,.35);
-  font-size: 10px;
-  text-transform: uppercase;
-}
-
-.reader-add-divider::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  background: rgba(255,255,255,.07);
-}
-
-.reader-add-divider span {
-  position: relative;
-  padding-inline: 10px;
-  background: rgba(18, 17, 15, .985);
-}
-
-.reader-add-imports {
-  display: grid;
-  gap: 8px;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .reader-add-books-item {
   width: 100%;
   display: grid;
-  grid-template-columns: 38px 1fr auto;
+  grid-template-columns: 36px 1fr;
   align-items: center;
-  gap: 11px;
-  min-height: 58px;
-  padding: 10px 11px;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 13px;
-  background: rgba(255,255,255,.025);
+  gap: 10px;
+  padding: 11px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -232,71 +80,41 @@ body.reader-add-books-open {
 
 .reader-add-books-item:hover,
 .reader-add-books-item:focus-visible {
-  background: rgba(255,255,255,.07);
-  border-color: rgba(255,255,255,.14);
+  background: rgba(255,255,255,.08);
 }
 
-.reader-add-books-item-featured {
-  background: rgba(255,255,255,.055);
-}
-
-.reader-add-books-item-coming {
-  opacity: .52;
-  cursor: default;
-}
-
-.reader-add-books-item > span:nth-child(2) {
+.reader-add-books-item > span:last-child {
   display: grid;
   gap: 2px;
 }
 
 .reader-add-books-item strong {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .reader-add-books-item small {
-  color: rgba(255,255,255,.5);
-  font-size: 10.5px;
-}
-
-.reader-add-books-item > b {
-  color: rgba(255,255,255,.4);
-  font-size: 16px;
-}
-
-.reader-add-books-item-coming > b {
-  padding: 3px 6px;
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 999px;
-  font-size: 8px;
-  letter-spacing: .08em;
+  color: rgba(255,255,255,.58);
+  font-size: 11px;
 }
 
 .reader-add-icon {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 10px;
-  background: rgba(255,255,255,.06);
+  background: rgba(255,255,255,.07);
   font-size: 17px;
 }
 
-.reader-add-advanced {
-  margin-top: 2px;
-}
-
-.reader-add-advanced summary {
-  padding: 8px 3px 4px;
-  color: rgba(255,255,255,.45);
+.reader-add-books-advanced-label {
+  display: block;
+  padding: 10px 10px 2px;
+  color: rgba(255,255,255,.42);
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: .06em;
-  cursor: pointer;
-}
-
-.reader-add-advanced[open] summary {
-  margin-bottom: 4px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
 
 .reader-toolbar {
@@ -409,62 +227,6 @@ body.reader-add-books-open {
   min-height: 43px;
 }
 
-.reader-spine-tools {
-  display: grid;
-  gap: 7px;
-  margin-top: 14px;
-  padding-top: 13px;
-  border-top: 1px solid rgba(255,255,255,.07);
-}
-
-.reader-spine-tools-heading {
-  display: grid;
-  gap: 2px;
-  margin-bottom: 2px;
-}
-
-.reader-spine-tools-heading strong {
-  font-size: 12px;
-}
-
-.reader-spine-tools-heading span {
-  color: rgba(255,255,255,.43);
-  font-size: 9.5px;
-  line-height: 1.35;
-}
-
-.reader-spine-tools > .generate-spine-button,
-.reader-spine-tools > .spine-crop-button {
-  width: 100%;
-  min-height: 38px;
-  margin: 0 !important;
-}
-
-.reader-spine-tools .spine-community-tools {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr;
-  gap: 7px !important;
-  margin: 0 !important;
-}
-
-.reader-spine-tools .spine-community-tools button {
-  min-width: 0 !important;
-  width: 100% !important;
-  min-height: 38px;
-  margin: 0 !important;
-  padding-inline: 7px !important;
-  border-radius: 10px !important;
-  font-size: 10px !important;
-  line-height: 1.15;
-}
-
-.reader-spine-tools .generate-spine-status {
-  margin: 1px 2px 0 !important;
-  color: rgba(255,255,255,.43) !important;
-  font-size: 9px !important;
-  line-height: 1.35 !important;
-}
-
 .reader-modal .cover-picker {
   margin-top: 18px;
   padding-top: 16px;
@@ -485,15 +247,7 @@ body.reader-add-books-open {
   font-size: 9px;
 }
 
-.reader-mobile-nav {
-  display: none;
-}
-
 @media (max-width: 760px) {
-  body {
-    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
-  }
-
   .reader-hero {
     gap: 12px;
   }
@@ -515,28 +269,10 @@ body.reader-add-books-open {
     width: 100%;
   }
 
-  .reader-add-books-backdrop {
-    place-items: end center;
-    padding: 0;
-  }
-
-  .reader-add-books-dialog {
-    width: 100%;
-    max-height: min(82vh, 720px);
-    padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));
-    border-width: 1px 0 0;
-    border-radius: 22px 22px 0 0;
-  }
-
-  .reader-manual-add {
-    grid-template-columns: 1fr;
-    padding: 13px;
-  }
-
-  .reader-manual-add .reader-add-section-heading,
-  .reader-manual-add-status,
-  .reader-manual-add-submit {
-    grid-column: auto;
+  .reader-add-books-menu {
+    left: 0;
+    right: auto;
+    width: min(360px, calc(100vw - 28px));
   }
 
   .reader-toolbar {
@@ -564,71 +300,5 @@ body.reader-add-books-open {
 
   .reader-book-chip {
     font-size: 10.5px;
-  }
-
-  .reader-spine-tools .spine-community-tools {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .reader-mobile-nav {
-    position: fixed;
-    z-index: 145;
-    left: 10px;
-    right: 10px;
-    bottom: max(10px, env(safe-area-inset-bottom, 0px));
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    align-items: end;
-    min-height: 62px;
-    padding: 6px;
-    border: 1px solid rgba(255,255,255,.11);
-    border-radius: 18px;
-    background: rgba(16, 14, 13, .94);
-    box-shadow: 0 14px 42px rgba(0,0,0,.5);
-    backdrop-filter: blur(18px);
-  }
-
-  .reader-mobile-nav-item {
-    display: grid;
-    place-items: center;
-    align-content: center;
-    gap: 3px;
-    min-width: 0;
-    min-height: 49px;
-    padding: 4px 2px;
-    border: 0;
-    border-radius: 13px;
-    background: transparent;
-    color: rgba(255,255,255,.67);
-    cursor: pointer;
-  }
-
-  .reader-mobile-nav-item > span {
-    font-size: 17px;
-    line-height: 1;
-  }
-
-  .reader-mobile-nav-item > b {
-    font-size: 9px;
-    font-weight: 760;
-  }
-
-  .reader-mobile-nav-item.primary {
-    background: rgba(255,255,255,.11);
-    color: rgba(255,255,255,.96);
-  }
-
-  .reader-mobile-nav-item.primary > span {
-    display: grid;
-    place-items: center;
-    width: 27px;
-    height: 27px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.12);
-    font-size: 19px;
-  }
-
-  .help-shelf-launcher {
-    bottom: 84px !important;
   }
 }

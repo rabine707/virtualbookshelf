@@ -2,9 +2,6 @@
 
 import { useEffect } from "react";
 
-const LIBRARY_KEY = "shelf-of-fame-library-v1";
-const SAMPLE_IDS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
-const MANUAL_COLORS = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
 const ADVANCED_LABELS = new Set([
   "audible asin",
   "romance.io id",
@@ -16,67 +13,9 @@ const ADVANCED_LABELS = new Set([
   "wrong editions",
 ]);
 
-type StoredBook = {
-  id?: string;
-  title?: string;
-  author?: string;
-  color?: string;
-} & Record<string, unknown>;
-
 function textButton(root: ParentNode, label: RegExp) {
   return [...root.querySelectorAll<HTMLButtonElement>("button")]
     .find((button) => label.test((button.textContent || "").trim()));
-}
-
-function normalize(value: string) {
-  return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
-}
-
-function readShelf(): StoredBook[] {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(LIBRARY_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function looksLikeSampleShelf(books: StoredBook[]) {
-  return books.length === SAMPLE_IDS.length && books.every((book, index) => book.id === SAMPLE_IDS[index]);
-}
-
-function addManualBook(title: string, author: string) {
-  const cleanedTitle = title.replace(/\s+/g, " ").trim();
-  const cleanedAuthor = author.replace(/\s+/g, " ").trim() || "Unknown author";
-  if (!cleanedTitle) return { ok: false, message: "Enter a book title first." };
-
-  const stored = readShelf();
-  const base = looksLikeSampleShelf(stored) ? [] : stored;
-  const duplicate = base.some((book) => normalize(book.title || "") === normalize(cleanedTitle)
-    && normalize(book.author || "") === normalize(cleanedAuthor));
-  if (duplicate) return { ok: false, message: "That book is already on your shelf." };
-
-  const book: StoredBook = {
-    id: `manual:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    title: cleanedTitle,
-    author: cleanedAuthor,
-    importSource: "Added manually",
-    color: MANUAL_COLORS[base.length % MANUAL_COLORS.length],
-  };
-
-  try {
-    window.localStorage.setItem(LIBRARY_KEY, JSON.stringify([...base, book]));
-    return { ok: true, message: "Book added." };
-  } catch {
-    return { ok: false, message: "Could not save that book on this device." };
-  }
-}
-
-function setAddDialogOpen(dialog: HTMLElement, trigger: HTMLElement, open: boolean) {
-  dialog.hidden = !open;
-  trigger.setAttribute("aria-expanded", String(open));
-  document.body.classList.toggle("reader-add-books-open", open);
-  if (open) requestAnimationFrame(() => dialog.querySelector<HTMLInputElement>('input[name="reader-title"]')?.focus());
 }
 
 function addBooksMenu(hero: HTMLElement) {
@@ -96,112 +35,64 @@ function addBooksMenu(hero: HTMLElement) {
   trigger.type = "button";
   trigger.className = "primary reader-add-books-trigger";
   trigger.textContent = "＋ Add books";
-  trigger.setAttribute("aria-haspopup", "dialog");
+  trigger.setAttribute("aria-haspopup", "menu");
   trigger.setAttribute("aria-expanded", "false");
 
-  const backdrop = document.createElement("div");
-  backdrop.className = "reader-add-books-backdrop";
-  backdrop.hidden = true;
+  const menu = document.createElement("div");
+  menu.className = "reader-add-books-menu";
+  menu.setAttribute("role", "menu");
+  menu.hidden = true;
 
-  const dialog = document.createElement("section");
-  dialog.className = "reader-add-books-dialog";
-  dialog.setAttribute("role", "dialog");
-  dialog.setAttribute("aria-modal", "true");
-  dialog.setAttribute("aria-label", "Add books to your shelf");
-
-  const header = document.createElement("header");
-  const headerCopy = document.createElement("div");
-  headerCopy.innerHTML = "<small>YOUR LIBRARY</small><h2>Add books</h2><p>Add one title or bring in a library you already have.</p>";
-  const close = document.createElement("button");
-  close.type = "button";
-  close.className = "reader-add-books-close";
-  close.setAttribute("aria-label", "Close add books");
-  close.textContent = "×";
-  header.append(headerCopy, close);
-
-  const manual = document.createElement("form");
-  manual.className = "reader-manual-add";
-  manual.innerHTML = `
-    <div class="reader-add-section-heading"><strong>Add one book</strong><span>We’ll look for the cover automatically.</span></div>
-    <label><span>Title</span><input name="reader-title" autocomplete="off" placeholder="Book title" required /></label>
-    <label><span>Author</span><input name="reader-author" autocomplete="off" placeholder="Author name" /></label>
-    <div class="reader-manual-add-status" role="status"></div>
-    <button type="submit" class="primary reader-manual-add-submit">Add to my shelf</button>
-  `;
-
-  const status = manual.querySelector<HTMLElement>(".reader-manual-add-status")!;
-  manual.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const formData = new FormData(manual);
-    const result = addManualBook(String(formData.get("reader-title") || ""), String(formData.get("reader-author") || ""));
-    status.textContent = result.message;
-    status.classList.toggle("error", !result.ok);
-    if (result.ok) {
-      setAddDialogOpen(backdrop, trigger, false);
-      window.setTimeout(() => window.location.reload(), 80);
-    }
-  });
-
-  const divider = document.createElement("div");
-  divider.className = "reader-add-divider";
-  divider.innerHTML = "<span>or</span>";
-
-  const imports = document.createElement("div");
-  imports.className = "reader-add-imports";
-  const importHeading = document.createElement("div");
-  importHeading.className = "reader-add-section-heading";
-  importHeading.innerHTML = "<strong>Bring in a library</strong><span>Keep your shelf setup simple.</span>";
-  imports.appendChild(importHeading);
+  const heading = document.createElement("div");
+  heading.className = "reader-add-books-heading";
+  heading.innerHTML = "<strong>Add to your shelf</strong><span>Choose where your books are coming from.</span>";
+  menu.appendChild(heading);
 
   if (goodreads) {
     const item = document.createElement("button");
     item.type = "button";
-    item.className = "reader-add-books-item reader-add-books-item-featured";
-    item.innerHTML = "<span class=\"reader-add-icon\">📚</span><span><strong>Import Goodreads</strong><small>Upload your Goodreads CSV</small></span><b>›</b>";
+    item.className = "reader-add-books-item";
+    item.setAttribute("role", "menuitem");
+    item.innerHTML = "<span class=\"reader-add-icon\">📚</span><span><strong>Import Goodreads</strong><small>Bring in your Goodreads shelf</small></span>";
     item.addEventListener("click", () => {
-      setAddDialogOpen(backdrop, trigger, false);
+      menu.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
       goodreads.click();
     });
-    imports.appendChild(item);
+    menu.appendChild(item);
   }
 
-  const scan = document.createElement("button");
-  scan.type = "button";
-  scan.className = "reader-add-books-item reader-add-books-item-coming";
-  scan.disabled = true;
-  scan.innerHTML = "<span class=\"reader-add-icon\">📷</span><span><strong>Scan your bookshelf</strong><small>Photo import is coming soon</small></span><b>SOON</b>";
-  imports.appendChild(scan);
-
   if (audible) {
-    const advanced = document.createElement("details");
-    advanced.className = "reader-add-advanced";
-    const summary = document.createElement("summary");
-    summary.textContent = "Advanced imports";
+    const advancedLabel = document.createElement("span");
+    advancedLabel.className = "reader-add-books-advanced-label";
+    advancedLabel.textContent = "Advanced import";
+    menu.appendChild(advancedLabel);
+
     const item = document.createElement("button");
     item.type = "button";
     item.className = "reader-add-books-item reader-add-books-item-secondary";
-    item.innerHTML = "<span class=\"reader-add-icon\">🎧</span><span><strong>Import Audible CSV</strong><small>Merge an exported Audible library</small></span><b>›</b>";
+    item.setAttribute("role", "menuitem");
+    item.innerHTML = "<span class=\"reader-add-icon\">🎧</span><span><strong>Import Audible CSV</strong><small>Merge an exported Audible library</small></span>";
     item.addEventListener("click", () => {
-      setAddDialogOpen(backdrop, trigger, false);
+      menu.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
       audible.click();
     });
-    advanced.append(summary, item);
-    imports.appendChild(advanced);
+    menu.appendChild(item);
   }
 
-  dialog.append(header, manual, divider, imports);
-  backdrop.appendChild(dialog);
-  wrap.append(trigger, backdrop);
-
-  trigger.addEventListener("click", () => setAddDialogOpen(backdrop, trigger, backdrop.hidden));
-  close.addEventListener("click", () => setAddDialogOpen(backdrop, trigger, false));
-  backdrop.addEventListener("mousedown", (event) => {
-    if (event.target === backdrop) setAddDialogOpen(backdrop, trigger, false);
+  trigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const open = menu.hidden;
+    menu.hidden = !open;
+    trigger.setAttribute("aria-expanded", String(open));
   });
+  menu.addEventListener("click", (event) => event.stopPropagation());
 
   const originalActions = goodreads?.parentElement || audible?.parentElement;
   if (originalActions) originalActions.appendChild(wrap);
   else hero.appendChild(wrap);
+  wrap.append(trigger, menu);
 }
 
 function detailValue(modal: HTMLElement, label: string) {
@@ -257,8 +148,7 @@ function addBookActions(modal: HTMLElement) {
   spine.className = "reader-book-action reader-book-action-primary";
   spine.textContent = "✨ Customize spine";
   spine.addEventListener("click", () => {
-    const target = modal.querySelector<HTMLElement>(".reader-spine-tools")
-      || modal.querySelector<HTMLElement>(".generate-spine-button")
+    const target = modal.querySelector<HTMLElement>(".generate-spine-button")
       || modal.querySelector<HTMLElement>('[aria-label="Cover feedback"]');
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
@@ -286,41 +176,6 @@ function addBookActions(modal: HTMLElement) {
   actions.append(spine, cover, more);
   const summary = details.querySelector(".reader-book-summary") || details.querySelector(".author");
   summary?.insertAdjacentElement("afterend", actions);
-}
-
-function simplifySpineTools(modal: HTMLElement) {
-  const feedback = modal.querySelector<HTMLElement>('[aria-label="Cover feedback"]');
-  if (!feedback) return;
-
-  const ai = feedback.querySelector<HTMLElement>(".generate-spine-button");
-  const crop = feedback.querySelector<HTMLElement>(".spine-crop-button");
-  const community = feedback.querySelector<HTMLElement>("[data-spine-community-tools]");
-  const generationStatus = feedback.querySelector<HTMLElement>(".generate-spine-status");
-  if (!ai && !crop && !community) return;
-
-  let tools = feedback.querySelector<HTMLElement>(".reader-spine-tools");
-  if (!tools) {
-    tools = document.createElement("section");
-    tools.className = "reader-spine-tools";
-    const heading = document.createElement("div");
-    heading.className = "reader-spine-tools-heading";
-    heading.innerHTML = "<strong>Spine tools</strong><span>Make this book look right on your shelf.</span>";
-    tools.appendChild(heading);
-    feedback.appendChild(tools);
-  }
-
-  if (ai && ai.parentElement !== tools) tools.appendChild(ai);
-  if (crop && crop.parentElement !== tools) tools.appendChild(crop);
-  if (community && community.parentElement !== tools) tools.appendChild(community);
-  if (generationStatus && generationStatus.parentElement !== tools) tools.appendChild(generationStatus);
-
-  const google = tools.querySelector<HTMLButtonElement>(".spine-google-button");
-  const upload = tools.querySelector<HTMLButtonElement>(".spine-upload-button");
-  if (google) google.textContent = "🔎 Find real spine";
-  if (upload && /Upload spine candidate/i.test(upload.textContent || "")) upload.textContent = "📷 Upload spine";
-  if (generationStatus && /AI allows up to 3 generations per book/i.test(generationStatus.textContent || "")) {
-    generationStatus.textContent = "Up to 3 AI tries per book.";
-  }
 }
 
 function simplifyCoverControls(modal: HTMLElement) {
@@ -351,43 +206,6 @@ function simplifyModal(modal: HTMLElement) {
   addBookSummary(modal);
   addBookActions(modal);
   simplifyCoverControls(modal);
-  simplifySpineTools(modal);
-}
-
-function clickExisting(selector: string) {
-  const target = document.querySelector<HTMLElement>(selector);
-  if (!target) return false;
-  target.click();
-  return true;
-}
-
-function addMobileNav() {
-  if (document.querySelector(".reader-mobile-nav")) return;
-
-  const nav = document.createElement("nav");
-  nav.className = "reader-mobile-nav";
-  nav.setAttribute("aria-label", "Main navigation");
-
-  const make = (icon: string, label: string, action: () => void, primary = false) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `reader-mobile-nav-item${primary ? " primary" : ""}`;
-    button.innerHTML = `<span aria-hidden="true">${icon}</span><b>${label}</b>`;
-    button.addEventListener("click", action);
-    return button;
-  };
-
-  nav.append(
-    make("▤", "Shelf", () => document.querySelector<HTMLElement>(".bookcase")?.scrollIntoView({ behavior: "smooth", block: "start" })),
-    make("＋", "Add", () => clickExisting(".reader-add-books-trigger"), true),
-    make("✦", "Style", () => clickExisting(".theme-picker-trigger")),
-    make("●", "You", () => {
-      if (clickExisting(".sof-profile-link")) return;
-      clickExisting(".sof-account > button");
-    }),
-  );
-
-  document.body.appendChild(nav);
 }
 
 function scan() {
@@ -400,7 +218,6 @@ function scan() {
   document.querySelector<HTMLElement>(".toolbar")?.classList.add("reader-toolbar");
   const modal = document.querySelector<HTMLElement>(".modal");
   if (modal) simplifyModal(modal);
-  addMobileNav();
 }
 
 export default function ReaderUiCleanup() {
@@ -414,21 +231,19 @@ export default function ReaderUiCleanup() {
       });
     };
 
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      const backdrop = document.querySelector<HTMLElement>(".reader-add-books-backdrop:not([hidden])");
-      const trigger = document.querySelector<HTMLElement>(".reader-add-books-trigger");
-      if (backdrop && trigger) setAddDialogOpen(backdrop, trigger, false);
+    const closeMenus = () => {
+      for (const menu of document.querySelectorAll<HTMLElement>(".reader-add-books-menu")) menu.hidden = true;
+      for (const trigger of document.querySelectorAll<HTMLElement>(".reader-add-books-trigger")) trigger.setAttribute("aria-expanded", "false");
     };
 
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true });
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("click", closeMenus);
     schedule();
 
     return () => {
       observer.disconnect();
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("click", closeMenus);
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
