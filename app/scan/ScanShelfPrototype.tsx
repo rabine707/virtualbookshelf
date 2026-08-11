@@ -97,6 +97,22 @@ function accessToken() {
   }
 }
 
+async function apiJson<T extends { error?: string }>(response: Response, fallback: string): Promise<T> {
+  const text = await response.text();
+  if (!text) {
+    return { error: response.ok ? `${fallback} returned an empty response.` : `${fallback} failed (${response.status}).` } as T;
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return {
+      error: response.ok
+        ? `${fallback} returned unreadable data.`
+        : `${fallback} failed (${response.status}). Try again with a smaller photo.`,
+    } as T;
+  }
+}
+
 async function prepareFile(file: File): Promise<PreparedImage> {
   if (!file.type.startsWith("image/")) throw new Error("Choose a photo or image file.");
   if (file.size > MAX_FILE_BYTES) throw new Error("That photo is larger than 25 MB. Try a smaller image.");
@@ -266,7 +282,7 @@ async function detectBooks(image: PreparedImage, token: string) {
       cache: "no-store",
       headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await response.json() as ScanResponse;
+    const data = await apiJson<ScanResponse>(response, "Shelf detection");
     if (!response.ok) throw new Error(data.error || "Shelf detection could not finish.");
     return data.books || [];
   } catch (error) {
@@ -294,7 +310,7 @@ async function refineSpines(bookCrops: Blob[], token: string) {
       cache: "no-store",
       headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await response.json() as RefineResponse;
+    const data = await apiJson<RefineResponse>(response, "Spine refinement");
     if (!response.ok) throw new Error(data.error || "Spine refinement could not finish.");
     return data.books || [];
   } catch (error) {
@@ -324,6 +340,7 @@ export default function ScanShelfPrototype() {
       return;
     }
 
+    let firstPassSucceeded = false;
     setProcessing(true);
     setError(null);
     setRegions([]);
@@ -348,6 +365,7 @@ export default function ScanShelfPrototype() {
           return sameShelf ? left.x - right.x : left.y - right.y;
         });
 
+      firstPassSucceeded = true;
       setRegions(converted);
       const source = await loadImage(prepared.dataUrl);
       setStatus(`Pass 2 of 2 · isolating the actual spine face inside ${converted.length} book${converted.length === 1 ? "" : "s"}…`);
@@ -378,7 +396,7 @@ export default function ScanShelfPrototype() {
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "The shelf scan failed.";
       setError(message);
-      setStatus(regions.length ? "Book detection succeeded, but spine refinement stopped." : "Scan stopped.");
+      setStatus(firstPassSucceeded ? "Book detection succeeded, but spine refinement stopped." : "Scan stopped.");
     } finally {
       setProcessing(false);
     }
