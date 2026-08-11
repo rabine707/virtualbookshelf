@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
+import CommunityCoverUploadEnricher from "./CommunityCoverUploadEnricher";
 import CoreInteractionEnricher from "./CoreInteractionEnricher";
 import CoverDecisionSafety from "./CoverDecisionSafety";
 import CoverSearchCleanup from "./CoverSearchCleanup";
@@ -39,6 +40,7 @@ export default function ClientEnhancers() {
     <WebCoverEnricher />
     <RomanceShelfEnricher />
     <AudibleCoverEnricher />
+    <CommunityCoverUploadEnricher />
     <SpineSourcePreferenceEnricher />
     <SpineArtEnricher />
     <ScannedSpineEnricher />
