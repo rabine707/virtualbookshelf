@@ -20,6 +20,7 @@ import SharedSpineEnricher from "./SharedSpineEnricher";
 import SpineArtEnricher from "./SpineArtEnricher";
 import SpineAuthorCorrector from "./SpineAuthorCorrector";
 import SpineCommunityEnricher from "./SpineCommunityEnricher";
+import SpineErrorSanitizer from "./SpineErrorSanitizer";
 import SpineGallery from "./SpineGallery";
 import SpineGenerator from "./SpineGenerator";
 import ThemeEnricher from "./ThemeEnricher";
@@ -43,6 +44,7 @@ export default function ClientEnhancers() {
     <SpineArtEnricher />
     <SharedSpineEnricher />
     <SpineGenerator />
+    <SpineErrorSanitizer />
     <SpineGallery />
     <SpineAuthorCorrector />
     <SpineCommunityEnricher />
