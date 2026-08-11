@@ -6,8 +6,10 @@ const DB_NAME = "shelf-of-fame-art";
 const STORE_NAME = "generated-spines";
 const DB_VERSION = 1;
 const SESSION_KEY = "shelf-of-fame-supabase-session";
+const MODE_KEY_PREFIX = "mode:";
 const POSITIONS = ["left", "center", "right"] as const;
 type SpinePosition = (typeof POSITIONS)[number];
+type SpineRenderMode = "integrated" | "overlay";
 
 type GenerateSpineResponse = {
   image?: string;
@@ -34,11 +36,13 @@ function openDb() {
   });
 }
 
-async function saveGeneratedSpine(coverUrl: string, image: string) {
+async function saveGeneratedSpine(coverUrl: string, image: string, renderMode: SpineRenderMode) {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).put(image, coverUrl);
+    const store = tx.objectStore(STORE_NAME);
+    store.put(image, coverUrl);
+    store.put(renderMode, `${MODE_KEY_PREFIX}${coverUrl}`);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -146,7 +150,13 @@ function attemptText(data: GenerateSpineResponse) {
   return ` • ${data.attempts} of 3 generations used${typeof data.remaining === "number" ? ` • ${data.remaining} left` : ""}`;
 }
 
-function createPreview(current: { title: string; author: string }, image: string, headingText: string, detailText: string) {
+function createPreview(
+  current: { title: string; author: string },
+  image: string,
+  headingText: string,
+  detailText: string,
+  showOverlay = true,
+) {
   const editor = document.createElement("div");
   editor.className = "spine-crop-editor";
   editor.setAttribute("role", "group");
@@ -165,13 +175,17 @@ function createPreview(current: { title: string; author: string }, image: string
   art.alt = "";
   art.decoding = "async";
   art.src = image;
-  const previewTitle = document.createElement("span");
-  previewTitle.className = "spine-crop-preview-title";
-  previewTitle.textContent = spineDisplayTitle(current.title);
-  const previewAuthor = document.createElement("span");
-  previewAuthor.className = "spine-crop-preview-author";
-  previewAuthor.textContent = spineDisplayAuthor(current.author);
-  preview.append(art, previewTitle, previewAuthor);
+  preview.append(art);
+
+  if (showOverlay) {
+    const previewTitle = document.createElement("span");
+    previewTitle.className = "spine-crop-preview-title";
+    previewTitle.textContent = spineDisplayTitle(current.title);
+    const previewAuthor = document.createElement("span");
+    previewAuthor.className = "spine-crop-preview-author";
+    previewAuthor.textContent = spineDisplayAuthor(current.author);
+    preview.append(previewTitle, previewAuthor);
+  }
 
   const actions = document.createElement("div");
   actions.className = "spine-crop-actions";
@@ -281,9 +295,13 @@ export default function SpineGenerator() {
           const data = await response.json() as GenerateSpineResponse;
 
           if (data.sharedSpine) {
-            await saveGeneratedSpine(current.cover, data.sharedSpine);
             window.dispatchEvent(new CustomEvent("shelf-spine-generated", {
-              detail: { coverUrl: current.cover, image: data.sharedSpine },
+              detail: {
+                coverUrl: current.cover,
+                image: data.sharedSpine,
+                renderMode: "overlay" as SpineRenderMode,
+                shared: true,
+              },
             }));
             status.textContent = `Community spine found for ${current.title} — reused instantly, no AI credit used.${attemptText(data)}`;
             aiButton.textContent = "✨ Community spine in use";
@@ -294,7 +312,13 @@ export default function SpineGenerator() {
             throw new Error(data.error || (data.needsApiKey ? "AI image generation is not configured." : "AI spine generation failed."));
           }
 
-          const preview = createPreview(current, data.image, "AI spine preview", `${providerLabel(data)}${attemptText(data)}`);
+          const preview = createPreview(
+            current,
+            data.image,
+            "AI spine preview",
+            `${providerLabel(data)}${attemptText(data)}`,
+            false,
+          );
           preview.editor.dataset.cover = current.cover;
           preview.editor.dataset.mode = "ai";
           preview.editor.setAttribute("aria-label", "Review generated AI spine");
@@ -304,7 +328,7 @@ export default function SpineGenerator() {
           preview.retry.title = data.remaining === 0 ? "No generations remaining for this book" : "Generate another AI spine";
           preview.retry.disabled = data.remaining === 0;
           preview.accept.setAttribute("aria-label", "Use this AI spine");
-          preview.accept.title = "Save this AI artwork as the shelf spine";
+          preview.accept.title = "Save this complete AI spine artwork";
           preview.editorStatus.textContent = `× discards • ↻ regenerates • ✓ saves${attemptText(data)}`;
           feedback.appendChild(preview.editor);
           status.textContent = `${data.provider || "AI"} spine ready — review it before saving.${attemptText(data)}`;
@@ -327,9 +351,13 @@ export default function SpineGenerator() {
             preview.accept.disabled = true;
             preview.editorStatus.textContent = "Saving AI spine…";
             try {
-              await saveGeneratedSpine(current.cover, data.image as string);
+              await saveGeneratedSpine(current.cover, data.image as string, "integrated");
               window.dispatchEvent(new CustomEvent("shelf-spine-generated", {
-                detail: { coverUrl: current.cover, image: data.image },
+                detail: {
+                  coverUrl: current.cover,
+                  image: data.image,
+                  renderMode: "integrated" as SpineRenderMode,
+                },
               }));
               status.textContent = `AI spine saved for ${current.title}.${attemptText(data)}`;
               cropButton.textContent = "▥ Choose cover crop";
@@ -417,9 +445,14 @@ export default function SpineGenerator() {
           preview.accept.disabled = true;
           preview.editorStatus.textContent = "Saving spine…";
           try {
-            await saveGeneratedSpine(current.cover, image);
+            await saveGeneratedSpine(current.cover, image, "overlay");
             window.dispatchEvent(new CustomEvent("shelf-spine-generated", {
-              detail: { coverUrl: current.cover, image, position },
+              detail: {
+                coverUrl: current.cover,
+                image,
+                position,
+                renderMode: "overlay" as SpineRenderMode,
+              },
             }));
             status.textContent = `${positionLabel(position)} saved for ${current.title}.`;
             cropButton.textContent = "▥ Change cover crop";
