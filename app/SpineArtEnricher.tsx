@@ -5,8 +5,10 @@ import { useEffect } from "react";
 const DB_NAME = "shelf-of-fame-art";
 const STORE_NAME = "generated-spines";
 const DB_VERSION = 1;
+const MODE_KEY_PREFIX = "mode:";
 
 type SpinePosition = "left" | "center" | "right";
+type SpineRenderMode = "integrated" | "overlay";
 
 function openDb() {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -33,6 +35,22 @@ async function getGeneratedSpine(coverUrl: string) {
     return value;
   } catch {
     return undefined;
+  }
+}
+
+async function getGeneratedSpineMode(coverUrl: string): Promise<SpineRenderMode> {
+  try {
+    const db = await openDb();
+    const value = await new Promise<unknown>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const request = tx.objectStore(STORE_NAME).get(`${MODE_KEY_PREFIX}${coverUrl}`);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    return value === "integrated" ? "integrated" : "overlay";
+  } catch {
+    return "overlay";
   }
 }
 
@@ -83,6 +101,15 @@ function storedPosition(image: string): SpinePosition | "custom" {
   return "custom";
 }
 
+function applyTypographyMode(spine: HTMLElement, renderMode: SpineRenderMode) {
+  spine.dataset.typography = renderMode;
+  const hidden = renderMode === "integrated";
+  const title = spine.querySelector<HTMLElement>(".generated-spine-title");
+  const author = spine.querySelector<HTMLElement>(".generated-spine-author");
+  if (title) title.hidden = hidden;
+  if (author) author.hidden = hidden;
+}
+
 function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
   const src = sourceImage.currentSrc || sourceImage.src;
   if (!src) return;
@@ -97,6 +124,7 @@ function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
   spine.className = "generated-spine";
   spine.dataset.source = src;
   spine.dataset.titleScale = titleScale(title);
+  spine.dataset.typography = "overlay";
   spine.setAttribute("aria-hidden", "true");
 
   const art = document.createElement("img");
@@ -110,12 +138,13 @@ function buildSpine(button: HTMLButtonElement, sourceImage: HTMLImageElement) {
     art.classList.add("generated-spine-art-fallback");
   }, { once: true });
 
-  getGeneratedSpine(src).then((saved) => {
+  getGeneratedSpine(src).then(async (saved) => {
     if (!saved || !art.isConnected) return;
     art.src = saved;
     art.classList.add("generated-spine-art-picked");
     art.classList.remove("generated-spine-art-fallback");
     button.dataset.spineCrop = storedPosition(saved);
+    applyTypographyMode(spine, await getGeneratedSpineMode(src));
   });
 
   const wash = document.createElement("span");
@@ -173,19 +202,26 @@ export default function SpineArtEnricher() {
     };
 
     const onGenerated = (event: Event) => {
-      const detail = (event as CustomEvent<{ coverUrl: string; image: string; position?: SpinePosition }>).detail;
+      const detail = (event as CustomEvent<{
+        coverUrl: string;
+        image: string;
+        position?: SpinePosition;
+        renderMode?: SpineRenderMode;
+      }>).detail;
       if (!detail) return;
       for (const button of document.querySelectorAll<HTMLButtonElement>("button.book")) {
         const cover = button.querySelector<HTMLImageElement>(".book-cover-art");
         const src = cover?.currentSrc || cover?.src;
         if (src !== detail.coverUrl) continue;
         const art = button.querySelector<HTMLImageElement>(".generated-spine-art-dedicated");
+        const spine = button.querySelector<HTMLElement>(".generated-spine");
         if (art) {
           art.src = detail.image;
           art.classList.add("generated-spine-art-picked");
           art.classList.remove("generated-spine-art-fallback");
           button.dataset.spineCrop = detail.position || storedPosition(detail.image);
         }
+        if (spine) applyTypographyMode(spine, detail.renderMode || "overlay");
       }
     };
 
