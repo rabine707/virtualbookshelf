@@ -35,6 +35,19 @@ function MobileBottomNav() {
     target?.click();
   };
 
+  const goToShelf = () => {
+    const shelf = document.querySelector<HTMLElement>(".bookcase");
+    if (shelf) {
+      shelf.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    // The mobile nav is rendered from the root layout, including /account.
+    // If there is no shelf on the current route, Shelf should actually return
+    // to the home shelf instead of becoming a no-op.
+    window.location.assign("/");
+  };
+
   return <>
     <style>{`
       .safe-mobile-nav { display: none; }
@@ -77,7 +90,7 @@ function MobileBottomNav() {
       }
     `}</style>
     <nav className="safe-mobile-nav" aria-label="Main navigation">
-      <button type="button" onClick={() => document.querySelector<HTMLElement>(".bookcase")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+      <button type="button" onClick={goToShelf}>
         <span aria-hidden="true">▤</span><b>Shelf</b>
       </button>
       <button type="button" onClick={() => window.dispatchEvent(new Event("shelf-open-book-search"))}>
