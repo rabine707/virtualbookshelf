@@ -1,0 +1,41 @@
+/* Desktop toolbar refinement: keep related secondary actions on one clean line. */
+
+@media (min-width: 761px) {
+  .reader-toolbar {
+    grid-template-columns: minmax(0, 1fr) 160px 160px !important;
+  }
+
+  /* Row 2 keeps Help the Shelf, Decor Store, and Theme balanced. */
+  .reader-toolbar > .spine-review-launch {
+    grid-column: 1 / 2;
+  }
+
+  .reader-toolbar > .decor-store-launch {
+    grid-column: 2 / 3;
+  }
+
+  .reader-toolbar > .theme-picker-trigger {
+    grid-column: 3 / 4;
+    width: 100%;
+  }
+
+  /* Row 3: Fix Missing + spine text share the same line. */
+  .reader-toolbar > .qol-toolbar {
+    grid-column: 1 / 2 !important;
+    grid-row: 3;
+    display: block !important;
+    margin: 0 !important;
+  }
+
+  .reader-toolbar > .qol-toolbar .qol-fix-button {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .reader-toolbar > .spine-label-toggle {
+    grid-column: 2 / 4 !important;
+    grid-row: 3;
+    width: 100%;
+    min-height: 46px;
+  }
+}
