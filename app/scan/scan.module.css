@@ -78,6 +78,8 @@
 .primaryButton,
 .secondaryButton,
 .ghostButton,
+.reviewButton,
+.addButton,
 .removeButton {
   appearance: none;
   border-radius: 12px;
@@ -87,20 +89,29 @@
   font: inherit;
   font-weight: 800;
   cursor: pointer;
-  transition: transform 140ms ease, opacity 140ms ease, border-color 140ms ease;
+  transition: transform 140ms ease, opacity 140ms ease, border-color 140ms ease, background 140ms ease;
 }
 
 .primaryButton:hover:not(:disabled),
 .secondaryButton:hover:not(:disabled),
 .ghostButton:hover:not(:disabled),
+.reviewButton:hover:not(:disabled),
+.addButton:hover:not(:disabled),
 .removeButton:hover:not(:disabled) { transform: translateY(-1px); }
 
 .primaryButton:disabled,
 .secondaryButton:disabled,
-.ghostButton:disabled {
-  cursor: wait;
+.ghostButton:disabled,
+.reviewButton:disabled,
+.addButton:disabled,
+.removeButton:disabled {
+  cursor: not-allowed;
   opacity: 0.55;
 }
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.ghostButton:disabled { cursor: wait; }
 
 .primaryButton {
   background: #f1dfc7;
@@ -304,7 +315,7 @@
 .cropCard {
   position: relative;
   display: grid;
-  grid-template-rows: auto 205px 1fr auto;
+  grid-template-rows: auto 205px 1fr auto auto auto;
   gap: 9px;
   min-width: 0;
   padding: 10px;
@@ -378,13 +389,49 @@
   font-size: 0.68rem;
 }
 
+.reviewActions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.reviewButton {
+  min-height: 34px;
+  padding: 5px 7px;
+  border-color: rgba(255, 255, 255, 0.11);
+  background: #201d1a;
+  color: #bdb3a9;
+  border-radius: 9px;
+  font-size: 0.66rem;
+  line-height: 1.15;
+}
+
+.reviewButtonSelected {
+  border-color: rgba(121, 217, 208, 0.62);
+  background: rgba(121, 217, 208, 0.13);
+  color: #d7fffb;
+}
+
+.addButton {
+  min-height: 38px;
+  padding: 0 10px;
+  background: #e6cfb2;
+  color: #201a15;
+  font-size: 0.78rem;
+}
+
+.addButton:disabled {
+  background: #302b27;
+  color: #8d847c;
+}
+
 .removeButton {
-  min-height: 36px;
+  min-height: 34px;
   padding: 0 9px;
   border-color: rgba(255, 255, 255, 0.1);
   background: #26211e;
   color: #cfc6bd;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 
 .emptyState,
@@ -449,6 +496,8 @@
   .sectionHeading { align-items: start; }
 
   .cropGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cropCard { grid-template-rows: auto 170px 1fr auto; }
+  .cropCard { grid-template-rows: auto 170px 1fr auto auto auto; }
   .cropImageWrap { height: 170px; }
+  .reviewActions { grid-template-columns: 1fr; }
+  .reviewButton { min-height: 30px; }
 }
