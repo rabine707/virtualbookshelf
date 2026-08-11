@@ -41,6 +41,22 @@ type RefineResponse = {
   error?: string;
 };
 
+type ResolvedBook = {
+  title: string;
+  author: string;
+  isbn?: string | null;
+  coverUrl?: string | null;
+  coverSource?: string | null;
+  confidence?: "high" | "medium" | "low";
+  sources?: string[];
+};
+
+type ResolveResponse = {
+  book?: ResolvedBook | null;
+  alternatives?: ResolvedBook[];
+  error?: string;
+};
+
 type PixelBox = {
   x: number;
   y: number;
@@ -49,6 +65,8 @@ type PixelBox = {
 };
 
 type ReviewState = "unreviewed" | "correct" | "wrong" | "needs-identification";
+type MetadataStatus = "idle" | "resolving" | "resolved" | "failed";
+type MetadataConfidence = "high" | "medium" | "scan" | "";
 
 type Region = PixelBox & {
   id: string;
@@ -60,6 +78,11 @@ type Region = PixelBox & {
   bookConfidence: number;
   spineConfidence: number;
   reviewState: ReviewState;
+  metadataStatus: MetadataStatus;
+  metadataConfidence: MetadataConfidence;
+  isbn: string;
+  coverUrl: string;
+  coverSource: string;
   addedToShelf: boolean;
 };
 
@@ -70,8 +93,10 @@ const MAX_IMAGE_DIMENSION = 1600;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_PREPARED_BYTES = 4 * 1024 * 1024;
 const BOOK_CROP_MAX_DIMENSION = 720;
+const STORED_SPINE_MAX_DIMENSION = 900;
 const SCAN_TIMEOUT_MS = 38_000;
 const REFINE_TIMEOUT_MS = 43_000;
+const RESOLVE_TIMEOUT_MS = 11_000;
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -113,7 +138,7 @@ async function apiJson<T extends { error?: string }>(response: Response, fallbac
     return {
       error: response.ok
         ? `${fallback} returned unreadable data.`
-        : `${fallback} failed (${response.status}). Try again with a smaller photo.`,
+        : `${fallback} failed (${response.status}). Try again.`,
     } as T;
   }
 }
@@ -193,6 +218,11 @@ function regionFromApi(book: ApiBook, image: PreparedImage, index: number): Regi
     bookConfidence: clamp(Math.round(Number(book.confidence) || 0), 0, 100),
     spineConfidence: 0,
     reviewState: "unreviewed",
+    metadataStatus: "idle",
+    metadataConfidence: "",
+    isbn: "",
+    coverUrl: "",
+    coverSource: "",
     addedToShelf: false,
   };
 }
@@ -229,9 +259,10 @@ function makeSpinePreview(
   };
   if (absoluteBox.width < 1 || absoluteBox.height < 1) return { crop: null, spineBox: null };
 
+  const scale = Math.min(1, STORED_SPINE_MAX_DIMENSION / Math.max(absoluteBox.width, absoluteBox.height));
   const canvas = document.createElement("canvas");
-  canvas.width = absoluteBox.width;
-  canvas.height = absoluteBox.height;
+  canvas.width = Math.max(1, Math.round(absoluteBox.width * scale));
+  canvas.height = Math.max(1, Math.round(absoluteBox.height * scale));
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Could not create a spine preview.");
   context.drawImage(
@@ -242,16 +273,20 @@ function makeSpinePreview(
     absoluteBox.height,
     0,
     0,
-    absoluteBox.width,
-    absoluteBox.height,
+    canvas.width,
+    canvas.height,
   );
 
-  return { crop: canvas.toDataURL("image/png"), spineBox: absoluteBox };
+  return { crop: canvas.toDataURL("image/jpeg", 0.82), spineBox: absoluteBox };
 }
 
 function normalizedIdentity(title: string, author: string) {
   const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   return `${normalize(title)}::${normalize(author)}`;
+}
+
+function normalizeSimple(value: unknown) {
+  return typeof value === "string" ? value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() : "";
 }
 
 async function detectBooks(image: PreparedImage, token: string) {
@@ -302,6 +337,34 @@ async function refineSpines(bookCrops: Blob[], token: string) {
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("Spine refinement took too long. Try a closer photo of fewer books.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+async function resolveBookMetadata(region: Region) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), RESOLVE_TIMEOUT_MS);
+  try {
+    const response = await fetch("/api/resolve-scan-book", {
+      method: "POST",
+      signal: controller.signal,
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: region.title,
+        author: region.author,
+        visibleText: region.visibleText,
+      }),
+    });
+    const data = await apiJson<ResolveResponse>(response, "Book metadata lookup");
+    if (!response.ok) throw new Error(data.error || "Book metadata lookup could not finish.");
+    return data.book || null;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Book metadata lookup took too long. Try again.");
     }
     throw error;
   } finally {
@@ -377,7 +440,7 @@ export default function ScanShelfPrototype() {
       const visibleSpines = refined.filter((region) => region.crop).length;
       const readable = refined.filter((region) => region.title || region.author).length;
       setStatus(
-        `Found ${refined.length} book${refined.length === 1 ? "" : "s"} · ${visibleSpines} complete spine face${visibleSpines === 1 ? "" : "s"} · read text on ${readable}. Review each result before adding it to your shelf.`,
+        `Found ${refined.length} book${refined.length === 1 ? "" : "s"} · ${visibleSpines} complete spine face${visibleSpines === 1 ? "" : "s"} · read text on ${readable}. Mark Correct to verify metadata before adding.`,
       );
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "The shelf scan failed.";
@@ -398,16 +461,96 @@ export default function ScanShelfPrototype() {
     setRegions((current) => current.filter((region) => region.id !== id));
   }
 
-  function reviewRegion(id: string, reviewState: ReviewState) {
-    setRegions((current) => current.map((region) => region.id === id
-      ? { ...region, reviewState }
-      : region));
+  async function reviewRegion(id: string, reviewState: ReviewState) {
+    if (reviewState !== "correct") {
+      setRegions((current) => current.map((region) => region.id === id
+        ? { ...region, reviewState, metadataStatus: region.addedToShelf ? region.metadataStatus : "idle" }
+        : region));
+      return;
+    }
+
+    const region = regions.find((candidate) => candidate.id === id);
+    if (!region || region.metadataStatus === "resolving" || region.addedToShelf) return;
+    if (!region.title.trim()) {
+      setRegions((current) => current.map((candidate) => candidate.id === id
+        ? { ...candidate, reviewState: "needs-identification", metadataStatus: "failed" }
+        : candidate));
+      setError("This spine needs a readable title before it can be confirmed.");
+      return;
+    }
+
+    setError(null);
+    setRegions((current) => current.map((candidate) => candidate.id === id
+      ? { ...candidate, reviewState: "correct", metadataStatus: "resolving" }
+      : candidate));
+
+    try {
+      const resolved = await resolveBookMetadata(region);
+      if (resolved && resolved.confidence !== "low" && resolved.title?.trim() && resolved.author?.trim()) {
+        setRegions((current) => current.map((candidate) => candidate.id === id
+          ? {
+              ...candidate,
+              reviewState: "correct",
+              metadataStatus: "resolved",
+              metadataConfidence: resolved.confidence === "high" ? "high" : "medium",
+              title: resolved.title.trim(),
+              author: resolved.author.trim(),
+              isbn: (resolved.isbn || "").trim(),
+              coverUrl: (resolved.coverUrl || "").trim(),
+              coverSource: (resolved.coverSource || "").trim(),
+            }
+          : candidate));
+        setStatus(`Verified ${resolved.title} — ${resolved.author}${resolved.isbn ? ` · ISBN ${resolved.isbn}` : ""}.`);
+        return;
+      }
+
+      if (region.author.trim()) {
+        setRegions((current) => current.map((candidate) => candidate.id === id
+          ? {
+              ...candidate,
+              reviewState: "correct",
+              metadataStatus: "resolved",
+              metadataConfidence: "scan",
+            }
+          : candidate));
+        setStatus(`Kept the scanned identification for ${region.title} — ${region.author}; no stronger metadata match was found.`);
+        return;
+      }
+
+      setRegions((current) => current.map((candidate) => candidate.id === id
+        ? { ...candidate, reviewState: "needs-identification", metadataStatus: "failed" }
+        : candidate));
+      setError(`We can read “${region.title}”, but the metadata sources did not agree on an author. Mark Needs ID for now.`);
+    } catch (caught) {
+      if (region.author.trim()) {
+        setRegions((current) => current.map((candidate) => candidate.id === id
+          ? {
+              ...candidate,
+              reviewState: "correct",
+              metadataStatus: "resolved",
+              metadataConfidence: "scan",
+            }
+          : candidate));
+        setStatus(`Metadata lookup was unavailable, so the readable scan identity for ${region.title} — ${region.author} was kept.`);
+        return;
+      }
+
+      const message = caught instanceof Error ? caught.message : "Book metadata lookup failed.";
+      setRegions((current) => current.map((candidate) => candidate.id === id
+        ? { ...candidate, reviewState: "needs-identification", metadataStatus: "failed" }
+        : candidate));
+      setError(message);
+    }
   }
 
   function addRegionToShelf(id: string) {
     const region = regions.find((candidate) => candidate.id === id);
-    if (!region?.title.trim()) {
-      setError("This result needs a confirmed title before it can be added to your shelf.");
+    if (!region?.title.trim() || !region.author.trim() || region.metadataStatus !== "resolved") {
+      setError("Confirm this book and finish metadata verification before adding it to your shelf.");
+      return;
+    }
+    if (!region.crop) {
+      setError("This book does not have a usable photographed spine crop yet.");
       return;
     }
 
@@ -417,32 +560,61 @@ export default function ScanShelfPrototype() {
       const library = Array.isArray(parsed)
         ? parsed.filter((entry) => entry && typeof entry === "object") as Record<string, unknown>[]
         : [];
-      const author = region.author.trim() || "Unknown author";
-      const identity = normalizedIdentity(region.title, author);
-      const alreadyExists = library.some((entry) => {
-        const existingTitle = typeof entry.title === "string" ? entry.title : "";
-        const existingAuthor = typeof entry.author === "string" ? entry.author : "";
-        return normalizedIdentity(existingTitle, existingAuthor) === identity;
+
+      const titleKey = normalizeSimple(region.title);
+      const authorKey = normalizeSimple(region.author);
+      const existingIndex = library.findIndex((entry) => {
+        const entryIsbn = normalizeSimple(entry.isbn);
+        if (region.isbn && entryIsbn && entryIsbn === normalizeSimple(region.isbn)) return true;
+        if (normalizeSimple(entry.title) !== titleKey) return false;
+        const existingAuthor = normalizeSimple(entry.author);
+        return existingAuthor === authorKey || !existingAuthor || existingAuthor === "unknown author" || existingAuthor === "unknown";
       });
 
-      if (!alreadyExists) {
+      const preferredCover = region.coverUrl
+        ? { url: region.coverUrl, source: region.coverSource || "Metadata lookup" }
+        : undefined;
+      const importSource = "Shelf scan";
+      const patch: Record<string, unknown> = {
+        title: region.title,
+        author: region.author,
+        color: SCAN_BOOK_COLOR,
+        importSource,
+        scannedSpine: region.crop,
+        scannedSpineSource: "Confirmed shelf photo",
+      };
+      if (region.isbn) {
+        patch.isbn = region.isbn;
+        patch.isbnSource = "Shelf scan metadata";
+        patch.isbnConfidence = region.metadataConfidence === "high" ? "high" : "medium";
+      }
+      if (preferredCover) patch.preferredCover = preferredCover;
+
+      let updatedExisting = false;
+      if (existingIndex >= 0) {
+        const existing = library[existingIndex];
+        library[existingIndex] = {
+          ...existing,
+          ...patch,
+          id: typeof existing.id === "string" ? existing.id : region.isbn || `scan-${Date.now()}-${region.id}`,
+          preferredCover: existing.preferredCover || preferredCover,
+        };
+        updatedExisting = true;
+      } else {
         library.push({
-          id: `scan-${Date.now()}-${region.id}`,
-          title: region.title,
-          author,
-          color: SCAN_BOOK_COLOR,
-          importSource: "Shelf scan",
+          id: region.isbn || `scan-${Date.now()}-${region.id}`,
+          ...patch,
         });
-        window.localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(library));
       }
 
+      window.localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(library));
       setRegions((current) => current.map((candidate) => candidate.id === id
         ? { ...candidate, reviewState: "correct", addedToShelf: true }
         : candidate));
       setError(null);
-      setStatus(alreadyExists
-        ? `${region.title} is already on your Shelf of Fame.`
-        : `${region.title} was added to your Shelf of Fame.`);
+      setStatus(updatedExisting
+        ? `${region.title} was updated with verified metadata and its photographed spine.`
+        : `${region.title} was added with verified metadata and its photographed spine.`);
     } catch {
       setError("Could not add this book to your browser shelf. Try again.");
     }
@@ -463,7 +635,7 @@ export default function ScanShelfPrototype() {
           <p className={styles.eyebrow}>EXPERIMENTAL · TWO-PASS GEMINI SCAN</p>
           <h1>Scan My Shelf</h1>
           <p className={styles.lead}>
-            Pass one finds each physical book. Pass two looks at every book by itself and locates the complete visible binding/spine face, so page blocks are not used as spine previews.
+            Pass one finds each physical book. Pass two locates the complete visible binding/spine face. Confirmed books are checked against book metadata before their photographed spine is saved to your browser shelf.
           </p>
         </header>
 
@@ -544,69 +716,79 @@ export default function ScanShelfPrototype() {
                 <div className={styles.cropHeading}>
                   <div>
                     <h2>Refined spine faces</h2>
-                    <p>Each preview comes from an isolated-book second pass and shows the physical spine area Gemini localized inside that book.</p>
+                    <p>Mark a result Correct to verify its title, author, ISBN, and front-cover metadata before saving the photographed spine.</p>
                   </div>
                 </div>
 
                 {regions.length ? (
                   <div className={styles.cropGrid}>
-                    {regions.map((region, index) => (
-                      <article className={styles.cropCard} key={region.id}>
-                        <div className={styles.cropNumber}>
-                          #{index + 1} · {region.bookConfidence}% book{region.spineConfidence ? ` · ${region.spineConfidence}% spine` : ""}
-                        </div>
-                        <div className={styles.cropImageWrap}>
-                          {region.crop ? (
-                            <img src={region.crop} alt={`Refined spine crop ${index + 1}`} className={styles.cropImage} />
-                          ) : (
-                            <div className={styles.noSpine}>{processing ? "Refining…" : "Spine face not visible"}</div>
-                          )}
-                        </div>
-                        <div className={styles.cropMeta}>
-                          <strong>{region.title || (region.crop ? "Needs identification" : "No visible spine")}</strong>
-                          {region.author ? <span>{region.author}</span> : null}
-                          {!region.title && region.visibleText ? <small>{region.visibleText}</small> : null}
-                        </div>
-                        <div className={styles.reviewActions} aria-label={`Review book ${index + 1}`}>
+                    {regions.map((region, index) => {
+                      const resolving = region.metadataStatus === "resolving";
+                      const canAdd = region.reviewState === "correct"
+                        && region.metadataStatus === "resolved"
+                        && Boolean(region.title)
+                        && Boolean(region.author)
+                        && Boolean(region.crop);
+                      return (
+                        <article className={styles.cropCard} key={region.id}>
+                          <div className={styles.cropNumber}>
+                            #{index + 1} · {region.bookConfidence}% book{region.spineConfidence ? ` · ${region.spineConfidence}% spine` : ""}
+                          </div>
+                          <div className={styles.cropImageWrap}>
+                            {region.crop ? (
+                              <img src={region.crop} alt={`Refined spine crop ${index + 1}`} className={styles.cropImage} />
+                            ) : (
+                              <div className={styles.noSpine}>{processing ? "Refining…" : "Spine face not visible"}</div>
+                            )}
+                          </div>
+                          <div className={styles.cropMeta}>
+                            <strong>{region.title || (region.crop ? "Needs identification" : "No visible spine")}</strong>
+                            {resolving ? <span>Checking book metadata…</span> : region.author ? <span>{region.author}</span> : null}
+                            {region.isbn ? <small>ISBN {region.isbn} · {region.metadataConfidence} confidence</small> : null}
+                            {!region.isbn && region.metadataStatus === "resolved" ? <small>Metadata verified · ISBN not available</small> : null}
+                            {!region.title && region.visibleText ? <small>{region.visibleText}</small> : null}
+                          </div>
+                          <div className={styles.reviewActions} aria-label={`Review book ${index + 1}`}>
+                            <button
+                              className={`${styles.reviewButton} ${region.reviewState === "correct" ? styles.reviewButtonSelected : ""}`}
+                              type="button"
+                              disabled={processing || resolving || region.addedToShelf}
+                              aria-pressed={region.reviewState === "correct"}
+                              onClick={() => void reviewRegion(region.id, "correct")}
+                            >
+                              {resolving ? "Checking…" : "✓ Correct"}
+                            </button>
+                            <button
+                              className={`${styles.reviewButton} ${region.reviewState === "wrong" ? styles.reviewButtonSelected : ""}`}
+                              type="button"
+                              disabled={processing || resolving || region.addedToShelf}
+                              aria-pressed={region.reviewState === "wrong"}
+                              onClick={() => void reviewRegion(region.id, "wrong")}
+                            >
+                              Wrong book
+                            </button>
+                            <button
+                              className={`${styles.reviewButton} ${region.reviewState === "needs-identification" ? styles.reviewButtonSelected : ""}`}
+                              type="button"
+                              disabled={processing || resolving || region.addedToShelf}
+                              aria-pressed={region.reviewState === "needs-identification"}
+                              onClick={() => void reviewRegion(region.id, "needs-identification")}
+                            >
+                              Needs ID
+                            </button>
+                          </div>
                           <button
-                            className={`${styles.reviewButton} ${region.reviewState === "correct" ? styles.reviewButtonSelected : ""}`}
+                            className={styles.addButton}
                             type="button"
-                            disabled={processing}
-                            aria-pressed={region.reviewState === "correct"}
-                            onClick={() => reviewRegion(region.id, "correct")}
+                            disabled={processing || resolving || region.addedToShelf || !canAdd}
+                            onClick={() => addRegionToShelf(region.id)}
                           >
-                            ✓ Correct
+                            {region.addedToShelf ? "Added to Shelf ✓" : resolving ? "Verifying metadata…" : "Add to Shelf"}
                           </button>
-                          <button
-                            className={`${styles.reviewButton} ${region.reviewState === "wrong" ? styles.reviewButtonSelected : ""}`}
-                            type="button"
-                            disabled={processing}
-                            aria-pressed={region.reviewState === "wrong"}
-                            onClick={() => reviewRegion(region.id, "wrong")}
-                          >
-                            Wrong book
-                          </button>
-                          <button
-                            className={`${styles.reviewButton} ${region.reviewState === "needs-identification" ? styles.reviewButtonSelected : ""}`}
-                            type="button"
-                            disabled={processing}
-                            aria-pressed={region.reviewState === "needs-identification"}
-                            onClick={() => reviewRegion(region.id, "needs-identification")}
-                          >
-                            Needs ID
-                          </button>
-                        </div>
-                        <button
-                          className={styles.addButton}
-                          type="button"
-                          disabled={processing || region.addedToShelf || region.reviewState !== "correct" || !region.title}
-                          onClick={() => addRegionToShelf(region.id)}
-                        >
-                          {region.addedToShelf ? "Added to Shelf ✓" : "Add to Shelf"}
-                        </button>
-                        <button className={styles.removeButton} type="button" disabled={processing} onClick={() => removeRegion(region.id)}>Not a book</button>
-                      </article>
-                    ))}
+                          <button className={styles.removeButton} type="button" disabled={processing || resolving} onClick={() => removeRegion(region.id)}>Not a book</button>
+                        </article>
+                      );
+                    })}
                   </div>
                 ) : !processing ? (
                   <div className={styles.emptyState}>
@@ -626,7 +808,7 @@ export default function ScanShelfPrototype() {
         )}
 
         <footer className={styles.footer}>
-          The photo, isolated crops, and scan results are not saved to Supabase. Only a book you explicitly mark Correct and choose Add to Shelf is written to your browser library. AI scans require a signed-in account and have a daily preview quota.
+          The full shelf photo and isolated book images are not saved to Supabase. When you explicitly confirm and add a book, its compressed photographed spine plus verified book metadata are stored in your browser library for this prototype.
         </footer>
       </div>
     </main>
