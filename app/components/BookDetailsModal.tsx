@@ -23,7 +23,6 @@ type BookDetailsModalProps = {
   canResetCoverChoices: boolean;
   onClose: () => void;
   onClearCover: () => void;
-  onPreviewCover: (option: CoverResult) => void;
   onUseSavedCover: (option: CoverResult) => void;
   onRemoveSavedCover: (option: CoverResult) => void;
   onSearchWebCovers: (mode: "covers" | "alternate" | "custom") => void;
@@ -49,7 +48,6 @@ export function BookDetailsModal({
   canResetCoverChoices,
   onClose,
   onClearCover,
-  onPreviewCover,
   onUseSavedCover,
   onRemoveSavedCover,
   onSearchWebCovers,
@@ -66,6 +64,28 @@ export function BookDetailsModal({
   useEffect(() => {
     setShowAdvanced(false);
   }, [selected.id]);
+
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    document.documentElement.classList.add("book-modal-open");
+    document.body.classList.add("book-modal-open");
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+
+    return () => {
+      document.documentElement.classList.remove("book-modal-open");
+      document.body.classList.remove("book-modal-open");
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.width = "";
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
 
   useEffect(() => {
     zeroSearchStartedFor.current = null;
@@ -106,7 +126,8 @@ export function BookDetailsModal({
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <article
         ref={modalRef}
-        className={`modal reader-modal${showAdvanced ? " reader-show-advanced" : ""}`}
+        className={`modal reader-modal book-hub-view book-hub-editing${showAdvanced ? " reader-show-advanced" : ""}`}
+        data-book-hub="1"
         role="dialog"
         aria-modal="true"
         aria-label={selected.title}
@@ -265,10 +286,9 @@ export function BookDetailsModal({
                     key={`${option.url}-${index}`}
                     type="button"
                     className={`cover-option${cover?.url === option.url ? " selected-cover" : ""}`}
-                    onClick={() => onPreviewCover(option)}
-                    onDoubleClick={() => onChooseCover(option)}
-                    aria-label={`Preview cover ${index + 1} from ${option.source}`}
-                    title={`Preview ${option.source} cover. Double-click to mark correct.`}
+                    onClick={() => { onChooseCover(option); onClose(); }}
+                    aria-label={`Use this ${coverSourceLabel(option.source)} cover on the shelf`}
+                    title={`Use this ${coverSourceLabel(option.source)} cover on the shelf`}
                   >
                     <img src={option.url} alt="" loading="lazy" decoding="async" />
                     <span>{coverSourceLabel(option.source)}</span>

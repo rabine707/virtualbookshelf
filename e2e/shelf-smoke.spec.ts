@@ -217,3 +217,17 @@ test("adding a searched book updates the live shelf without reloading the page",
   await expect(page.locator('button.book[title="Shelf Test Book — Test Author"]')).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __addBookMarker?: string }).__addBookMarker)).toBe("alive");
 });
+
+test("a single database-cover tap saves the cover and returns to the shelf", async ({ page }) => {
+  await openFourthWing(page);
+  const modal = page.getByRole("dialog", { name: "Fourth Wing" });
+  await page.evaluate(() => {
+    (window as typeof window & { __singleTapMarker?: string }).__singleTapMarker = "alive";
+  });
+
+  await modal.getByRole("button", { name: "Use this Google cover on the shelf" }).click();
+
+  await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toHaveCount(0);
+  await expect(page.locator('.toast[role="status"]')).toContainText("Marked this Google Books cover as correct for Fourth Wing");
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { __singleTapMarker?: string }).__singleTapMarker)).toBe("alive");
+});

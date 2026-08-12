@@ -18,7 +18,6 @@ export default function Home() {
     importMessage,
     showToast,
     importGoodreadsCsv,
-    importAudibleCsv,
   } = useShelfLibrary();
   const {
     selected,
@@ -36,7 +35,6 @@ export default function Home() {
     deepSearchDone,
     canResetCoverChoices,
     coverUndo,
-    previewCover,
     chooseCover,
     removeSavedCover,
     chooseWebCover,
@@ -50,7 +48,6 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("title");
   const goodreadsInput = useRef<HTMLInputElement>(null);
-  const audibleInput = useRef<HTMLInputElement>(null);
 
   const visibleBooks = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -81,13 +78,6 @@ export default function Home() {
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button className="primary reader-original-import" onClick={() => goodreadsInput.current?.click()}>Import Goodreads</button>
-          <button
-            className="primary reader-original-import"
-            onClick={() => audibleInput.current?.click()}
-            title="Use: audible library export --format csv --output audible-library.csv"
-          >
-            Import Audible CSV
-          </button>
           <div className="reader-add-books">
             <button
               type="button"
@@ -100,7 +90,6 @@ export default function Home() {
           </div>
         </div>
         <input ref={goodreadsInput} type="file" accept=".csv,text/csv" hidden onChange={importGoodreadsCsv} />
-        <input ref={audibleInput} type="file" accept=".csv,text/csv" hidden onChange={importAudibleCsv} />
       </header>
 
       <ShelfToolbar
@@ -156,7 +145,6 @@ export default function Home() {
           canResetCoverChoices={canResetCoverChoices}
           onClose={() => setSelected(null)}
           onClearCover={() => setCover(null)}
-          onPreviewCover={previewCover}
           onUseSavedCover={chooseCover}
           onRemoveSavedCover={removeSavedCover}
           onSearchWebCovers={searchWebCovers}

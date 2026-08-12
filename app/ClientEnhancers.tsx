@@ -7,14 +7,11 @@ import BotanicalSceneEnricher from "./BotanicalSceneEnricher";
 import CloudAccountSettings from "./CloudAccountSettings";
 import CloudSyncEnricher from "./CloudSyncEnricher";
 import CommunityCoverSync from "./CommunityCoverSync";
-import CoreInteractionEnricher from "./CoreInteractionEnricher";
 import HelpShelfLauncher from "./HelpShelfLauncher";
 import IdentifierEditor from "./IdentifierEditor";
 import MobileTapFix from "./MobileTapFix";
-import ModalScrollLock from "./ModalScrollLock";
 import PageRefreshButton from "./PageRefreshButton";
 import QoLEnricher from "./QoLEnricher";
-import RemoveAudibleImport from "./RemoveAudibleImport";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import ShelfScanner from "./ShelfScanner";
 import SharedSpineEnricher from "./SharedSpineEnricher";
@@ -124,8 +121,6 @@ export default function ClientEnhancers() {
     <ShelfScanner />
     <CloudAccountSettings />
     <HelpShelfLauncher />
-    <CoreInteractionEnricher />
-    <ModalScrollLock />
     <CommunityCoverSync />
     <RomanceShelfEnricher />
     <AudibleCoverEnricher />
@@ -139,7 +134,6 @@ export default function ClientEnhancers() {
     <IdentifierEditor />
     <MobileTapFix />
     <PageRefreshButton />
-    <RemoveAudibleImport />
     <ThemeEnricher />
     <BotanicalSceneEnricher />
     <QoLEnricher />
