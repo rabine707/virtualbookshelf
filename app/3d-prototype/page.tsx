@@ -62,11 +62,11 @@ export default function ThreeDPrototypePage() {
       <header className="prototype-page-header">
         <div>
           <p className="eyebrow">SHELF OF FAME LAB</p>
-          <h1>3D Shelf Prototype</h1>
+          <h1>Cinematic Shelf V1</h1>
           <p>
             {loadedPersonalLibrary
-              ? "Using the first eight books from your real saved library. Nothing here replaces your normal shelf yet."
-              : "This browser does not have your production shelf data, so the renderer is using eight representative books for the visual test."}
+              ? "Using the first eight books from your saved library to judge realistic depth, lighting, spine art, and interaction before we graduate this renderer to the full shelf."
+              : "This browser does not have your saved shelf data, so V1 is using eight representative books to judge the cinematic renderer."}
           </p>
         </div>
         <Link href="/" className="prototype-page-back">← Shelf of Fame</Link>
@@ -84,7 +84,7 @@ export default function ThreeDPrototypePage() {
           <span>BOOK SELECTED</span>
           <strong>{selected.title}</strong>
           <small>by {selected.author}</small>
-          <p>This click hook is ready to be wired to the production book modal when the renderer graduates from prototype to the main shelf.</p>
+          <p>The pull-forward animation is now the selection cue. When this renderer graduates, this tap will open the production book details without leaving the cinematic shelf.</p>
         </div>
       ) : null}
     </main>
