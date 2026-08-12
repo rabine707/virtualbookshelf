@@ -1,0 +1,197 @@
+/* Cinematic lighting pass for the modular botanical shelf.
+   Keep this layer visual-only: no shelf geometry, data, or interaction changes. */
+
+html[data-shelf-theme="botanical"] body {
+  background:
+    radial-gradient(ellipse at 4% 8%, rgba(239, 231, 181, .16), transparent 25%),
+    radial-gradient(ellipse at 22% 28%, rgba(168, 190, 128, .075), transparent 34%),
+    linear-gradient(90deg, #1b2a22 0%, #132019 38%, #0f1812 69%, #0a100c 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* Keep the actual room/header finite, but let edge greenery frame the entire
+   browsing experience as the shelves continue downward. */
+html[data-shelf-theme="botanical"] .botanical-v3-room {
+  position: absolute !important;
+  inset: 0 0 auto 0 !important;
+  height: 390px !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-v3-foreground {
+  position: fixed !important;
+  inset: 0 !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  z-index: 5 !important;
+  pointer-events: none !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-vine-edge-left {
+  position: absolute !important;
+  top: -34px !important;
+  left: -58px !important;
+  right: auto !important;
+  width: clamp(150px, 13vw, 230px) !important;
+  max-height: none !important;
+  opacity: .52 !important;
+  transform: scaleX(-1) rotate(-7deg) !important;
+  transform-origin: top left !important;
+  filter: saturate(.92) brightness(.72) contrast(1.03) drop-shadow(8px 12px 18px rgba(0,0,0,.44)) !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-vine-edge-right {
+  position: absolute !important;
+  top: 44vh !important;
+  right: -76px !important;
+  left: auto !important;
+  width: clamp(130px, 11vw, 195px) !important;
+  max-height: none !important;
+  opacity: .28 !important;
+  transform: rotate(12deg) !important;
+  transform-origin: top right !important;
+  filter: saturate(.86) brightness(.60) drop-shadow(-8px 10px 20px rgba(0,0,0,.48)) !important;
+}
+
+/* Make the left window feel like the real light source instead of a decorative
+   rectangle sitting behind the header. */
+html[data-shelf-theme="botanical"] .botanical-room-window-light {
+  width: min(780px, 54vw) !important;
+  height: 510px !important;
+  left: -7vw !important;
+  top: -54px !important;
+  opacity: .78 !important;
+  background:
+    linear-gradient(112deg,
+      rgba(255, 247, 194, .22) 0%,
+      rgba(221, 231, 177, .11) 29%,
+      rgba(154, 183, 122, .045) 49%,
+      transparent 72%) !important;
+  clip-path: polygon(0 0, 72% 0, 100% 100%, 0 100%) !important;
+  filter: blur(22px) !important;
+}
+
+/* The shelf modules inherit the same left-to-right light direction. The light
+   contribution tapers as the collection gets farther from the cinematic header. */
+html[data-shelf-theme="botanical"] .modular-shelf-row {
+  --window-wash: .12;
+  background-color: #101d15 !important;
+  background-image:
+    linear-gradient(90deg,
+      rgba(220, 228, 181, var(--window-wash)) 0%,
+      rgba(134, 161, 106, calc(var(--window-wash) * .42)) 18%,
+      transparent 42%,
+      rgba(0,0,0,.08) 72%,
+      rgba(0,0,0,.25) 100%),
+    radial-gradient(ellipse at 48% 0%, rgba(190,150,82,.065), transparent 43%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.011) 0 1px, transparent 1px 7px),
+    linear-gradient(180deg, rgba(29,47,32,.88), rgba(11,22,15,.98)) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row:nth-child(n + 5) {
+  --window-wash: .075;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row:nth-child(n + 10) {
+  --window-wash: .045;
+}
+
+/* Chiaroscuro book lighting: crisp window-side edge plus a long soft shadow
+   cast to the right. Use the physical book wrapper so both generated and
+   fallback spine textures receive the same light behavior. */
+html[data-shelf-theme="botanical"] .modular-shelf-row .book {
+  filter:
+    drop-shadow(4px 2px 5px rgba(0,0,0,.58))
+    drop-shadow(10px 4px 13px rgba(0,0,0,.34)) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row .book:hover,
+html[data-shelf-theme="botanical"] .modular-shelf-row .book:focus-visible {
+  filter:
+    drop-shadow(5px 4px 7px rgba(0,0,0,.62))
+    drop-shadow(13px 7px 18px rgba(0,0,0,.38)) !important;
+}
+
+html[data-shelf-theme="botanical"] .generated-spine::after {
+  background:
+    linear-gradient(90deg,
+      rgba(255,255,255,.12) 0%,
+      rgba(255,255,255,.055) 7%,
+      transparent 18%,
+      transparent 72%,
+      rgba(0,0,0,.14) 88%,
+      rgba(0,0,0,.30) 100%),
+    linear-gradient(180deg, rgba(255,255,255,.035), transparent 15%, transparent 88%, rgba(0,0,0,.12)) !important;
+}
+
+/* Lamps are transparent decor casings; the light itself is CSS so it can spill
+   onto the shelf backing and remain responsive. */
+html[data-shelf-theme="botanical"] .botanical-row-decor-lamp-frame::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: 54px;
+  width: 210px;
+  height: 190px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(255, 184, 83, .24) 0%,
+    rgba(255, 159, 55, .13) 28%,
+    rgba(212, 124, 45, .055) 48%,
+    transparent 72%);
+  filter: blur(19px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+html[data-shelf-theme="botanical"] .botanical-lamp-aura {
+  width: 168px !important;
+  height: 168px !important;
+  opacity: .76 !important;
+  background: radial-gradient(circle,
+    rgba(255,222,149,.29) 0%,
+    rgba(255,165,67,.16) 31%,
+    rgba(255,128,34,.05) 54%,
+    transparent 74%) !important;
+  filter: blur(18px) !important;
+  mix-blend-mode: screen;
+}
+
+html[data-shelf-theme="botanical"] .botanical-lamp-bulb {
+  box-shadow:
+    0 0 7px rgba(255,236,181,.92),
+    0 0 18px rgba(255,184,91,.74),
+    0 0 42px rgba(255,139,46,.34) !important;
+}
+
+/* A nearly invisible fixed grain layer keeps the long page visually cohesive
+   after the finite room header has scrolled away. */
+html[data-shelf-theme="botanical"] body::after {
+  content: "";
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  pointer-events: none;
+  opacity: .035;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.45) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.32) 0 1px, transparent 1px 4px);
+  mix-blend-mode: soft-light;
+}
+
+@media (max-width: 760px) {
+  html[data-shelf-theme="botanical"] .botanical-v3-foreground {
+    display: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row {
+    --window-wash: .055;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row .book,
+  html[data-shelf-theme="botanical"] .modular-shelf-row .book:hover,
+  html[data-shelf-theme="botanical"] .modular-shelf-row .book:focus-visible {
+    filter: drop-shadow(3px 3px 5px rgba(0,0,0,.44)) !important;
+  }
+}
