@@ -159,6 +159,7 @@
   color: rgba(255,255,255,.58);
   text-align: center;
   font: 600 10px/1.3 Arial, sans-serif;
+  pointer-events: none;
 }
 
 .saved-spine-choices {

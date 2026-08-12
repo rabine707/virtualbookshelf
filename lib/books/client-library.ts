@@ -3,6 +3,15 @@ export type CoverResult = {
   source: string;
 };
 
+export type WebCoverResult = {
+  url: string;
+  thumbnailUrl?: string;
+  source?: string;
+  title?: string;
+  pageUrl?: string | null;
+  publisher?: string | null;
+};
+
 export type CoverResponse = {
   url: string | null;
   source: string | null;
@@ -31,9 +40,12 @@ export type Book = {
   isbnConfidence?: IdentifierConfidence;
   asin?: string;
   romanceioId?: string;
+  webCoverPageUrl?: string;
+  webCoverTitle?: string;
   importSource?: string;
   color: string;
   preferredCover?: CoverResult;
+  savedCovers?: CoverResult[];
   coverFeedback?: CoverFeedback;
 };
 
@@ -248,9 +260,12 @@ export function mergeGoodreadsFeedback(current: Book[], imported: Book[]) {
       isbnSource: importedHasIsbn ? book.isbnSource : existing.isbnSource,
       isbnConfidence: importedHasIsbn ? book.isbnConfidence : existing.isbnConfidence,
       preferredCover: existing.preferredCover,
+      savedCovers: existing.savedCovers,
       coverFeedback: existing.coverFeedback,
       asin: existing.asin,
       romanceioId: existing.romanceioId,
+      webCoverPageUrl: existing.webCoverPageUrl,
+      webCoverTitle: existing.webCoverTitle,
       importSource: existing.importSource?.includes("Audible") ? "Goodreads + Audible" : book.importSource,
     };
   });

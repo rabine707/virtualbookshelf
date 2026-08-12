@@ -29,6 +29,11 @@
   flex-wrap: wrap;
 }
 
+.saved-cover-item {
+  position: relative;
+  width: 64px;
+}
+
 .saved-cover-option {
   width: 64px;
   padding: 3px;
@@ -61,4 +66,40 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.saved-cover-remove {
+  position: absolute;
+  z-index: 3;
+  top: -7px;
+  right: -7px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 50%;
+  background: rgba(24,18,15,.94);
+  color: #f7eee2;
+  font: 700 16px/1 Arial, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0,0,0,.28);
+}
+
+.saved-cover-remove:hover,
+.saved-cover-remove:focus-visible {
+  transform: scale(1.06);
+  outline: 2px solid rgba(247,238,226,.35);
+  outline-offset: 1px;
+}
+
+@media (max-width: 760px) {
+  .saved-cover-remove {
+    width: 26px;
+    height: 26px;
+    top: -9px;
+    right: -9px;
+    font-size: 18px;
+  }
 }

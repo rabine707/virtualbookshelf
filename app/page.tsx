@@ -1,12 +1,19 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import BookSearchAdd from "./BookSearchAdd";
 import { BookDetailsModal } from "./components/BookDetailsModal";
 import { Bookshelf } from "./components/Bookshelf";
+import { CoverUndoToast } from "./components/CoverUndoToast";
 import { ShelfToolbar } from "./components/ShelfToolbar";
+import { useAudibleCoverFallback } from "./hooks/useAudibleCoverFallback";
 import { useBookCoverManager } from "./hooks/useBookCoverManager";
+import { useBookMetadataEditor } from "./hooks/useBookMetadataEditor";
+import { useCloudShelfSync } from "./hooks/useCloudShelfSync";
+import { useCommunityCoverSync } from "./hooks/useCommunityCoverSync";
+import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
-import { Book } from "../lib/books/client-library";
+import { Book, CoverResult, WebCoverResult } from "../lib/books/client-library";
 
 export default function Home() {
   const {
@@ -16,8 +23,12 @@ export default function Home() {
     importMessage,
     showToast,
     importGoodreadsCsv,
-    importAudibleCsv,
   } = useShelfLibrary();
+
+  useCloudShelfSync({ books, setBooks, storageReady });
+  const { submitCoverChoice } = useCommunityCoverSync({ books, setBooks });
+  useRomanceShelfEnrichment({ books, setBooks });
+
   const {
     selected,
     setSelected,
@@ -25,17 +36,57 @@ export default function Home() {
     cover,
     setCover,
     coverOptions,
+    savedCoverOptions,
+    webCoverResults,
+    webCoverLoading,
+    webCoverMessage,
     coverLoading,
     deepSearchLoading,
     deepSearchDone,
+    canResetCoverChoices,
+    coverUndo,
     chooseCover,
+    removeSavedCover,
+    chooseWebCover,
+    searchWebCovers,
     rejectCurrentCover,
+    undoCoverDecision,
+    dismissCoverUndo,
+    resetCoverChoices,
     searchMoreCovers,
   } = useBookCoverManager({ setBooks, showToast });
+
+  const { saveBookMetadata } = useBookMetadataEditor({
+    selected,
+    setSelected,
+    setBooks,
+    showToast,
+  });
+
+  useAudibleCoverFallback({
+    selected,
+    cover,
+    coverLoading,
+    setBooks,
+    setSelected,
+    setCover,
+  });
+
+  function chooseCoverAndSync(option: CoverResult) {
+    chooseCover(option);
+    if (selected) void submitCoverChoice(selected, option);
+  }
+
+  function chooseWebCoverAndSync(result: WebCoverResult) {
+    chooseWebCover(result);
+    if (selected) {
+      void submitCoverChoice(selected, { url: result.url, source: "Web image" });
+    }
+  }
+
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("title");
   const goodreadsInput = useRef<HTMLInputElement>(null);
-  const audibleInput = useRef<HTMLInputElement>(null);
 
   const visibleBooks = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -58,24 +109,26 @@ export default function Home() {
 
   return (
     <main>
-      <header className="hero">
+      <header className="hero reader-hero">
         <div className="hero-copy">
           <p className="eyebrow">YOUR READING LIFE, ON DISPLAY</p>
           <h1>Shelf of Fame</h1>
           <p className="subhead">Turn the books you’ve read into a shelf worth showing off.</p>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button className="primary" onClick={() => goodreadsInput.current?.click()}>Import Goodreads</button>
-          <button
-            className="primary"
-            onClick={() => audibleInput.current?.click()}
-            title="Use: audible library export --format csv --output audible-library.csv"
-          >
-            Import Audible CSV
-          </button>
+          <button className="primary reader-original-import" onClick={() => goodreadsInput.current?.click()}>Import Goodreads</button>
+          <div className="reader-add-books">
+            <button
+              type="button"
+              className="primary reader-add-books-trigger"
+              aria-haspopup="dialog"
+              onClick={() => window.dispatchEvent(new Event("shelf-open-book-search"))}
+            >
+              ＋ Add books
+            </button>
+          </div>
         </div>
         <input ref={goodreadsInput} type="file" accept=".csv,text/csv" hidden onChange={importGoodreadsCsv} />
-        <input ref={audibleInput} type="file" accept=".csv,text/csv" hidden onChange={importAudibleCsv} />
       </header>
 
       <ShelfToolbar
@@ -87,6 +140,13 @@ export default function Home() {
       />
 
       <Bookshelf shelves={shelves} onSelect={setSelected} />
+
+      <BookSearchAdd
+        books={books}
+        setBooks={setBooks}
+        showToast={showToast}
+        onImportGoodreads={() => goodreadsInput.current?.click()}
+      />
 
       <footer>
         <span>Real cover art loads onto the spines as you browse.</span>
@@ -100,21 +160,39 @@ export default function Home() {
         </div>
       )}
 
+      {coverUndo && (
+        <CoverUndoToast
+          kind={coverUndo.kind}
+          onUndo={undoCoverDecision}
+          onDismiss={dismissCoverUndo}
+        />
+      )}
+
       {selected && (
         <BookDetailsModal
           selected={selected}
           selectedIsbn={selectedIsbn}
           cover={cover}
           coverOptions={coverOptions}
+          savedCovers={savedCoverOptions}
+          webCoverResults={webCoverResults}
+          webCoverLoading={webCoverLoading}
+          webCoverMessage={webCoverMessage}
           coverLoading={coverLoading}
           deepSearchLoading={deepSearchLoading}
           deepSearchDone={deepSearchDone}
+          canResetCoverChoices={canResetCoverChoices}
           onClose={() => setSelected(null)}
           onClearCover={() => setCover(null)}
-          onPreviewCover={setCover}
-          onChooseCover={chooseCover}
+          onUseSavedCover={chooseCoverAndSync}
+          onRemoveSavedCover={removeSavedCover}
+          onSearchWebCovers={searchWebCovers}
+          onChooseWebCover={chooseWebCoverAndSync}
+          onChooseCover={chooseCoverAndSync}
           onRejectCurrentCover={rejectCurrentCover}
           onSearchMoreCovers={searchMoreCovers}
+          onResetCoverChoices={resetCoverChoices}
+          onSaveBookMetadata={saveBookMetadata}
         />
       )}
     </main>

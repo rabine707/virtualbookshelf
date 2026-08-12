@@ -2,35 +2,18 @@
 
 import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
-import AudibleCoverEnricher from "./AudibleCoverEnricher";
-import BookSearchAdd from "./BookSearchAdd";
 import BotanicalSceneEnricher from "./BotanicalSceneEnricher";
 import CloudAccountSettings from "./CloudAccountSettings";
-import CloudSyncEnricher from "./CloudSyncEnricher";
-import CommunityCoverSync from "./CommunityCoverSync";
-import CoreInteractionEnricher from "./CoreInteractionEnricher";
-import CoverDecisionSafety from "./CoverDecisionSafety";
-import CoverSearchCleanup from "./CoverSearchCleanup";
 import HelpShelfLauncher from "./HelpShelfLauncher";
-import IdentifierEditor from "./IdentifierEditor";
 import MobileTapFix from "./MobileTapFix";
-import ModalScrollLock from "./ModalScrollLock";
-import PageRefreshButton from "./PageRefreshButton";
 import QoLEnricher from "./QoLEnricher";
-import ReaderUiCleanup from "./ReaderUiCleanup";
-import RemoveAudibleImport from "./RemoveAudibleImport";
-import RomanceShelfEnricher from "./RomanceShelfEnricher";
-import SavedCoverChoices from "./SavedCoverChoices";
 import ShelfScanner from "./ShelfScanner";
 import SharedSpineEnricher from "./SharedSpineEnricher";
 import SpineArtEnricher from "./SpineArtEnricher";
 import SpineAuthorCorrector from "./SpineAuthorCorrector";
 import SpineCommunityEnricher from "./SpineCommunityEnricher";
-import SpineErrorSanitizer from "./SpineErrorSanitizer";
 import SpineGallery from "./SpineGallery";
-import SpineGenerator from "./SpineGenerator";
 import ThemeEnricher from "./ThemeEnricher";
-import WebCoverEnricher from "./WebCoverEnricher";
 
 function MobileBottomNav() {
   const click = (selector: string) => {
@@ -45,9 +28,6 @@ function MobileBottomNav() {
       return;
     }
 
-    // The mobile nav is rendered from the root layout, including /account.
-    // If there is no shelf on the current route, Shelf should actually return
-    // to the home shelf instead of becoming a no-op.
     window.location.assign("/");
   };
 
@@ -96,7 +76,14 @@ function MobileBottomNav() {
       <button type="button" onClick={goToShelf}>
         <span aria-hidden="true">▤</span><b>Shelf</b>
       </button>
-      <button type="button" onClick={() => window.dispatchEvent(new Event("shelf-open-book-search"))}>
+      <button type="button" onClick={() => {
+        if (document.querySelector(".bookcase")) {
+          window.dispatchEvent(new Event("shelf-open-book-search"));
+          return;
+        }
+        try { window.sessionStorage.setItem("shelf-open-book-search-on-load", "1"); } catch { /* optional */ }
+        window.location.assign("/");
+      }}>
         <span aria-hidden="true">＋</span><b>Add</b>
       </button>
       <button type="button" onClick={() => click(".theme-picker-trigger")}>
@@ -119,34 +106,17 @@ export default function ClientEnhancers() {
   if (!mounted) return null;
   return <>
     <AuthEnricher />
-    <CloudSyncEnricher />
-    <BookSearchAdd />
     <ShelfScanner />
     <CloudAccountSettings />
     <HelpShelfLauncher />
-    <CoreInteractionEnricher />
-    <ModalScrollLock />
-    <CoverDecisionSafety />
-    <CoverSearchCleanup />
-    <SavedCoverChoices />
-    <CommunityCoverSync />
-    <WebCoverEnricher />
-    <RomanceShelfEnricher />
-    <AudibleCoverEnricher />
     <SpineArtEnricher />
     <SharedSpineEnricher />
-    <SpineGenerator />
-    <SpineErrorSanitizer />
     <SpineGallery />
     <SpineAuthorCorrector />
     <SpineCommunityEnricher />
-    <IdentifierEditor />
     <MobileTapFix />
-    <PageRefreshButton />
-    <RemoveAudibleImport />
     <ThemeEnricher />
     <BotanicalSceneEnricher />
-    <ReaderUiCleanup />
     <QoLEnricher />
     <MobileBottomNav />
   </>;
