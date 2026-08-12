@@ -231,13 +231,21 @@ async function generateWithGemini(
 }
 
 export async function POST(request: Request) {
-  const pollinationsApiKey = (process.env.POLLINATIONS_API_KEY || process.env.KLEIN_API_KEY)?.trim();
+  // Premium Pollinations-backed models are opt-in. Leaving this env var unset
+  // guarantees GPT Image 2 and Klein cannot spend balance while paused.
+  const premiumGeneratorsEnabled = process.env.ENABLE_PREMIUM_SPINE_GENERATORS === "true";
+  const pollinationsApiKey = premiumGeneratorsEnabled
+    ? (process.env.POLLINATIONS_API_KEY || process.env.KLEIN_API_KEY)?.trim()
+    : undefined;
   const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
 
   if (!pollinationsApiKey && !geminiApiKey) {
     return Response.json({
-      error: "AI spine generation is not configured yet.",
-      needsApiKey: true,
+      error: premiumGeneratorsEnabled
+        ? "AI spine generation is not configured yet."
+        : "Premium AI spine generation is paused. Free cover-crop spines are still available.",
+      needsApiKey: premiumGeneratorsEnabled,
+      premiumGeneratorsPaused: !premiumGeneratorsEnabled,
     }, { status: 503 });
   }
 
