@@ -6,25 +6,17 @@ const WEB_COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 
 async function mockCoverApis(page: Page) {
   await page.route("**/api/cover?**", async (route) => {
-    const url = new URL(route.request().url());
-    const deep = url.searchParams.get("libraryThing") === "1";
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(deep
-        ? {
-            url: COVER_URL,
-            source: "Google Books",
-            options: [
-              { url: COVER_URL, source: "Google Books" },
-              { url: SECOND_COVER_URL, source: "Open Library" },
-            ],
-          }
-        : {
-            url: COVER_URL,
-            source: "Google Books",
-            options: [{ url: COVER_URL, source: "Google Books" }],
-          }),
+      body: JSON.stringify({
+        url: COVER_URL,
+        source: "Google Books",
+        options: [
+          { url: COVER_URL, source: "Google Books" },
+          { url: SECOND_COVER_URL, source: "Open Library" },
+        ],
+      }),
     });
   });
 
@@ -83,11 +75,6 @@ async function openFourthWing(page: Page) {
 
 async function revealSecondCover(page: Page) {
   const secondCover = page.getByRole("button", { name: "Use this Open Library cover on the shelf" });
-  if (await secondCover.isVisible().catch(() => false)) return secondCover;
-
-  const findMore = page.getByRole("button", { name: "Find more covers" });
-  if (await findMore.isVisible().catch(() => false)) await findMore.click();
-
   await expect(secondCover).toBeVisible({ timeout: 12_000 });
   return secondCover;
 }
