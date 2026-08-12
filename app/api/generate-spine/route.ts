@@ -1,4 +1,5 @@
 import { generateSpineArtwork } from "../../../lib/ai/spine/generate";
+import { publicSpineGenerationFailure } from "../../../lib/ai/spine/public-error";
 import { parseSpineGenerationRequest } from "../../../lib/ai/spine/request";
 import { fetchPublicImage, RemoteImageError } from "../../../lib/remote-image";
 import { consumeGenerationAttempt } from "../../../lib/spine-generation-guard";
@@ -54,8 +55,18 @@ export async function POST(request: Request) {
     const status = typeof error === "object" && error && "status" in error
       ? Number((error as { status?: unknown }).status) || 502
       : 502;
+
+    if (status === 401) {
+      return Response.json({
+        error: "Sign in to generate AI spines.",
+        code: "authentication_required",
+      }, { status: 401 });
+    }
+
+    console.error("[generate-spine] generation allowance check failed", error);
     return Response.json({
-      error: error instanceof Error ? error.message : "Could not verify AI generation allowance.",
+      error: "Could not verify AI generation allowance. Please try again.",
+      code: "generation_guard_unavailable",
     }, { status });
   }
 
@@ -115,13 +126,14 @@ export async function POST(request: Request) {
       });
     }
 
-    return Response.json({
-      error: generation.failures.join(" • ") || "AI spine generation failed.",
-      providerErrors: generation.failures,
+    console.error("[generate-spine] all providers failed", {
       attemptedProviders: generation.attemptedProviders,
-      attempts: generationGuard.attempts,
-      remaining: generationGuard.remaining,
-    }, { status: 502 });
+      failures: generation.failures,
+    });
+    return Response.json(
+      publicSpineGenerationFailure(generationGuard.attempts, generationGuard.remaining),
+      { status: 502 },
+    );
   } catch (error) {
     if (error instanceof RemoteImageError) {
       return Response.json({
@@ -131,10 +143,10 @@ export async function POST(request: Request) {
       }, { status: error.status });
     }
 
-    return Response.json({
-      error: error instanceof Error ? error.message : "Could not reach the AI image generator.",
-      attempts: generationGuard.attempts,
-      remaining: generationGuard.remaining,
-    }, { status: 502 });
+    console.error("[generate-spine] unexpected generation failure", error);
+    return Response.json(
+      publicSpineGenerationFailure(generationGuard.attempts, generationGuard.remaining),
+      { status: 502 },
+    );
   }
 }
