@@ -1,5 +1,3 @@
--- Fix PL/pgSQL ambiguity between the RETURNS TABLE candidate_id output variable
--- and cover_candidate_votes.candidate_id in the conflict target.
 create or replace function public.submit_user_cover_choice(
   p_title text,
   p_author text,
