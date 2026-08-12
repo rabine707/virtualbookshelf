@@ -1,5 +1,10 @@
 import { fetchPublicImage, RemoteImageError } from "../../../lib/remote-image";
 import { consumeGenerationAttempt } from "../../../lib/spine-generation-guard";
+import {
+  buildSpinePrompt,
+  DEFAULT_SPINE_STYLE_MODE,
+  isSpineStyleMode,
+} from "../../../lib/spine-prompt";
 
 type InteractionBlock = {
   type?: string;
@@ -55,6 +60,7 @@ type ConfirmedCover = {
 
 const MAX_TITLE_CHARS = 200;
 const MAX_AUTHOR_CHARS = 120;
+const MAX_GENRE_CHARS = 120;
 const MAX_IDENTIFIER_CHARS = 64;
 const MAX_COVER_URL_CHARS = 2_048;
 const MAX_PROVIDER_ERROR_CHARS = 1_200;
@@ -249,6 +255,10 @@ export async function POST(request: Request) {
   const cover = typeof payload.cover === "string" ? payload.cover.trim() : "";
   const title = promptText(payload.title, MAX_TITLE_CHARS) || "this book";
   const author = promptText(payload.author, MAX_AUTHOR_CHARS);
+  const genre = promptText(payload.genre, MAX_GENRE_CHARS);
+  const styleMode = isSpineStyleMode(payload.styleMode)
+    ? payload.styleMode
+    : DEFAULT_SPINE_STYLE_MODE;
   const isbn = promptText(payload.isbn, MAX_IDENTIFIER_CHARS) || undefined;
   const asin = promptText(payload.asin, MAX_IDENTIFIER_CHARS) || undefined;
 
@@ -286,19 +296,16 @@ export async function POST(request: Request) {
     }, { status: 429 });
   }
 
-  const prompt = [
-    `Using the supplied confirmed front cover for “${title}” as the authoritative design reference, create a realistic professionally designed physical book spine for this exact book.`,
-    "Treat the cover as the source of truth for imagery, colors, textures, motifs, symbols, typography style, lighting, and mood. Recompose those elements for the narrow spine instead of inventing a different design.",
-    "The final canvas must be an exact 1:4 vertical book-spine aspect ratio. Return only flat edge-to-edge spine artwork, not a front cover, mockup, 3D book, poster, bookshelf scene, or wraparound spread.",
-    `Render the literal title exactly as “${title}”. The title should be the main focal point and arranged naturally along the length of a professionally published spine.`,
-    author
-      ? `The author is “${author}” for book identity only. DO NOT render the author name, initials, any author placeholder, or any other author text into the image. The app adds the exact author separately after generation.`
-      : "Do not invent or render any author name or author placeholder.",
-    "Reserve the lower 24% of the spine as a visually quiet author zone: continue the cover's colors and texture there, but keep that area low-detail and free of faces, key objects, title text, logos, letters, badges, or important artwork so a small author label can sit there cleanly.",
-    "Preserve the title's recognizable capitalization, approximate typography style, colors, and overall branding from the reference cover wherever possible.",
-    "Keep important artwork readable in the remaining upper 76% of the narrow strip. Simplify, extend, or reposition background details rather than stretching the original cover.",
-    "Avoid unrelated characters, faces, objects, or a new genre aesthetic. The result should look like the actual matching spine for this edition.",
-  ].join(" ");
+  const prompt = buildSpinePrompt({
+    title,
+    author,
+    genre,
+    styleMode,
+    hasCoverReference: true,
+    // Exact author text is deliberately added by the app after generation.
+    // This avoids misspellings while preserving the model-designed title/artwork.
+    renderAuthorText: false,
+  });
 
   try {
     // Validate the reference image once on our server before giving its public URL
@@ -320,6 +327,7 @@ export async function POST(request: Request) {
           image: gptAttempt.image,
           model: gptAttempt.model,
           provider: gptAttempt.provider,
+          styleMode,
           attempts: generationGuard.attempts,
           remaining: generationGuard.remaining,
           aspectRatio: "1:4",
@@ -340,6 +348,7 @@ export async function POST(request: Request) {
           image: kleinAttempt.image,
           model: kleinAttempt.model,
           provider: kleinAttempt.provider,
+          styleMode,
           fallbackFrom: "gpt-image-2",
           attempts: generationGuard.attempts,
           remaining: generationGuard.remaining,
@@ -358,6 +367,7 @@ export async function POST(request: Request) {
           image: geminiAttempt.image,
           model: geminiAttempt.model,
           provider: geminiAttempt.provider,
+          styleMode,
           fallbackFrom: attempted.length > 1 ? attempted.slice(0, -1) : undefined,
           attempts: generationGuard.attempts,
           remaining: generationGuard.remaining,
