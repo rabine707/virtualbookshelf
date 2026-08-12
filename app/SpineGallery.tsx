@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect } from "react";
+import {
+  getGeneratedSpine,
+  getGeneratedSpineMode,
+  readSpineStoreValue,
+  saveGeneratedSpine,
+  writeSpineStoreValue,
+  type SpinePosition,
+  type SpineRenderMode,
+} from "../lib/spines/client";
 
-const DB_NAME = "shelf-of-fame-art";
-const STORE_NAME = "generated-spines";
-const DB_VERSION = 1;
-const MODE_KEY_PREFIX = "mode:";
 const HISTORY_KEY_PREFIX = "history:v1:";
 const CANDIDATES_KEY = "shelf-of-fame-spine-candidates-v1";
 const SUPABASE_URL = "https://vrkuimrfdkejfhpxlwlf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mf0u925xGBkP4iNgxSCjuQ_H4Dp8r1S";
-
-type SpinePosition = "left" | "center" | "right";
-type SpineRenderMode = "integrated" | "overlay";
 
 type BookIdentity = {
   title: string;
@@ -111,66 +113,16 @@ function modalBook(modal: Element): BookIdentity | null {
   };
 }
 
-function openDb() {
-  return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function readStore<T>(key: string): Promise<T | undefined> {
-  try {
-    const db = await openDb();
-    const value = await new Promise<T | undefined>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const request = tx.objectStore(STORE_NAME).get(key);
-      request.onsuccess = () => resolve(request.result as T | undefined);
-      request.onerror = () => reject(request.error);
-    });
-    db.close();
-    return value;
-  } catch {
-    return undefined;
-  }
-}
-
-async function writeStore(key: string, value: unknown) {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).put(value, key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-  db.close();
-}
-
 async function activeSpine(coverUrl: string) {
-  const value = await readStore<unknown>(coverUrl);
-  return typeof value === "string" ? value : "";
+  return (await getGeneratedSpine(coverUrl)) || "";
 }
 
 async function activeMode(coverUrl: string): Promise<SpineRenderMode> {
-  const value = await readStore<unknown>(`${MODE_KEY_PREFIX}${coverUrl}`);
-  return value === "integrated" ? "integrated" : "overlay";
+  return getGeneratedSpineMode(coverUrl);
 }
 
 async function saveActiveSpine(book: BookIdentity, choice: SpineChoice) {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    store.put(choice.image, book.coverUrl);
-    store.put(choice.renderMode, `${MODE_KEY_PREFIX}${book.coverUrl}`);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-  db.close();
+  await saveGeneratedSpine(book.coverUrl, choice.image, choice.renderMode);
 }
 
 function historyKey(book: BookIdentity) {
@@ -178,7 +130,7 @@ function historyKey(book: BookIdentity) {
 }
 
 async function readHistory(book: BookIdentity): Promise<SpineChoice[]> {
-  const value = await readStore<unknown>(historyKey(book));
+  const value = await readSpineStoreValue<unknown>(historyKey(book));
   if (!Array.isArray(value)) return [];
   return value.filter((entry): entry is SpineChoice => Boolean(
     entry
@@ -189,7 +141,7 @@ async function readHistory(book: BookIdentity): Promise<SpineChoice[]> {
 }
 
 async function writeHistory(book: BookIdentity, entries: SpineChoice[]) {
-  await writeStore(historyKey(book), entries.slice(0, 20));
+  await writeSpineStoreValue(historyKey(book), entries.slice(0, 20));
 }
 
 async function rememberHistory(book: BookIdentity, choice: SpineChoice) {
