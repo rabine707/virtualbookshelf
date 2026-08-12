@@ -7,7 +7,6 @@ import CloudAccountSettings from "./CloudAccountSettings";
 import CloudSyncEnricher from "./CloudSyncEnricher";
 import CommunityCoverSync from "./CommunityCoverSync";
 import HelpShelfLauncher from "./HelpShelfLauncher";
-import IdentifierEditor from "./IdentifierEditor";
 import MobileTapFix from "./MobileTapFix";
 import QoLEnricher from "./QoLEnricher";
 import ShelfScanner from "./ShelfScanner";
@@ -121,7 +120,6 @@ export default function ClientEnhancers() {
     <SpineGallery />
     <SpineAuthorCorrector />
     <SpineCommunityEnricher />
-    <IdentifierEditor />
     <MobileTapFix />
     <ThemeEnricher />
     <BotanicalSceneEnricher />

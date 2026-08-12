@@ -8,6 +8,7 @@ import { CoverUndoToast } from "./components/CoverUndoToast";
 import { ShelfToolbar } from "./components/ShelfToolbar";
 import { useAudibleCoverFallback } from "./hooks/useAudibleCoverFallback";
 import { useBookCoverManager } from "./hooks/useBookCoverManager";
+import { useBookMetadataEditor } from "./hooks/useBookMetadataEditor";
 import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
 import { Book } from "../lib/books/client-library";
@@ -50,6 +51,13 @@ export default function Home() {
     resetCoverChoices,
     searchMoreCovers,
   } = useBookCoverManager({ setBooks, showToast });
+
+  const { saveBookMetadata } = useBookMetadataEditor({
+    selected,
+    setSelected,
+    setBooks,
+    showToast,
+  });
 
   useAudibleCoverFallback({
     selected,
@@ -168,6 +176,7 @@ export default function Home() {
           onRejectCurrentCover={rejectCurrentCover}
           onSearchMoreCovers={searchMoreCovers}
           onResetCoverChoices={resetCoverChoices}
+          onSaveBookMetadata={saveBookMetadata}
         />
       )}
     </main>

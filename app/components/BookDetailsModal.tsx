@@ -2,11 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  BookMetadataUpdateInput,
+  SaveBookMetadataResult,
+} from "../../lib/books/book-metadata";
+import {
   Book,
   coverSourceLabel,
   CoverResult,
   WebCoverResult,
 } from "../../lib/books/client-library";
+import { BookInfoEditor } from "./BookInfoEditor";
 
 type BookDetailsModalProps = {
   selected: Book;
@@ -31,6 +36,7 @@ type BookDetailsModalProps = {
   onRejectCurrentCover: (kind: "wrong" | "edition") => void;
   onSearchMoreCovers: () => void;
   onResetCoverChoices: () => void;
+  onSaveBookMetadata: (input: BookMetadataUpdateInput) => SaveBookMetadataResult;
 };
 
 export function BookDetailsModal({
@@ -56,6 +62,7 @@ export function BookDetailsModal({
   onRejectCurrentCover,
   onSearchMoreCovers,
   onResetCoverChoices,
+  onSaveBookMetadata,
 }: BookDetailsModalProps) {
   const modalRef = useRef<HTMLElement>(null);
   const zeroSearchStartedFor = useRef<string | null>(null);
@@ -235,6 +242,12 @@ export function BookDetailsModal({
             {selected.coverFeedback?.rejected?.length ? <><dt className="reader-advanced-row">Rejected covers</dt><dd className="reader-advanced-row">{selected.coverFeedback.rejected.length}</dd></> : null}
             {selected.coverFeedback?.wrongEdition?.length ? <><dt className="reader-advanced-row">Wrong editions</dt><dd className="reader-advanced-row">{selected.coverFeedback.wrongEdition.length}</dd></> : null}
           </dl>
+
+          <BookInfoEditor
+            book={selected}
+            selectedIsbn={selectedIsbn}
+            onSave={onSaveBookMetadata}
+          />
 
           <section className="cover-picker" aria-label="Choose a cover">
             <div className="cover-picker-heading">
