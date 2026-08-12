@@ -34,6 +34,7 @@ import "./theme-ui-polish.css";
 import "./desktop-toolbar-refine.css";
 import "./shelf-art-polish.css";
 import "./botanical-v3.css";
+import "./bookshelf-3d-prototype.css";
 import ClientEnhancers from "./ClientEnhancers";
 
 export const metadata: Metadata = {
