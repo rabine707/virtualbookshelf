@@ -31,7 +31,7 @@ test("loads the shelf, searches, opens a book, and preserves a rejected cover", 
 
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toBeVisible();
   const correctCover = page.getByTitle("Save this as the correct cover");
-  const wrongCover = page.getByRole("button", { name: /Wrong cover/ });
+  const wrongCover = page.locator(".cover-column button.primary").filter({ hasText: "Wrong cover" });
   await expect(correctCover).toBeEnabled();
   await expect(wrongCover).toBeEnabled();
 
