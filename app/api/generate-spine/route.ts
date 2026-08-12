@@ -93,6 +93,7 @@ async function generateWithPollinationsImage(
   model: "gpt-image-2" | "klein",
 ): Promise<ProviderAttempt> {
   try {
+    const size = model === "gpt-image-2" ? "512x1536" : "512x2048";
     const response = await fetch("https://gen.pollinations.ai/v1/images/generations", {
       method: "POST",
       headers: {
@@ -104,7 +105,7 @@ async function generateWithPollinationsImage(
         prompt,
         image: cover,
         n: 1,
-        size: "512x2048",
+        size,
         response_format: "b64_json",
         safe: true,
         ...(model === "gpt-image-2" ? { quality: "medium" } : {}),
@@ -328,6 +329,7 @@ export async function POST(request: Request) {
           model: gptAttempt.model,
           provider: gptAttempt.provider,
           styleMode,
+          generatedAspectRatio: "1:3",
           attempts: generationGuard.attempts,
           remaining: generationGuard.remaining,
           aspectRatio: "1:4",
@@ -349,6 +351,7 @@ export async function POST(request: Request) {
           model: kleinAttempt.model,
           provider: kleinAttempt.provider,
           styleMode,
+          generatedAspectRatio: "1:4",
           fallbackFrom: "gpt-image-2",
           attempts: generationGuard.attempts,
           remaining: generationGuard.remaining,
@@ -368,6 +371,7 @@ export async function POST(request: Request) {
           model: geminiAttempt.model,
           provider: geminiAttempt.provider,
           styleMode,
+          generatedAspectRatio: "1:4",
           fallbackFrom: attempted.length > 1 ? attempted.slice(0, -1) : undefined,
           attempts: generationGuard.attempts,
           remaining: generationGuard.remaining,
