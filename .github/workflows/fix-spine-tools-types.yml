@@ -1,0 +1,56 @@
+name: Fix SpineTools type narrowing
+
+on:
+  push:
+    branches:
+      - ci-only/architecture-batch-20260812
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ci-only/architecture-batch-20260812
+
+      - name: Capture confirmed cover URL for async handlers
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("app/components/SpineTools.tsx")
+          text = path.read_text()
+
+          marker = '  if (!coverUrl) return null;\n\n'
+          if marker not in text:
+              raise SystemExit("SpineTools cover guard not found")
+          text = text.replace(marker, marker + '  const confirmedCoverUrl = coverUrl;\n\n', 1)
+
+          replacements = {
+              '          coverUrl,\n          image: data.sharedSpine,': '          coverUrl: confirmedCoverUrl,\n          image: data.sharedSpine,',
+              '      await saveGeneratedSpine(coverUrl, aiPreview.image, "integrated");': '      await saveGeneratedSpine(confirmedCoverUrl, aiPreview.image, "integrated");',
+              '      emitSpine({ coverUrl, image: aiPreview.image, renderMode: "integrated" });': '      emitSpine({ coverUrl: confirmedCoverUrl, image: aiPreview.image, renderMode: "integrated" });',
+              '    const image = generatedSpineUrl(coverUrl, cropPosition);': '    const image = generatedSpineUrl(confirmedCoverUrl, cropPosition);',
+              '      await saveGeneratedSpine(coverUrl, image, "overlay");': '      await saveGeneratedSpine(confirmedCoverUrl, image, "overlay");',
+              '      emitSpine({ coverUrl, image, position: cropPosition, renderMode: "overlay" });': '      emitSpine({ coverUrl: confirmedCoverUrl, image, position: cropPosition, renderMode: "overlay" });',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f"Expected SpineTools pattern not found: {old}")
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+
+      - name: Commit type fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/components/SpineTools.tsx
+          git commit -m "Fix React spine tool cover URL narrowing"
+          git push origin HEAD:ci-only/architecture-batch-20260812
