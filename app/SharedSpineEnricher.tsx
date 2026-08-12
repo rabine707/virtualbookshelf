@@ -1,66 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
+import {
+  applySpineTypographyMode,
+  hasLocalSpine,
+  splitBookIdentity,
+  type SpineGeneratedEventDetail,
+  type SpineRenderMode,
+} from "../lib/spines/client";
 import { loadSharedSpineCatalog, publishSharedSpine, titleAuthorKey } from "./shared-spines";
-
-const DB_NAME = "shelf-of-fame-art";
-const STORE_NAME = "generated-spines";
-const DB_VERSION = 1;
-
-type SpineRenderMode = "integrated" | "overlay";
-
-type SpineEventDetail = {
-  coverUrl: string;
-  image: string;
-  position?: "left" | "center" | "right";
-  renderMode?: SpineRenderMode;
-  shared?: boolean;
-};
-
-function openDb() {
-  return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function hasLocalSpine(coverUrl: string) {
-  try {
-    const db = await openDb();
-    const value = await new Promise<boolean>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const request = tx.objectStore(STORE_NAME).get(coverUrl);
-      request.onsuccess = () => resolve(typeof request.result === "string" && Boolean(request.result));
-      request.onerror = () => reject(request.error);
-    });
-    db.close();
-    return value;
-  } catch {
-    return false;
-  }
-}
 
 function setTypographyMode(button: HTMLButtonElement, renderMode: SpineRenderMode) {
   const spine = button.querySelector<HTMLElement>(".generated-spine");
   if (!spine) return;
-  spine.dataset.typography = renderMode;
-  const hidden = renderMode === "integrated";
-  const title = spine.querySelector<HTMLElement>(".generated-spine-title");
-  const author = spine.querySelector<HTMLElement>(".generated-spine-author");
-  if (title) title.hidden = hidden;
-  if (author) author.hidden = hidden;
-}
-
-function splitBookIdentity(button: HTMLButtonElement) {
-  const raw = button.title || "";
-  const splitAt = raw.lastIndexOf(" — ");
-  if (splitAt < 0) return { title: raw.trim(), author: "" };
-  return { title: raw.slice(0, splitAt).trim(), author: raw.slice(splitAt + 3).trim() };
+  applySpineTypographyMode(spine, renderMode);
 }
 
 function modalDetail(label: string) {
@@ -101,7 +54,7 @@ async function applySharedSpines() {
     if (!coverUrl || !art || !art.isConnected) return;
     if (await hasLocalSpine(coverUrl)) return;
 
-    const identity = splitBookIdentity(button);
+    const identity = splitBookIdentity(button.title || "");
     const shared = catalog.byCover.get(coverUrl) || catalog.byTitleAuthor.get(titleAuthorKey(identity.title, identity.author));
     if (!shared || !art.isConnected) return;
 
@@ -123,7 +76,7 @@ export default function SharedSpineEnricher() {
     };
 
     const onGenerated = (event: Event) => {
-      const detail = (event as CustomEvent<SpineEventDetail>).detail;
+      const detail = (event as CustomEvent<SpineGeneratedEventDetail>).detail;
       if (!detail?.coverUrl || !detail.image) return;
       if (detail.shared) {
         scheduleApply();
