@@ -1,8 +1,8 @@
-/* Botanical v3: illustrated room environment around the real interactive library. */
+/* Botanical room atmosphere: make the real library feel embedded in a warm plant-filled study. */
 
 .botanical-v3-room,
 .botanical-v3-foreground,
-.botanical-row-prop {
+.botanical-row-decor {
   pointer-events: none;
   user-select: none;
 }
@@ -15,66 +15,259 @@
   overflow: hidden;
 }
 
-html[data-shelf-theme="botanical"] .botanical-v3-room { display: block; z-index: 0; }
-html[data-shelf-theme="botanical"] .botanical-v3-foreground { display: block; z-index: 8; }
+html[data-shelf-theme="botanical"] .botanical-v3-room {
+  display: block;
+  z-index: 0;
+}
+
+html[data-shelf-theme="botanical"] .botanical-v3-foreground {
+  display: block;
+  z-index: 2;
+}
 
 html[data-shelf-theme="botanical"] body {
   background:
-    radial-gradient(circle at 9% 13%, rgba(223,229,178,.14), transparent 27%),
-    radial-gradient(circle at 84% 8%, rgba(111,144,82,.12), transparent 29%),
-    linear-gradient(180deg,#1a2a1c 0%,#101a12 50%,#09100b 100%) !important;
+    radial-gradient(ellipse at 4% 12%, rgba(238, 226, 165, .18), transparent 26%),
+    radial-gradient(ellipse at 70% 4%, rgba(118, 151, 88, .09), transparent 31%),
+    radial-gradient(ellipse at 50% 70%, rgba(9, 21, 12, .04), rgba(4, 10, 6, .38) 78%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.011) 0 1px, transparent 1px 5px),
+    linear-gradient(180deg, #1d301f 0%, #132317 44%, #0a130d 100%) !important;
+  background-attachment: fixed !important;
 }
 
-html[data-shelf-theme="botanical"] main { position: relative; z-index: 3; }
+html[data-shelf-theme="botanical"] main {
+  position: relative;
+  z-index: 3;
+  width: min(1420px, calc(100% - 28px));
+  padding-top: 26px;
+}
+
+/* Let the title and controls belong to the room instead of a floating dashboard card. */
+html[data-shelf-theme="botanical"] .reader-hero {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  padding: 18px 28px 12px !important;
+}
+
+html[data-shelf-theme="botanical"] .reader-hero h1 {
+  text-shadow: 0 3px 28px rgba(0,0,0,.28);
+}
+
+html[data-shelf-theme="botanical"] .reader-hero .subhead {
+  max-width: 720px;
+}
+
+html[data-shelf-theme="botanical"] .reader-toolbar {
+  margin: 8px 18px 12px;
+}
+
+html[data-shelf-theme="botanical"] .reader-toolbar .search,
+html[data-shelf-theme="botanical"] .reader-toolbar select,
+html[data-shelf-theme="botanical"] .reader-toolbar .count-pill,
+html[data-shelf-theme="botanical"] .reader-toolbar .page-refresh-button {
+  background: rgba(7, 20, 11, .72) !important;
+  border-color: rgba(183, 204, 156, .22) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.025), 0 8px 22px rgba(0,0,0,.08) !important;
+  backdrop-filter: blur(8px);
+}
+
+/* Room layers behind the app. */
+.botanical-room-wall-wash {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(245,229,159,.075), transparent 23%, transparent 78%, rgba(0,0,0,.12)),
+    radial-gradient(ellipse at 50% 22%, rgba(181,203,139,.035), transparent 46%);
+}
+
+.botanical-room-window-light {
+  position: absolute;
+  top: -3vh;
+  left: -7vw;
+  width: min(720px, 48vw);
+  height: 94vh;
+  background:
+    linear-gradient(111deg, rgba(255,248,198,.16), rgba(220,235,174,.07) 32%, transparent 66%);
+  clip-path: polygon(0 0, 72% 0, 100% 100%, 0 100%);
+  filter: blur(18px);
+  opacity: .85;
+}
 
 .botanical-room-window {
   position: absolute;
-  top: 64px;
-  left: calc(50% - 770px);
-  width: clamp(340px,29vw,465px);
+  top: 28px;
+  left: max(-108px, calc(50% - 880px));
+  width: clamp(430px, 31vw, 560px);
   height: auto;
-  opacity: .93;
-  filter: saturate(.91) brightness(.82) contrast(1.02) drop-shadow(24px 18px 34px rgba(0,0,0,.38));
+  opacity: .96;
+  transform: rotate(-.6deg);
+  transform-origin: top left;
+  filter:
+    saturate(.96)
+    brightness(.88)
+    contrast(1.04)
+    drop-shadow(28px 24px 42px rgba(0,0,0,.38));
+}
+
+.botanical-room-vine-left {
+  position: absolute;
+  top: -42px;
+  left: max(-78px, calc(50% - 790px));
+  width: clamp(190px, 15vw, 270px);
+  height: auto;
+  opacity: .56;
+  transform: scaleX(-1) rotate(-10deg);
+  transform-origin: top center;
+  filter: saturate(.96) brightness(.74) drop-shadow(0 18px 24px rgba(0,0,0,.3));
+}
+
+.botanical-room-vine-canopy {
+  position: absolute;
+  top: -82px;
+  left: calc(50% + 125px);
+  width: clamp(190px, 15vw, 280px);
+  height: auto;
+  opacity: .42;
+  transform: rotate(18deg);
+  transform-origin: top center;
+  filter: saturate(.9) brightness(.67) drop-shadow(0 18px 22px rgba(0,0,0,.32));
 }
 
 .botanical-room-vine-right {
   position: absolute;
-  top: 54px;
-  right: calc(50% - 790px);
-  width: clamp(175px,17vw,250px);
+  top: 58px;
+  right: max(-70px, calc(50% - 875px));
+  width: clamp(185px, 15vw, 270px);
   height: auto;
-  opacity: .72;
-  filter: saturate(.88) brightness(.70) drop-shadow(0 16px 22px rgba(0,0,0,.38));
+  opacity: .62;
+  filter: saturate(.92) brightness(.70) drop-shadow(0 18px 24px rgba(0,0,0,.34));
 }
 
-/* Nine-slice walnut cabinet frame + real green backing texture. */
+.botanical-room-frame {
+  position: absolute;
+  top: 118px;
+  right: max(18px, calc(50% - 850px));
+  width: 174px;
+  height: 222px;
+  padding: 10px;
+  border: 6px ridge rgba(74, 47, 25, .94);
+  background: linear-gradient(135deg, #4b2d17, #24150c);
+  box-shadow: 0 14px 30px rgba(0,0,0,.34), inset 0 0 0 2px rgba(221,183,115,.16);
+  transform: rotate(1.1deg);
+  opacity: .72;
+}
+
+.botanical-room-frame-paper {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(255,255,255,.58), transparent 30%),
+    linear-gradient(180deg, #b9ad82, #8c805e);
+  box-shadow: inset 0 0 18px rgba(55,42,23,.28);
+}
+
+.botanical-room-frame-stem,
+.botanical-room-frame-cap {
+  position: absolute;
+  display: block;
+  background: rgba(57, 68, 42, .74);
+}
+
+.botanical-room-frame-stem {
+  width: 3px;
+  height: 118px;
+  bottom: 28px;
+  transform-origin: bottom center;
+}
+
+.botanical-room-frame-stem-one { left: 58px; transform: rotate(-12deg); }
+.botanical-room-frame-stem-two { right: 52px; transform: rotate(15deg); height: 104px; }
+
+.botanical-room-frame-cap {
+  width: 44px;
+  height: 25px;
+  border-radius: 55% 45% 52% 48%;
+  background:
+    radial-gradient(ellipse at 50% 70%, transparent 20%, rgba(53,64,41,.75) 22% 46%, transparent 48%),
+    rgba(44,54,35,.15);
+}
+
+.botanical-room-frame-cap-one { top: 48px; left: 36px; transform: rotate(-14deg); }
+.botanical-room-frame-cap-two { top: 72px; right: 30px; transform: rotate(18deg) scale(.86); }
+
+.botanical-room-grain {
+  position: absolute;
+  inset: 0;
+  opacity: .12;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.018) 0 1px, transparent 1px 6px);
+  mix-blend-mode: soft-light;
+}
+
+/* Walnut cabinet with more architectural weight and a recessed wall-backed interior. */
 html[data-shelf-theme="botanical"] .bookcase {
   position: relative;
   isolation: isolate;
   overflow: visible !important;
-  margin-top: 28px;
-  padding: 22px 26px 34px !important;
-  border: 30px solid transparent !important;
+  margin: 24px 6px 0;
+  padding: 24px 30px 38px !important;
+  border: 32px solid transparent !important;
   border-radius: 3px !important;
   border-image-source: url("/themes/botanical/v3/cabinet-frame.webp") !important;
   border-image-slice: 52 fill !important;
-  border-image-width: 30px !important;
+  border-image-width: 32px !important;
   border-image-repeat: stretch !important;
   background:
-    linear-gradient(90deg,rgba(4,10,6,.43),transparent 8%,transparent 92%,rgba(4,10,6,.46)),
-    linear-gradient(180deg,rgba(255,255,255,.018),rgba(0,0,0,.16)),
+    linear-gradient(90deg, rgba(2,8,4,.55), transparent 5%, transparent 95%, rgba(2,8,4,.58)),
+    radial-gradient(ellipse at 50% 0%, rgba(184,143,76,.08), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,.014), rgba(0,0,0,.20)),
     url("/themes/botanical/v3/back-texture.webp") center top / 100% 420px repeat-y !important;
   box-shadow:
-    inset 25px 0 34px rgba(0,0,0,.23),
-    inset -25px 0 34px rgba(0,0,0,.25),
-    0 30px 55px rgba(0,0,0,.42) !important;
+    inset 31px 0 42px rgba(0,0,0,.28),
+    inset -31px 0 42px rgba(0,0,0,.30),
+    inset 0 22px 30px rgba(0,0,0,.14),
+    0 38px 75px rgba(0,0,0,.44) !important;
 }
 
-/* Warm recessed cubbies. */
+html[data-shelf-theme="botanical"] .bookcase::before {
+  content: "";
+  position: absolute;
+  z-index: 14;
+  top: -43px;
+  left: -32px;
+  right: -32px;
+  height: 34px;
+  border-radius: 3px 3px 0 0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.09), transparent 20%),
+    linear-gradient(180deg, #5c341e 0%, #321a0f 52%, #1d100a 100%);
+  box-shadow: 0 12px 18px rgba(0,0,0,.30), inset 0 -2px rgba(0,0,0,.44);
+  pointer-events: none;
+}
+
+html[data-shelf-theme="botanical"] .bookcase::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 9% 18%, rgba(150,184,108,.06), transparent 21%),
+    radial-gradient(ellipse at 88% 12%, rgba(255,178,78,.045), transparent 21%);
+  pointer-events: none;
+}
+
+/* Warm recessed cubbies and deeper shelf contact shadows. */
 html[data-shelf-theme="botanical"] .shelf-row {
   position: relative;
   isolation: isolate;
-  min-height: 270px;
+  min-height: 274px;
   margin: 0 !important;
 }
 
@@ -82,12 +275,14 @@ html[data-shelf-theme="botanical"] .shelf-row::before {
   content: "";
   position: absolute;
   z-index: 1;
-  top: -1px;
-  left: 5%;
-  right: 5%;
-  height: 118px;
-  background: radial-gradient(ellipse at 50% 0%,rgba(255,184,90,.22),rgba(255,164,67,.07) 43%,transparent 72%);
-  filter: blur(3px);
+  top: -2px;
+  left: 3%;
+  right: 3%;
+  height: 132px;
+  background:
+    radial-gradient(ellipse at 72% 0%, rgba(255,178,82,.14), transparent 42%),
+    radial-gradient(ellipse at 32% 0%, rgba(225,191,111,.09), transparent 44%);
+  filter: blur(4px);
   pointer-events: none;
 }
 
@@ -95,116 +290,319 @@ html[data-shelf-theme="botanical"] .shelf-row::after {
   content: "";
   position: absolute;
   z-index: 2;
-  inset: 0 0 34px;
+  inset: 0 0 36px;
   background:
-    linear-gradient(90deg,rgba(0,0,0,.22),transparent 8%,transparent 92%,rgba(0,0,0,.24)),
-    radial-gradient(ellipse at 50% 100%,rgba(201,157,92,.055),transparent 64%);
+    linear-gradient(90deg, rgba(0,0,0,.28), transparent 8%, transparent 92%, rgba(0,0,0,.30)),
+    linear-gradient(180deg, rgba(0,0,0,.06), transparent 25%, transparent 75%, rgba(0,0,0,.12));
   pointer-events: none;
 }
 
 html[data-shelf-theme="botanical"] .books {
   position: relative;
   z-index: 7 !important;
-  min-height: 238px !important;
-  padding: 24px 34px 0 !important;
+  min-height: 240px !important;
+  padding: 24px 36px 0 !important;
   gap: 8px;
 }
 
 html[data-shelf-theme="botanical"] .book {
   z-index: 7;
-  filter: drop-shadow(0 8px 7px rgba(0,0,0,.31));
+  filter: drop-shadow(0 9px 8px rgba(0,0,0,.34));
 }
 
 html[data-shelf-theme="botanical"] .book:hover,
-html[data-shelf-theme="botanical"] .book:focus-visible { z-index: 12; }
+html[data-shelf-theme="botanical"] .book:focus-visible {
+  z-index: 12;
+}
 
-/* One production asset contains the shelf surface, bevel and contact shadow. */
 html[data-shelf-theme="botanical"] .wood-shelf {
   position: relative;
   z-index: 11 !important;
-  height: 42px !important;
+  height: 44px !important;
   margin: -2px 0 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: url("/themes/botanical/v3/shelf-strip.webp") center / 100% 100% no-repeat !important;
   box-shadow: none !important;
-  filter: brightness(.84) saturate(.9) drop-shadow(0 9px 8px rgba(0,0,0,.44));
+  filter: brightness(.80) saturate(.96) drop-shadow(0 11px 10px rgba(0,0,0,.48));
 }
 
-/* Sparse designer-placed greenery. */
-.botanical-row-prop {
+/* Designer-placed shelf atmosphere. */
+.botanical-row-decor {
   position: absolute;
   z-index: 6;
-  bottom: 39px;
-  width: 108px;
+  bottom: 42px;
+  width: 126px;
+  height: 190px;
   display: flex;
   align-items: end;
   justify-content: center;
 }
-.botanical-row-prop-left { left: 20px; }
-.botanical-row-prop-right { right: 20px; }
-.botanical-row-prop img {
+
+.botanical-row-decor-left { left: 18px; }
+.botanical-row-decor-right { right: 18px; }
+
+.botanical-row-decor-plant img {
   display: block;
-  width: 100%;
+  width: 116px;
   height: auto;
-  filter: saturate(.88) brightness(.76) contrast(1.03) drop-shadow(0 10px 9px rgba(0,0,0,.42));
+  filter: saturate(.93) brightness(.79) contrast(1.04) drop-shadow(0 12px 10px rgba(0,0,0,.44));
 }
 
-html[data-shelf-theme="botanical"] .shelf-row.botanical-prop-left .books {
-  padding-left: 138px !important;
-  padding-right: 25px !important;
-}
-html[data-shelf-theme="botanical"] .shelf-row.botanical-prop-right .books {
-  padding-left: 25px !important;
-  padding-right: 138px !important;
+html[data-shelf-theme="botanical"] .shelf-row.botanical-decor-left .books {
+  padding-left: 154px !important;
 }
 
-@media (max-width:1180px) {
-  .botanical-room-window { left:-150px; width:370px; opacity:.66; }
-  .botanical-room-vine-right { right:-72px; width:195px; opacity:.52; }
+html[data-shelf-theme="botanical"] .shelf-row.botanical-decor-right .books {
+  padding-right: 154px !important;
 }
 
-/* Mobile keeps the room signature but never sacrifices book width. */
-@media (max-width:760px) {
-  .botanical-room-window {
-    top:70px;
-    left:-150px;
-    width:245px;
-    opacity:.25;
-    filter:saturate(.82) brightness(.66) drop-shadow(14px 12px 20px rgba(0,0,0,.3));
+html[data-shelf-theme="botanical"] .shelf-row.botanical-decor-both .books {
+  padding-left: 154px !important;
+  padding-right: 154px !important;
+}
+
+/* Warm glass table lamp, intentionally built in CSS so it stays crisp at every scale. */
+.botanical-row-decor-lamp {
+  height: 206px;
+  overflow: visible;
+}
+
+.botanical-lamp-glow {
+  position: absolute;
+  left: 50%;
+  bottom: 34px;
+  width: 210px;
+  height: 220px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,188,92,.25), rgba(255,155,52,.09) 34%, transparent 68%);
+  filter: blur(5px);
+}
+
+.botanical-lamp-shade {
+  position: absolute;
+  left: 50%;
+  bottom: 78px;
+  width: 86px;
+  height: 105px;
+  transform: translateX(-50%);
+  border: 2px solid rgba(150,103,43,.76);
+  border-radius: 40% 40% 34% 34% / 24% 24% 68% 68%;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.13), transparent 28% 70%, rgba(76,42,16,.16)),
+    rgba(230,184,111,.10);
+  box-shadow: inset 0 0 20px rgba(255,205,117,.19), 0 0 18px rgba(255,177,75,.08);
+}
+
+.botanical-lamp-shade i {
+  position: absolute;
+  left: 50%;
+  top: 38px;
+  width: 18px;
+  height: 30px;
+  transform: translateX(-50%);
+  border-radius: 55% 55% 42% 42%;
+  background: #f8c671;
+  box-shadow: 0 0 18px rgba(255,183,76,.62), 0 0 38px rgba(255,168,57,.30);
+}
+
+.botanical-lamp-stem {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  width: 8px;
+  height: 58px;
+  transform: translateX(-50%);
+  border-radius: 6px;
+  background: linear-gradient(90deg, #6f431d, #c2934e 45%, #4b2c16);
+  box-shadow: 3px 3px 7px rgba(0,0,0,.3);
+}
+
+.botanical-lamp-base {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 76px;
+  height: 22px;
+  transform: translateX(-50%);
+  border-radius: 50% 50% 18% 18%;
+  background: linear-gradient(180deg, #b5823e, #624018 66%, #3a240f);
+  box-shadow: 0 6px 9px rgba(0,0,0,.32), inset 0 2px rgba(255,227,170,.18);
+}
+
+/* Small framed landscape for an inhabited-shelf feel. */
+.botanical-row-decor-frame {
+  align-items: end;
+}
+
+.botanical-mini-frame {
+  position: relative;
+  display: block;
+  width: 108px;
+  height: 78px;
+  margin-bottom: 13px;
+  overflow: hidden;
+  border: 7px ridge #4a2c18;
+  background: #b0a277;
+  box-shadow: 0 9px 12px rgba(0,0,0,.36), inset 0 0 0 1px rgba(239,214,157,.13);
+  transform: rotate(-1.4deg);
+}
+
+.botanical-mini-frame-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #8b9b76 0 48%, #706a48 48% 100%);
+}
+
+.botanical-mini-frame-hill {
+  position: absolute;
+  left: -12px;
+  right: -12px;
+  bottom: -20px;
+  height: 58px;
+  border-radius: 50% 50% 0 0;
+  background: #3f5238;
+  transform: rotate(-6deg);
+  box-shadow: 42px -9px 0 -8px #536447;
+}
+
+/* Stack of old books plus a tiny candle. */
+.botanical-row-decor-candle-stack {
+  height: 116px;
+  align-items: end;
+}
+
+.botanical-stack-book {
+  position: absolute;
+  left: 50%;
+  height: 13px;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  box-shadow: 0 4px 6px rgba(0,0,0,.27), inset 0 1px rgba(255,255,255,.10);
+}
+
+.botanical-stack-book-one { bottom: 13px; width: 116px; background: #596341; }
+.botanical-stack-book-two { bottom: 27px; width: 101px; background: #7b6139; transform: translateX(-50%) rotate(-2deg); }
+.botanical-stack-book-three { bottom: 41px; width: 108px; background: #4c583c; transform: translateX(-50%) rotate(1.3deg); }
+
+.botanical-stack-candle {
+  position: absolute;
+  left: 50%;
+  bottom: 54px;
+  width: 38px;
+  height: 34px;
+  transform: translateX(-50%);
+  border: 2px solid rgba(222,207,165,.34);
+  border-radius: 4px 4px 10px 10px;
+  background: rgba(222,211,171,.12);
+  box-shadow: inset 0 0 12px rgba(255,205,116,.08), 0 0 14px rgba(255,170,65,.08);
+}
+
+.botanical-stack-candle i {
+  position: absolute;
+  left: 50%;
+  top: -15px;
+  width: 9px;
+  height: 17px;
+  transform: translateX(-50%);
+  border-radius: 55% 55% 48% 48%;
+  background: #ffc66c;
+  box-shadow: 0 0 12px rgba(255,175,64,.54), 0 0 22px rgba(255,158,42,.24);
+}
+
+@media (max-width: 1280px) {
+  html[data-shelf-theme="botanical"] main { width: min(1180px, calc(100% - 28px)); }
+  .botanical-room-window { left: -155px; width: 430px; opacity: .76; }
+  .botanical-room-vine-left { left: -45px; width: 210px; opacity: .38; }
+  .botanical-room-vine-right { right: -78px; width: 205px; opacity: .42; }
+  .botanical-room-frame { right: -36px; opacity: .36; transform: scale(.85) rotate(1deg); }
+  html[data-shelf-theme="botanical"] .bookcase { margin-left: 0; margin-right: 0; }
+}
+
+/* Mobile preserves the room signature but never sacrifices book width or controls. */
+@media (max-width: 760px) {
+  html[data-shelf-theme="botanical"] main {
+    width: min(100% - 14px, 1180px);
+    padding-top: 10px;
   }
-  .botanical-room-vine-right { top:68px; right:-72px; width:128px; opacity:.20; }
+
+  html[data-shelf-theme="botanical"] .reader-hero {
+    padding: 12px 10px 8px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-toolbar {
+    margin-left: 2px;
+    margin-right: 2px;
+  }
+
+  .botanical-room-window {
+    top: 78px;
+    left: -158px;
+    width: 255px;
+    opacity: .20;
+    filter: saturate(.82) brightness(.66) drop-shadow(14px 12px 20px rgba(0,0,0,.3));
+  }
+
+  .botanical-room-window-light { opacity: .30; width: 82vw; }
+  .botanical-room-vine-left,
+  .botanical-room-vine-canopy,
+  .botanical-room-frame { display: none; }
+  .botanical-room-vine-right { top: 76px; right: -78px; width: 132px; opacity: .16; }
 
   html[data-shelf-theme="botanical"] .bookcase {
-    margin-top:17px;
-    padding:15px 8px 24px !important;
-    border-width:17px !important;
-    border-image-width:17px !important;
+    margin-top: 17px;
+    padding: 15px 8px 24px !important;
+    border-width: 17px !important;
+    border-image-width: 17px !important;
   }
 
-  html[data-shelf-theme="botanical"] .shelf-row { min-height:246px; }
-  html[data-shelf-theme="botanical"] .books,
-  html[data-shelf-theme="botanical"] .shelf-row.botanical-prop-left .books,
-  html[data-shelf-theme="botanical"] .shelf-row.botanical-prop-right .books {
-    min-height:218px !important;
-    padding:18px 3px 0 !important;
-    gap:5px !important;
+  html[data-shelf-theme="botanical"] .bookcase::before {
+    top: -27px;
+    left: -17px;
+    right: -17px;
+    height: 22px;
   }
-  .botanical-row-prop { display:none !important; }
-  html[data-shelf-theme="botanical"] .wood-shelf { height:34px !important; }
+
+  html[data-shelf-theme="botanical"] .shelf-row { min-height: 246px; }
+
+  html[data-shelf-theme="botanical"] .books,
+  html[data-shelf-theme="botanical"] .shelf-row.botanical-decor-left .books,
+  html[data-shelf-theme="botanical"] .shelf-row.botanical-decor-right .books,
+  html[data-shelf-theme="botanical"] .shelf-row.botanical-decor-both .books {
+    min-height: 218px !important;
+    padding: 18px 3px 0 !important;
+    gap: 5px !important;
+  }
+
+  .botanical-row-decor { display: none !important; }
+  html[data-shelf-theme="botanical"] .wood-shelf { height: 34px !important; }
 }
 
-@media (prefers-reduced-motion:no-preference) and (min-width:761px) {
-  .botanical-room-window { animation:botanical-window-drift 18s ease-in-out infinite alternate; }
-  @keyframes botanical-window-drift {
-    from { transform:translate3d(0,0,0); }
-    to { transform:translate3d(0,-7px,0); }
+@media (prefers-reduced-motion: no-preference) and (min-width: 761px) {
+  .botanical-room-vine-left { animation: botanical-vine-left-drift 10s ease-in-out infinite alternate; }
+  .botanical-room-vine-right { animation: botanical-vine-right-drift 12s ease-in-out infinite alternate; }
+  .botanical-lamp-shade i,
+  .botanical-stack-candle i { animation: botanical-flame-breathe 2.8s ease-in-out infinite alternate; }
+
+  @keyframes botanical-vine-left-drift {
+    from { transform: scaleX(-1) rotate(-10deg); }
+    to { transform: scaleX(-1) rotate(-7deg) translateY(5px); }
+  }
+
+  @keyframes botanical-vine-right-drift {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(1.8deg) translateY(4px); }
+  }
+
+  @keyframes botanical-flame-breathe {
+    from { filter: brightness(.92); opacity: .88; }
+    to { filter: brightness(1.15); opacity: 1; }
   }
 }
 
 /* The botanical shelf uses a dark room, but the book profile modal intentionally
-   stays parchment-light. Give that light surface its own readable ink palette
-   instead of inheriting the shelf's pale body text. */
+   stays parchment-light. Give that light surface its own readable ink palette. */
 html[data-shelf-theme="botanical"] .modal {
   color: #493f35;
 }
