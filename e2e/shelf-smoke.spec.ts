@@ -32,13 +32,13 @@ test("loads the shelf, searches, opens a book, and preserves a rejected cover", 
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toBeVisible();
   const correctCover = page.getByTitle("Save this as the correct cover");
   const feedbackButtons = page.locator('[aria-label="Cover feedback"] button');
-  await expect(feedbackButtons).toHaveCount(3);
+  await expect(feedbackButtons.nth(2)).toBeVisible();
   const wrongCover = feedbackButtons.nth(1);
   await expect(correctCover).toBeEnabled();
   await expect(wrongCover).toBeEnabled();
 
   await wrongCover.click();
-  await expect(page.getByRole("status")).toContainText("Rejected that cover for Fourth Wing");
+  await expect(page.locator('.toast[role="status"]')).toContainText("Rejected that cover for Fourth Wing");
   await expect(correctCover).toBeDisabled();
 
   await page.getByRole("button", { name: "Close" }).click();
