@@ -166,11 +166,16 @@ test("saved cover choices are managed by React without reloading the page", asyn
 
   await page.getByTitle("Save this as the correct cover").click();
   const secondCover = await revealSecondCover(page);
-  await secondCover.click();
-
   await page.evaluate(() => {
     (window as typeof window & { __savedCoverMarker?: string }).__savedCoverMarker = "alive";
   });
+  await secondCover.click();
+
+  await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { __savedCoverMarker?: string }).__savedCoverMarker)).toBe("alive");
+
+  await page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]').click();
+  await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toBeVisible();
 
   const savedOption = page.getByRole("button", { name: "Use saved Google Books cover" });
   await expect(savedOption).toBeVisible();
