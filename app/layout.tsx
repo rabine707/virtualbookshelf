@@ -34,7 +34,10 @@ import "./theme-ui-polish.css";
 import "./desktop-toolbar-refine.css";
 import "./shelf-art-polish.css";
 import "./botanical-v3.css";
+import "./bookshelf-3d-prototype.css";
+import "./prototype-page.css";
 import ClientEnhancers from "./ClientEnhancers";
+import ThreeDPrototypeLauncher from "./ThreeDPrototypeLauncher";
 
 export const metadata: Metadata = {
   title: "Virtual Bookshelf",
@@ -47,6 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         {children}
         <ClientEnhancers />
+        <ThreeDPrototypeLauncher />
       </body>
     </html>
   );
