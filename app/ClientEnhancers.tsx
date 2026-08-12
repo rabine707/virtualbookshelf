@@ -9,15 +9,12 @@ import CloudAccountSettings from "./CloudAccountSettings";
 import CloudSyncEnricher from "./CloudSyncEnricher";
 import CommunityCoverSync from "./CommunityCoverSync";
 import CoreInteractionEnricher from "./CoreInteractionEnricher";
-import CoverDecisionSafety from "./CoverDecisionSafety";
-import CoverSearchCleanup from "./CoverSearchCleanup";
 import HelpShelfLauncher from "./HelpShelfLauncher";
 import IdentifierEditor from "./IdentifierEditor";
 import MobileTapFix from "./MobileTapFix";
 import ModalScrollLock from "./ModalScrollLock";
 import PageRefreshButton from "./PageRefreshButton";
 import QoLEnricher from "./QoLEnricher";
-import ReaderUiCleanup from "./ReaderUiCleanup";
 import RemoveAudibleImport from "./RemoveAudibleImport";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import SavedCoverChoices from "./SavedCoverChoices";
@@ -126,8 +123,6 @@ export default function ClientEnhancers() {
     <HelpShelfLauncher />
     <CoreInteractionEnricher />
     <ModalScrollLock />
-    <CoverDecisionSafety />
-    <CoverSearchCleanup />
     <SavedCoverChoices />
     <CommunityCoverSync />
     <WebCoverEnricher />
@@ -146,7 +141,6 @@ export default function ClientEnhancers() {
     <RemoveAudibleImport />
     <ThemeEnricher />
     <BotanicalSceneEnricher />
-    <ReaderUiCleanup />
     <QoLEnricher />
     <MobileBottomNav />
   </>;

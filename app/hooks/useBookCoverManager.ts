@@ -21,6 +21,18 @@ type UseBookCoverManagerOptions = {
   showToast: (message: string) => void;
 };
 
+type CoverUndoState = {
+  snapshot: Book;
+  cover: CoverResult;
+  coverOptions: CoverResult[];
+  kind: "wrong" | "edition";
+};
+
+type BookWithCoverLookupState = Book & {
+  romanceioCheckedAt?: number;
+  romanceioNoMatch?: boolean;
+};
+
 export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManagerOptions) {
   const [selected, setSelected] = useState<Book | null>(null);
   const [cover, setCover] = useState<CoverResult | null>(null);
@@ -28,6 +40,7 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
   const [coverLoading, setCoverLoading] = useState(false);
   const [deepSearchLoading, setDeepSearchLoading] = useState(false);
   const [deepSearchDone, setDeepSearchDone] = useState(false);
+  const [coverUndo, setCoverUndo] = useState<CoverUndoState | null>(null);
 
   useEffect(() => {
     if (!selected) {
@@ -90,6 +103,12 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
   }, [selected?.id, selected?.coverFeedback, selected?.preferredCover, setBooks]);
 
   const selectedIsbn = selected ? isbnForBook(selected) : undefined;
+  const canResetCoverChoices = Boolean(
+    selected?.preferredCover?.url
+      || selected?.coverFeedback?.accepted
+      || selected?.coverFeedback?.rejected?.length
+      || selected?.coverFeedback?.wrongEdition?.length,
+  );
 
   function chooseCover(option: CoverResult) {
     if (!selected) return;
@@ -109,6 +128,7 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
 
   function rejectCurrentCover(kind: "wrong" | "edition") {
     if (!selected || !cover) return;
+    const snapshot = selected;
     const rejected = new Set(selected.coverFeedback?.rejected || []);
     const wrongEdition = new Set(selected.coverFeedback?.wrongEdition || []);
     if (kind === "edition") wrongEdition.add(cover.url);
@@ -128,6 +148,7 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
     const remaining = allowedCovers(updated, coverOptions.filter((option) => option.url !== cover.url));
     const next = remaining[0] || null;
 
+    setCoverUndo({ snapshot, cover, coverOptions, kind });
     setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
     setSelected(updated);
     setCoverOptions(remaining);
@@ -138,6 +159,46 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
     showToast(kind === "edition"
       ? `Rejected that edition for ${selected.title}. It won't be suggested again.`
       : `Rejected that cover for ${selected.title}. It won't be suggested again.`);
+  }
+
+  function undoCoverDecision() {
+    if (!coverUndo) return;
+    const snapshot = coverUndo.snapshot;
+    const key = coverKey(snapshot);
+    const restoredOptions = allowedCovers(snapshot, coverUndo.coverOptions);
+    const restoredCover = restoredOptions.find((option) => option.url === coverUndo.cover.url)
+      || coverUndo.cover;
+
+    coverOptionsMemory.set(key, restoredOptions);
+    coverMemory.set(key, restoredCover);
+    setBooks((current) => current.map((book) => book.id === snapshot.id ? snapshot : book));
+    setSelected(snapshot);
+    setCoverOptions(restoredOptions);
+    setCover(restoredCover);
+    setCoverUndo(null);
+    showToast(`Restored the previous cover choice for ${snapshot.title}.`);
+  }
+
+  function resetCoverChoices() {
+    if (!selected || !canResetCoverChoices) return;
+
+    const updated: BookWithCoverLookupState = { ...selected };
+    delete updated.preferredCover;
+    delete updated.coverFeedback;
+    delete updated.romanceioCheckedAt;
+    delete updated.romanceioNoMatch;
+    const key = coverKey(selected);
+
+    coverMemory.delete(key);
+    coverOptionsMemory.delete(key);
+    setCoverUndo(null);
+    setBooks((books) => books.map((book) => book.id === selected.id ? updated : book));
+    setSelected(updated);
+    setCover(null);
+    setCoverOptions([]);
+    setDeepSearchLoading(false);
+    setDeepSearchDone(false);
+    showToast(`Reset cover choices for ${selected.title}.`);
   }
 
   async function searchMoreCovers() {
@@ -224,8 +285,13 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
     coverLoading,
     deepSearchLoading,
     deepSearchDone,
+    canResetCoverChoices,
+    coverUndo,
     chooseCover,
     rejectCurrentCover,
+    undoCoverDecision,
+    dismissCoverUndo: () => setCoverUndo(null),
+    resetCoverChoices,
     searchMoreCovers,
   };
 }

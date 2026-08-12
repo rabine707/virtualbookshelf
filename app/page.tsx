@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { BookDetailsModal } from "./components/BookDetailsModal";
 import { Bookshelf } from "./components/Bookshelf";
+import { CoverUndoToast } from "./components/CoverUndoToast";
 import { ShelfToolbar } from "./components/ShelfToolbar";
 import { useBookCoverManager } from "./hooks/useBookCoverManager";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
@@ -28,8 +29,13 @@ export default function Home() {
     coverLoading,
     deepSearchLoading,
     deepSearchDone,
+    canResetCoverChoices,
+    coverUndo,
     chooseCover,
     rejectCurrentCover,
+    undoCoverDecision,
+    dismissCoverUndo,
+    resetCoverChoices,
     searchMoreCovers,
   } = useBookCoverManager({ setBooks, showToast });
   const [query, setQuery] = useState("");
@@ -58,21 +64,31 @@ export default function Home() {
 
   return (
     <main>
-      <header className="hero">
+      <header className="hero reader-hero">
         <div className="hero-copy">
           <p className="eyebrow">YOUR READING LIFE, ON DISPLAY</p>
           <h1>Shelf of Fame</h1>
           <p className="subhead">Turn the books you’ve read into a shelf worth showing off.</p>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button className="primary" onClick={() => goodreadsInput.current?.click()}>Import Goodreads</button>
+          <button className="primary reader-original-import" onClick={() => goodreadsInput.current?.click()}>Import Goodreads</button>
           <button
-            className="primary"
+            className="primary reader-original-import"
             onClick={() => audibleInput.current?.click()}
             title="Use: audible library export --format csv --output audible-library.csv"
           >
             Import Audible CSV
           </button>
+          <div className="reader-add-books">
+            <button
+              type="button"
+              className="primary reader-add-books-trigger"
+              aria-haspopup="dialog"
+              onClick={() => window.dispatchEvent(new Event("shelf-open-book-search"))}
+            >
+              ＋ Add books
+            </button>
+          </div>
         </div>
         <input ref={goodreadsInput} type="file" accept=".csv,text/csv" hidden onChange={importGoodreadsCsv} />
         <input ref={audibleInput} type="file" accept=".csv,text/csv" hidden onChange={importAudibleCsv} />
@@ -100,6 +116,14 @@ export default function Home() {
         </div>
       )}
 
+      {coverUndo && (
+        <CoverUndoToast
+          kind={coverUndo.kind}
+          onUndo={undoCoverDecision}
+          onDismiss={dismissCoverUndo}
+        />
+      )}
+
       {selected && (
         <BookDetailsModal
           selected={selected}
@@ -109,12 +133,14 @@ export default function Home() {
           coverLoading={coverLoading}
           deepSearchLoading={deepSearchLoading}
           deepSearchDone={deepSearchDone}
+          canResetCoverChoices={canResetCoverChoices}
           onClose={() => setSelected(null)}
           onClearCover={() => setCover(null)}
           onPreviewCover={setCover}
           onChooseCover={chooseCover}
           onRejectCurrentCover={rejectCurrentCover}
           onSearchMoreCovers={searchMoreCovers}
+          onResetCoverChoices={resetCoverChoices}
         />
       )}
     </main>

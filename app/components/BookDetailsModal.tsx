@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import {
   Book,
   coverSourceLabel,
@@ -14,12 +15,14 @@ type BookDetailsModalProps = {
   coverLoading: boolean;
   deepSearchLoading: boolean;
   deepSearchDone: boolean;
+  canResetCoverChoices: boolean;
   onClose: () => void;
   onClearCover: () => void;
   onPreviewCover: (option: CoverResult) => void;
   onChooseCover: (option: CoverResult) => void;
   onRejectCurrentCover: (kind: "wrong" | "edition") => void;
   onSearchMoreCovers: () => void;
+  onResetCoverChoices: () => void;
 };
 
 export function BookDetailsModal({
@@ -30,16 +33,68 @@ export function BookDetailsModal({
   coverLoading,
   deepSearchLoading,
   deepSearchDone,
+  canResetCoverChoices,
   onClose,
   onClearCover,
   onPreviewCover,
   onChooseCover,
   onRejectCurrentCover,
   onSearchMoreCovers,
+  onResetCoverChoices,
 }: BookDetailsModalProps) {
+  const modalRef = useRef<HTMLElement>(null);
+  const zeroSearchStartedFor = useRef<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    setShowAdvanced(false);
+  }, [selected.id]);
+
+  useEffect(() => {
+    zeroSearchStartedFor.current = null;
+  }, [selected.id, selected.coverFeedback, selected.preferredCover]);
+
+  useEffect(() => {
+    if (coverOptions.length) {
+      zeroSearchStartedFor.current = null;
+      return;
+    }
+    if (coverLoading || deepSearchLoading || deepSearchDone) return;
+    if (zeroSearchStartedFor.current === selected.id) return;
+    zeroSearchStartedFor.current = selected.id;
+    onSearchMoreCovers();
+  }, [coverLoading, coverOptions.length, deepSearchDone, deepSearchLoading, onSearchMoreCovers, selected.id]);
+
+  const summaryItems = [
+    selected.rating ? ["★", "★".repeat(Math.min(selected.rating, 5))] : null,
+    selected.year ? ["◷", selected.year] : null,
+    selected.shelf ? ["▤", selected.shelf] : null,
+  ].filter((item): item is [string, string] => Boolean(item));
+
+  const scrollToSpineTools = () => {
+    const modal = modalRef.current;
+    const target = modal?.querySelector<HTMLElement>(".generate-spine-button")
+      || modal?.querySelector<HTMLElement>('[aria-label="Cover feedback"]');
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const scrollToCoverPicker = () => {
+    modalRef.current?.querySelector<HTMLElement>(".cover-picker")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const hasCoverOptions = coverOptions.length > 0;
+
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <article className="modal" role="dialog" aria-modal="true" aria-label={selected.title} onClick={(event) => event.stopPropagation()}>
+      <article
+        ref={modalRef}
+        className={`modal reader-modal${showAdvanced ? " reader-show-advanced" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={selected.title}
+        onClick={(event) => event.stopPropagation()}
+      >
         <button className="close" onClick={onClose} aria-label="Close">×</button>
         <div className="cover-column">
           <div className="cover">
@@ -67,7 +122,7 @@ export function BookDetailsModal({
               onClick={() => cover && onChooseCover(cover)}
               title="Save this as the correct cover"
             >
-              ✓ Correct cover
+              ✓ Use this cover
             </button>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <button
@@ -77,7 +132,7 @@ export function BookDetailsModal({
                 onClick={() => onRejectCurrentCover("wrong")}
                 style={{ opacity: cover ? 0.78 : 0.45 }}
               >
-                ✕ Wrong cover
+                Not this one
               </button>
               <button
                 type="button"
@@ -86,38 +141,70 @@ export function BookDetailsModal({
                 onClick={() => onRejectCurrentCover("edition")}
                 style={{ opacity: cover ? 0.78 : 0.45 }}
               >
-                Different edition
+                Another edition
               </button>
             </div>
           </div>
         </div>
 
         <div className="details">
-          <p className="eyebrow">BOOK DETAILS</p>
+          <p className="eyebrow">YOUR BOOK</p>
           <h2>{selected.title}</h2>
           <p className="author">by {selected.author}</p>
+
+          <div className="reader-book-summary">
+            {summaryItems.map(([icon, value]) => (
+              <span className="reader-book-chip" key={`${icon}-${value}`}>{icon} {value}</span>
+            ))}
+          </div>
+
+          <div className="reader-book-actions">
+            <button
+              type="button"
+              className="reader-book-action reader-book-action-primary"
+              onClick={scrollToSpineTools}
+            >
+              ✨ Customize spine
+            </button>
+            <button
+              type="button"
+              className="reader-book-action"
+              onClick={scrollToCoverPicker}
+            >
+              🖼 Change cover
+            </button>
+            <button
+              type="button"
+              className="reader-book-action reader-book-action-more"
+              aria-expanded={showAdvanced}
+              onClick={() => setShowAdvanced((current) => !current)}
+            >
+              {showAdvanced ? "Hide book info" : "More book info"}
+            </button>
+          </div>
+
           <dl>
             {selected.rating ? <><dt>Your rating</dt><dd>{"★".repeat(Math.min(selected.rating, 5))}</dd></> : null}
             {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
             {selected.shelf ? <><dt>Goodreads shelf</dt><dd>{selected.shelf}</dd></> : null}
             {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
-            {selected.asin ? <><dt>Audible ASIN</dt><dd>{selected.asin}</dd></> : null}
-            {selected.romanceioId ? <><dt>Romance.io ID</dt><dd>{selected.romanceioId}</dd></> : null}
-            <dt>ISBN</dt><dd>{selectedIsbn || "N/A"}</dd>
-            {selectedIsbn && selected.isbnSource ? <><dt>ISBN source</dt><dd>{selected.isbnSource}</dd></> : null}
-            {selectedIsbn && selected.isbnConfidence ? <><dt>ISBN confidence</dt><dd>{selected.isbnConfidence}</dd></> : null}
-            {cover?.source ? <><dt>Cover source</dt><dd>{cover.source}</dd></> : null}
-            {selected.coverFeedback?.rejected?.length ? <><dt>Rejected covers</dt><dd>{selected.coverFeedback.rejected.length}</dd></> : null}
-            {selected.coverFeedback?.wrongEdition?.length ? <><dt>Wrong editions</dt><dd>{selected.coverFeedback.wrongEdition.length}</dd></> : null}
+            {selected.asin ? <><dt className="reader-advanced-row">Audible ASIN</dt><dd className="reader-advanced-row">{selected.asin}</dd></> : null}
+            {selected.romanceioId ? <><dt className="reader-advanced-row">Romance.io ID</dt><dd className="reader-advanced-row">{selected.romanceioId}</dd></> : null}
+            <dt className="reader-advanced-row">ISBN</dt><dd className="reader-advanced-row">{selectedIsbn || "N/A"}</dd>
+            {selectedIsbn && selected.isbnSource ? <><dt className="reader-advanced-row">ISBN source</dt><dd className="reader-advanced-row">{selected.isbnSource}</dd></> : null}
+            {selectedIsbn && selected.isbnConfidence ? <><dt className="reader-advanced-row">ISBN confidence</dt><dd className="reader-advanced-row">{selected.isbnConfidence}</dd></> : null}
+            {cover?.source ? <><dt className="reader-advanced-row">Cover source</dt><dd className="reader-advanced-row">{cover.source}</dd></> : null}
+            {selected.coverFeedback?.rejected?.length ? <><dt className="reader-advanced-row">Rejected covers</dt><dd className="reader-advanced-row">{selected.coverFeedback.rejected.length}</dd></> : null}
+            {selected.coverFeedback?.wrongEdition?.length ? <><dt className="reader-advanced-row">Wrong editions</dt><dd className="reader-advanced-row">{selected.coverFeedback.wrongEdition.length}</dd></> : null}
           </dl>
 
           <section className="cover-picker" aria-label="Choose a cover">
             <div className="cover-picker-heading">
-              <strong>Choose your cover</strong>
-              <span>{coverOptions.length} {coverOptions.length === 1 ? "match" : "matches"}</span>
+              <strong>{hasCoverOptions ? "Pick a cover" : "No database covers found"}</strong>
+              {hasCoverOptions ? <span>{coverOptions.length} {coverOptions.length === 1 ? "match" : "matches"}</span> : null}
             </div>
 
-            {coverOptions.length ? (
+            {hasCoverOptions ? (
               <div className="cover-options">
                 {coverOptions.map((option, index) => (
                   <button
@@ -136,25 +223,42 @@ export function BookDetailsModal({
               </div>
             ) : null}
 
-            <button
-              type="button"
-              className="primary"
-              style={{ marginTop: 10 }}
-              onClick={onSearchMoreCovers}
-              disabled={deepSearchLoading || deepSearchDone}
-            >
-              {deepSearchLoading
-                ? "Searching more editions…"
-                : deepSearchDone
-                  ? "More editions searched"
-                  : "Search more covers"}
-            </button>
+            {hasCoverOptions ? (
+              <button
+                type="button"
+                className="primary"
+                style={{ marginTop: 10 }}
+                onClick={onSearchMoreCovers}
+                disabled={deepSearchLoading || deepSearchDone}
+              >
+                {deepSearchLoading
+                  ? "Searching more editions…"
+                  : deepSearchDone
+                    ? "More editions searched"
+                    : "Find more covers"}
+              </button>
+            ) : null}
 
-            <p className="cover-picker-note">
+            <p className="cover-picker-note reader-technical-note">
               {selectedIsbn
                 ? `Identifier provenance is saved with this book${selected.isbnSource ? ` (${selected.isbnSource}, ${selected.isbnConfidence || "unknown"} confidence)` : ""}. Search more covers also checks additional editions, LibraryThing, and Romance.io.`
                 : "No ISBN saved. Search more covers checks additional editions, LibraryThing, and Romance.io, and saves strong identifier matches for future searches."}
             </p>
+
+            <button
+              type="button"
+              className="primary cover-reset-button"
+              onClick={onResetCoverChoices}
+              disabled={!canResetCoverChoices}
+              title="Clear this book's saved cover choice and rejected-cover history"
+              style={{
+                marginTop: 8,
+                width: "min(100%, 220px)",
+                opacity: canResetCoverChoices ? 0.76 : 0.42,
+              }}
+            >
+              ↻ Reset cover choices
+            </button>
           </section>
         </div>
       </article>

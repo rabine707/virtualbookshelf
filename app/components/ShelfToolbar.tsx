@@ -10,7 +10,7 @@ type ShelfToolbarProps = {
 
 export function ShelfToolbar({ query, sort, count, onQueryChange, onSortChange }: ShelfToolbarProps) {
   return (
-    <section className="toolbar" aria-label="Bookshelf controls">
+    <section className="toolbar reader-toolbar" aria-label="Bookshelf controls">
       <div className="search-wrap">
         <span aria-hidden="true">⌕</span>
         <input
