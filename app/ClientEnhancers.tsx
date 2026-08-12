@@ -10,7 +10,6 @@ import CommunityCoverSync from "./CommunityCoverSync";
 import HelpShelfLauncher from "./HelpShelfLauncher";
 import IdentifierEditor from "./IdentifierEditor";
 import MobileTapFix from "./MobileTapFix";
-import PageRefreshButton from "./PageRefreshButton";
 import QoLEnricher from "./QoLEnricher";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import ShelfScanner from "./ShelfScanner";
@@ -36,9 +35,6 @@ function MobileBottomNav() {
       return;
     }
 
-    // The mobile nav is rendered from the root layout, including /account.
-    // If there is no shelf on the current route, Shelf should actually return
-    // to the home shelf instead of becoming a no-op.
     window.location.assign("/");
   };
 
@@ -133,7 +129,6 @@ export default function ClientEnhancers() {
     <SpineCommunityEnricher />
     <IdentifierEditor />
     <MobileTapFix />
-    <PageRefreshButton />
     <ThemeEnricher />
     <BotanicalSceneEnricher />
     <QoLEnricher />

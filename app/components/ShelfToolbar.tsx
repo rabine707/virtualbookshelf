@@ -26,9 +26,21 @@ export function ShelfToolbar({ query, sort, count, onQueryChange, onSortChange }
         <option value="author">Author</option>
         <option value="rating">Rating</option>
       </select>
-      <div className="count-pill" aria-label={`${count} books displayed`}>
-        <strong>{count}</strong>
-        <span>books</span>
+      <div className="toolbar-actions">
+        <button
+          type="button"
+          className="page-refresh-button"
+          aria-label="Refresh bookshelf"
+          title="Refresh bookshelf"
+          onClick={() => window.location.reload()}
+        >
+          <span className="page-refresh-icon" aria-hidden="true">↻</span>
+          <span className="page-refresh-label">Refresh</span>
+        </button>
+        <div className="count-pill" aria-label={`${count} books displayed`}>
+          <strong>{count}</strong>
+          <span>books</span>
+        </div>
       </div>
     </section>
   );
