@@ -37,6 +37,7 @@ import "./botanical-v3.css";
 import "./botanical-room-v2-fix.css";
 import "./botanical-modular-shelves.css";
 import "./botanical-cinematic-lighting.css";
+import "./botanical-asset-v3.css";
 import "./bookshelf-3d-prototype.css";
 import "./prototype-page.css";
 import ClientEnhancers from "./ClientEnhancers";
