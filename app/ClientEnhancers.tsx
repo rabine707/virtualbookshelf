@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
-import AudibleCoverEnricher from "./AudibleCoverEnricher";
 import BotanicalSceneEnricher from "./BotanicalSceneEnricher";
 import CloudAccountSettings from "./CloudAccountSettings";
 import CloudSyncEnricher from "./CloudSyncEnricher";
@@ -119,7 +118,6 @@ export default function ClientEnhancers() {
     <HelpShelfLauncher />
     <CommunityCoverSync />
     <RomanceShelfEnricher />
-    <AudibleCoverEnricher />
     <SpineArtEnricher />
     <SharedSpineEnricher />
     <SpineGenerator />

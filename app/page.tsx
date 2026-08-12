@@ -6,6 +6,7 @@ import { BookDetailsModal } from "./components/BookDetailsModal";
 import { Bookshelf } from "./components/Bookshelf";
 import { CoverUndoToast } from "./components/CoverUndoToast";
 import { ShelfToolbar } from "./components/ShelfToolbar";
+import { useAudibleCoverFallback } from "./hooks/useAudibleCoverFallback";
 import { useBookCoverManager } from "./hooks/useBookCoverManager";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
 import { Book } from "../lib/books/client-library";
@@ -45,6 +46,16 @@ export default function Home() {
     resetCoverChoices,
     searchMoreCovers,
   } = useBookCoverManager({ setBooks, showToast });
+
+  useAudibleCoverFallback({
+    selected,
+    cover,
+    coverLoading,
+    setBooks,
+    setSelected,
+    setCover,
+  });
+
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("title");
   const goodreadsInput = useRef<HTMLInputElement>(null);
