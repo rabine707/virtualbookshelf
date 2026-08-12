@@ -201,3 +201,44 @@ html[data-shelf-theme="botanical"] .shelf-row.botanical-prop-right .books {
     to { transform:translate3d(0,-7px,0); }
   }
 }
+
+/* The botanical shelf uses a dark room, but the book profile modal intentionally
+   stays parchment-light. Give that light surface its own readable ink palette
+   instead of inheriting the shelf's pale body text. */
+html[data-shelf-theme="botanical"] .modal {
+  color: #493f35;
+}
+
+html[data-shelf-theme="botanical"] .reader-modal .details h2 {
+  color: #33412f !important;
+  text-shadow: none !important;
+}
+
+html[data-shelf-theme="botanical"] .reader-modal .details .author {
+  color: #70665c !important;
+}
+
+html[data-shelf-theme="botanical"] .reader-modal .reader-book-chip {
+  border-color: rgba(67, 86, 60, .18);
+  background: rgba(106, 132, 92, .09);
+  color: #526149;
+}
+
+html[data-shelf-theme="botanical"] .reader-modal .reader-book-action {
+  border-color: rgba(67, 86, 60, .17);
+  background: rgba(106, 132, 92, .08);
+  color: #405039;
+}
+
+html[data-shelf-theme="botanical"] .reader-modal .reader-book-action:hover,
+html[data-shelf-theme="botanical"] .reader-modal .reader-book-action:focus-visible {
+  background: rgba(106, 132, 92, .14);
+}
+
+html[data-shelf-theme="botanical"] .reader-modal .reader-book-action-more {
+  color: #71685e;
+}
+
+html[data-shelf-theme="botanical"] .reader-modal .cover-picker {
+  border-top-color: rgba(73, 63, 53, .14);
+}
