@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "typecheck": "tsc --noEmit",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run tests/unit",
+    "test:e2e": "playwright test",
     "build": "npm run typecheck && next build",
     "start": "next start"
   },
@@ -18,11 +21,13 @@
     "three": "0.185.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.10.0",
     "@types/papaparse": "^5.3.16",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "0.185.1",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.10"
   }
 }
