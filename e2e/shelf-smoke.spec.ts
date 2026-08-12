@@ -40,6 +40,24 @@ test.beforeEach(async ({ page }) => {
       }),
     });
   });
+
+  await page.route("**/api/book-search?**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        results: [{
+          id: "test-book",
+          title: "Shelf Test Book",
+          author: "Test Author",
+          year: 2026,
+          isbn: "9781234567897",
+          coverUrl: WEB_COVER_URL,
+          source: "Google Books",
+        }],
+      }),
+    });
+  });
 });
 
 async function openFourthWing(page: Page) {
@@ -175,4 +193,27 @@ test("web cover search applies and saves a cover without reloading the page", as
   await expect(modal.getByRole("region", { name: "Saved covers" })).toBeVisible();
   await expect(page.getByTitle("Save this as the correct cover")).toBeEnabled();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __webCoverMarker?: string }).__webCoverMarker)).toBe("alive");
+});
+
+test("adding a searched book updates the live shelf without reloading the page", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    (window as typeof window & { __addBookMarker?: string }).__addBookMarker = "alive";
+  });
+
+  await page.getByRole("button", { name: /Add books/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Add books" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("textbox", { name: "Title" }).fill("Shelf Test Book");
+  await dialog.getByRole("textbox", { name: "Author" }).fill("Test Author");
+
+  const result = dialog.locator("button.book-search-result").first();
+  await expect(result).toContainText("Shelf Test Book");
+  await result.click();
+
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('.toast[role="status"]')).toContainText("Added Shelf Test Book — Test Author");
+  await expect(page.locator("button.book")).toHaveCount(1);
+  await expect(page.locator('button.book[title="Shelf Test Book — Test Author"]')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { __addBookMarker?: string }).__addBookMarker)).toBe("alive");
 });

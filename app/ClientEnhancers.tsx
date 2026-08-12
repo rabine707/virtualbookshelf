@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
 import AudibleCoverEnricher from "./AudibleCoverEnricher";
-import BookSearchAdd from "./BookSearchAdd";
 import BotanicalSceneEnricher from "./BotanicalSceneEnricher";
 import CloudAccountSettings from "./CloudAccountSettings";
 import CloudSyncEnricher from "./CloudSyncEnricher";
@@ -91,7 +90,14 @@ function MobileBottomNav() {
       <button type="button" onClick={goToShelf}>
         <span aria-hidden="true">▤</span><b>Shelf</b>
       </button>
-      <button type="button" onClick={() => window.dispatchEvent(new Event("shelf-open-book-search"))}>
+      <button type="button" onClick={() => {
+        if (document.querySelector(".bookcase")) {
+          window.dispatchEvent(new Event("shelf-open-book-search"));
+          return;
+        }
+        try { window.sessionStorage.setItem("shelf-open-book-search-on-load", "1"); } catch { /* optional */ }
+        window.location.assign("/");
+      }}>
         <span aria-hidden="true">＋</span><b>Add</b>
       </button>
       <button type="button" onClick={() => click(".theme-picker-trigger")}>
@@ -115,7 +121,6 @@ export default function ClientEnhancers() {
   return <>
     <AuthEnricher />
     <CloudSyncEnricher />
-    <BookSearchAdd />
     <ShelfScanner />
     <CloudAccountSettings />
     <HelpShelfLauncher />

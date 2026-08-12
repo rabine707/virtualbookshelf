@@ -1,163 +1,18 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { Dispatch, FormEvent, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Book } from "../lib/books/client-library";
+import { addTypedBook, BookSearchResult, mergeBookSearchResult } from "../lib/books/add-book";
 
-type BookSearchResult = {
-  id: string;
-  title: string;
-  author: string;
-  year?: number;
-  isbn?: string;
-  coverUrl?: string;
-  source: "Google Books" | "Open Library";
+type BookSearchAddProps = {
+  books: Book[];
+  setBooks: Dispatch<SetStateAction<Book[]>>;
+  showToast: (message: string) => void;
+  onImportGoodreads: () => void;
 };
 
-type StoredBook = {
-  id?: string;
-  title?: string;
-  author?: string;
-  year?: string;
-  isbn?: string;
-  isbnSource?: string;
-  isbnConfidence?: "high" | "medium" | "low";
-  importSource?: string;
-  color?: string;
-  preferredCover?: { url: string; source: string };
-  savedCovers?: { url: string; source: string }[];
-  coverFeedback?: unknown;
-} & Record<string, unknown>;
-
-const STORAGE_KEY = "shelf-of-fame-library-v1";
-const SAMPLE_IDS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
-const PALETTE = ["#6f4e37", "#8b5e3c", "#5a6b4f", "#8e3b46", "#46627f", "#aa7a3d", "#584b63", "#7b6f62"];
-
-function normalize(value?: string) {
-  return (value || "")
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function readShelf(): StoredBook[] {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function looksLikeSampleShelf(books: StoredBook[]) {
-  return books.length === SAMPLE_IDS.length
-    && books.every((book, index) => book.id === SAMPLE_IDS[index]);
-}
-
-function looseAuthorMatch(existingAuthor: string, queryAuthor: string) {
-  const existing = normalize(existingAuthor);
-  const query = normalize(queryAuthor);
-  if (!query) return true;
-  if (!existing) return false;
-  if (existing === query || existing.includes(query) || query.includes(existing)) return true;
-
-  const existingWords = new Set(existing.split(" ").filter(Boolean));
-  const queryWords = query.split(" ").filter(Boolean);
-  return queryWords.length > 0 && queryWords.every((word) => existingWords.has(word));
-}
-
-function uniqueCovers(covers: { url: string; source: string }[]) {
-  const seen = new Set<string>();
-  return covers.filter((cover) => {
-    if (!cover?.url || seen.has(cover.url)) return false;
-    seen.add(cover.url);
-    return true;
-  });
-}
-
-function saveMatchedBook(result: BookSearchResult, queryTitle: string, queryAuthor: string) {
-  const stored = readShelf();
-  const base = looksLikeSampleShelf(stored) ? [] : [...stored];
-  const canonicalTitle = normalize(result.title);
-  const canonicalAuthor = normalize(result.author);
-
-  let targetIndex = base.findIndex((book) =>
-    normalize(book.title) === canonicalTitle && normalize(book.author) === canonicalAuthor
-  );
-
-  let upgradingManual = false;
-  if (targetIndex < 0) {
-    targetIndex = base.findIndex((book) =>
-      book.importSource === "Added manually"
-      && normalize(book.title) === normalize(queryTitle)
-      && looseAuthorMatch(String(book.author || ""), queryAuthor)
-    );
-    upgradingManual = targetIndex >= 0;
-  }
-
-  const existing = targetIndex >= 0 ? base[targetIndex] : undefined;
-  const cover = result.coverUrl ? { url: result.coverUrl, source: result.source } : undefined;
-  const existingSaved = Array.isArray(existing?.savedCovers) ? existing.savedCovers : [];
-  const savedCovers = cover
-    ? uniqueCovers([cover, ...existingSaved])
-    : upgradingManual
-      ? []
-      : existingSaved;
-
-  const nextBook: StoredBook = {
-    ...(existing || {}),
-    id: existing?.id || result.isbn || `search:${result.id}:${Date.now()}`,
-    title: result.title,
-    author: result.author || "Unknown author",
-    year: result.year ? String(result.year) : existing?.year,
-    isbn: result.isbn || existing?.isbn,
-    isbnSource: result.isbn ? `${result.source} search` : existing?.isbnSource,
-    isbnConfidence: result.isbn ? "high" : existing?.isbnConfidence,
-    importSource: "Book search",
-    color: typeof existing?.color === "string" ? existing.color : PALETTE[base.length % PALETTE.length],
-    preferredCover: cover || (upgradingManual ? undefined : existing?.preferredCover),
-    savedCovers,
-    coverFeedback: upgradingManual ? undefined : existing?.coverFeedback,
-  };
-
-  if (targetIndex >= 0) base[targetIndex] = nextBook;
-  else base.push(nextBook);
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(base));
-  return {
-    replaced: upgradingManual,
-    existed: Boolean(existing) && !upgradingManual,
-    title: nextBook.title || result.title,
-    author: nextBook.author || result.author,
-  };
-}
-
-function addExactlyAsTyped(title: string, author: string) {
-  const cleanedTitle = title.replace(/\s+/g, " ").trim();
-  const cleanedAuthor = author.replace(/\s+/g, " ").trim() || "Unknown author";
-  if (!cleanedTitle) return { ok: false, message: "Enter a title first." };
-
-  const stored = readShelf();
-  const base = looksLikeSampleShelf(stored) ? [] : [...stored];
-  const duplicate = base.some((book) =>
-    normalize(book.title) === normalize(cleanedTitle)
-    && normalize(book.author) === normalize(cleanedAuthor)
-  );
-  if (duplicate) return { ok: false, message: "That exact entry is already on your shelf." };
-
-  base.push({
-    id: `manual:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    title: cleanedTitle,
-    author: cleanedAuthor,
-    importSource: "Added manually",
-    color: PALETTE[base.length % PALETTE.length],
-  });
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(base));
-  return { ok: true, message: `Added ${cleanedTitle}.` };
-}
-
-export default function BookSearchAdd() {
+export default function BookSearchAdd({ books, setBooks, showToast, onImportGoodreads }: BookSearchAddProps) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -210,6 +65,15 @@ export default function BookSearchAdd() {
   }, []);
 
   useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem("shelf-open-book-search-on-load") === "1") {
+        window.sessionStorage.removeItem("shelf-open-book-search-on-load");
+        setOpen(true);
+      }
+    } catch {
+      // Navigation still succeeds even if session storage is unavailable.
+    }
+
     const openSearch = () => setOpen(true);
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
@@ -244,46 +108,46 @@ export default function BookSearchAdd() {
     setOpen(false);
   }
 
+  function resetForm() {
+    setTitle("");
+    setAuthor("");
+    setResults([]);
+    setSearched(false);
+    setSearching(false);
+    setMessage("");
+  }
+
+  function finishSuccess(nextBooks: Book[], successMessage: string) {
+    setBooks(nextBooks);
+    showToast(successMessage);
+    close();
+    resetForm();
+  }
+
   function submit(event: FormEvent) {
     event.preventDefault();
     void runSearch(title, author);
   }
 
   function choose(result: BookSearchResult) {
-    try {
-      const saved = saveMatchedBook(result, title, author);
-      setMessage(
-        saved.replaced
-          ? `Fixed your existing entry to ${saved.title} — ${saved.author}.`
-          : saved.existed
-            ? `${saved.title} is already on your shelf. I refreshed its book details.`
-            : `Added ${saved.title} — ${saved.author}.`,
-      );
-      window.setTimeout(() => window.location.reload(), 220);
-    } catch {
-      setMessage("Could not save that book on this device.");
-    }
+    const saved = mergeBookSearchResult(books, result, title, author);
+    const successMessage = saved.replaced
+      ? `Fixed your existing entry to ${saved.title} — ${saved.author}.`
+      : saved.existed
+        ? `${saved.title} is already on your shelf. I refreshed its book details.`
+        : `Added ${saved.title} — ${saved.author}.`;
+    finishSuccess(saved.books, successMessage);
   }
 
   function useTypedEntry() {
-    try {
-      const result = addExactlyAsTyped(title, author);
-      setMessage(result.message);
-      if (result.ok) window.setTimeout(() => window.location.reload(), 220);
-    } catch {
-      setMessage("Could not save that book on this device.");
-    }
+    const result = addTypedBook(books, title, author);
+    setMessage(result.message);
+    if (result.ok) finishSuccess(result.books, result.message);
   }
 
   function importGoodreads() {
-    const target = [...document.querySelectorAll<HTMLButtonElement>("button.reader-original-import")]
-      .find((button) => /Import Goodreads/i.test(button.textContent || ""));
-    if (!target) {
-      setMessage("Goodreads import is not available right now.");
-      return;
-    }
     close();
-    window.setTimeout(() => target.click(), 0);
+    onImportGoodreads();
   }
 
   if (!open) return null;

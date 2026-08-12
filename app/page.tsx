@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import BookSearchAdd from "./BookSearchAdd";
 import { BookDetailsModal } from "./components/BookDetailsModal";
 import { Bookshelf } from "./components/Bookshelf";
 import { CoverUndoToast } from "./components/CoverUndoToast";
@@ -111,6 +112,13 @@ export default function Home() {
       />
 
       <Bookshelf shelves={shelves} onSelect={setSelected} />
+
+      <BookSearchAdd
+        books={books}
+        setBooks={setBooks}
+        showToast={showToast}
+        onImportGoodreads={() => goodreadsInput.current?.click()}
+      />
 
       <footer>
         <span>Real cover art loads onto the spines as you browse.</span>
