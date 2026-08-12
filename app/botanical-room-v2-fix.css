@@ -1,0 +1,28 @@
+/* Botanical Room V2 final compositing fix.
+   Keep the real shelf in normal document flow so the library can grow to any
+   number of rows, but let the room wall/lighting show through the built-in. */
+
+html[data-shelf-theme="botanical"] .bookcase {
+  background: transparent !important;
+  border-image-slice: 52 !important;
+}
+
+html[data-shelf-theme="botanical"] .shelf-row,
+html[data-shelf-theme="botanical"] .books {
+  background: transparent !important;
+}
+
+/* The cubby effect should come from light/shadow, not a solid green rectangle. */
+html[data-shelf-theme="botanical"] .shelf-row::after {
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.20), transparent 7%, transparent 93%, rgba(0,0,0,.22)),
+    linear-gradient(180deg, rgba(0,0,0,.10), transparent 24%, transparent 76%, rgba(0,0,0,.13)) !important;
+}
+
+/* Keep cover-derived fallback art filling the physical book. Dedicated generated
+   spines are already true 1:4 assets and should not be letterboxed with contain. */
+html[data-shelf-theme="botanical"] .book-cover-art,
+html[data-shelf-theme="botanical"] .generated-spine-art-dedicated,
+html[data-shelf-theme="botanical"] .generated-spine-art-picked {
+  object-fit: cover;
+}
