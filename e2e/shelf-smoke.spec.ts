@@ -30,8 +30,8 @@ test("loads the shelf, searches, opens a book, and preserves a rejected cover", 
   await spine.click();
 
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toBeVisible();
-  const correctCover = page.getByRole("button", { name: "✓ Correct cover" });
-  const wrongCover = page.getByRole("button", { name: "✕ Wrong cover" });
+  const correctCover = page.getByTitle("Save this as the correct cover");
+  const wrongCover = page.getByRole("button", { name: /Wrong cover/ });
   await expect(correctCover).toBeEnabled();
   await expect(wrongCover).toBeEnabled();
 
@@ -43,5 +43,5 @@ test("loads the shelf, searches, opens a book, and preserves a rejected cover", 
   await spine.click();
 
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "✓ Correct cover" })).toBeDisabled();
+  await expect(page.getByTitle("Save this as the correct cover")).toBeDisabled();
 });
