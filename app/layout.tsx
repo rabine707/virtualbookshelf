@@ -35,6 +35,7 @@ import "./desktop-toolbar-refine.css";
 import "./shelf-art-polish.css";
 import "./botanical-v3.css";
 import "./botanical-room-v2-fix.css";
+import "./botanical-modular-shelves.css";
 import "./bookshelf-3d-prototype.css";
 import "./prototype-page.css";
 import ClientEnhancers from "./ClientEnhancers";
