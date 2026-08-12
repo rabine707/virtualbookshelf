@@ -9,6 +9,7 @@ import { ShelfToolbar } from "./components/ShelfToolbar";
 import { useAudibleCoverFallback } from "./hooks/useAudibleCoverFallback";
 import { useBookCoverManager } from "./hooks/useBookCoverManager";
 import { useBookMetadataEditor } from "./hooks/useBookMetadataEditor";
+import { useCloudShelfSync } from "./hooks/useCloudShelfSync";
 import { useCommunityCoverSync } from "./hooks/useCommunityCoverSync";
 import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
@@ -24,6 +25,7 @@ export default function Home() {
     importGoodreadsCsv,
   } = useShelfLibrary();
 
+  useCloudShelfSync({ books, setBooks, storageReady });
   const { submitCoverChoice } = useCommunityCoverSync({ books, setBooks });
   useRomanceShelfEnrichment({ books, setBooks });
 

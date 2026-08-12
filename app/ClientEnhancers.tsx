@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
 import BotanicalSceneEnricher from "./BotanicalSceneEnricher";
 import CloudAccountSettings from "./CloudAccountSettings";
-import CloudSyncEnricher from "./CloudSyncEnricher";
 import HelpShelfLauncher from "./HelpShelfLauncher";
 import MobileTapFix from "./MobileTapFix";
 import QoLEnricher from "./QoLEnricher";
@@ -108,7 +107,6 @@ export default function ClientEnhancers() {
   if (!mounted) return null;
   return <>
     <AuthEnricher />
-    <CloudSyncEnricher />
     <ShelfScanner />
     <CloudAccountSettings />
     <HelpShelfLauncher />
