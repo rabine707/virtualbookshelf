@@ -27,7 +27,7 @@ function openSpineDb() {
   });
 }
 
-async function readStore<T>(key: string): Promise<T | undefined> {
+export async function readSpineStoreValue<T>(key: string): Promise<T | undefined> {
   const db = await openSpineDb();
   try {
     return await new Promise<T | undefined>((resolve, reject) => {
@@ -41,9 +41,23 @@ async function readStore<T>(key: string): Promise<T | undefined> {
   }
 }
 
+export async function writeSpineStoreValue(key: string, value: unknown) {
+  const db = await openSpineDb();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      tx.objectStore(STORE_NAME).put(value, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
 export async function getGeneratedSpine(coverUrl: string) {
   try {
-    const value = await readStore<unknown>(coverUrl);
+    const value = await readSpineStoreValue<unknown>(coverUrl);
     return typeof value === "string" ? value : undefined;
   } catch {
     return undefined;
@@ -52,7 +66,7 @@ export async function getGeneratedSpine(coverUrl: string) {
 
 export async function getGeneratedSpineMode(coverUrl: string): Promise<SpineRenderMode> {
   try {
-    const value = await readStore<unknown>(`${MODE_KEY_PREFIX}${coverUrl}`);
+    const value = await readSpineStoreValue<unknown>(`${MODE_KEY_PREFIX}${coverUrl}`);
     return value === "integrated" ? "integrated" : "overlay";
   } catch {
     return "overlay";
