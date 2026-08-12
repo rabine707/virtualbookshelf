@@ -3,12 +3,16 @@
   width: 100%;
   margin: 18px 0 34px;
   padding: 14px;
-  border: 1px solid rgba(205, 218, 184, .16);
-  border-radius: 18px;
+  border: 1px solid rgba(205, 218, 184, .14);
+  border-radius: 20px;
   background:
-    radial-gradient(circle at 9% 5%, rgba(192, 211, 157, .08), transparent 30%),
-    linear-gradient(180deg, rgba(14, 27, 17, .96), rgba(8, 16, 11, .98));
-  box-shadow: 0 28px 65px rgba(0,0,0,.34), inset 0 1px rgba(255,255,255,.035);
+    radial-gradient(circle at 14% 0%, rgba(204, 224, 169, .075), transparent 31%),
+    radial-gradient(circle at 88% 8%, rgba(162, 108, 63, .08), transparent 28%),
+    linear-gradient(180deg, rgba(12, 22, 15, .985), rgba(6, 12, 8, .995));
+  box-shadow:
+    0 34px 80px rgba(0,0,0,.38),
+    inset 0 1px rgba(255,255,255,.035),
+    inset 0 -30px 70px rgba(0,0,0,.16);
   overflow: hidden;
 }
 
@@ -17,50 +21,61 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 4px 4px 13px;
+  padding: 5px 5px 14px;
 }
 
 .bookshelf-3d-header > div {
   display: grid;
-  gap: 3px;
+  gap: 4px;
 }
 
 .bookshelf-3d-kicker {
   font-size: 10px;
   line-height: 1;
-  letter-spacing: .22em;
+  letter-spacing: .24em;
   font-weight: 800;
-  color: #a9c58a;
+  color: #abc889;
 }
 
 .bookshelf-3d-header strong {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(18px, 2vw, 25px);
+  font-size: clamp(19px, 2vw, 27px);
+  font-weight: 600;
   color: #f5efdf;
+  text-wrap: balance;
 }
 
 .bookshelf-3d-header small,
 .bookshelf-3d-note {
-  color: rgba(231, 235, 217, .68);
+  color: rgba(231, 235, 217, .64);
 }
 
 .bookshelf-3d-close,
 .bookshelf-3d-launch {
   appearance: none;
-  border: 1px solid rgba(184, 205, 153, .28);
-  background: linear-gradient(180deg, #a8bf88, #88a86b);
+  border: 1px solid rgba(184, 205, 153, .26);
+  background: linear-gradient(180deg, #adc48c, #86a668);
   color: #102013;
   font: 700 14px Georgia, "Times New Roman", serif;
   border-radius: 999px;
-  min-height: 40px;
-  padding: 9px 16px;
+  min-height: 41px;
+  padding: 9px 17px;
   cursor: pointer;
   box-shadow: inset 0 1px rgba(255,255,255,.28), 0 10px 24px rgba(0,0,0,.18);
+  transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
 }
 
 .bookshelf-3d-close:hover,
 .bookshelf-3d-launch:hover {
   filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px rgba(255,255,255,.32), 0 13px 28px rgba(0,0,0,.22);
+}
+
+.bookshelf-3d-close:focus-visible,
+.bookshelf-3d-launch:focus-visible {
+  outline: 2px solid #d9ebbc;
+  outline-offset: 3px;
 }
 
 .bookshelf-3d-launch-row {
@@ -84,38 +99,130 @@
 .bookshelf-3d-canvas-wrap {
   position: relative;
   width: 100%;
-  height: clamp(360px, 48vw, 560px);
-  min-height: 360px;
-  border-radius: 13px;
+  height: clamp(430px, 52vw, 620px);
+  min-height: 430px;
+  border-radius: 15px;
   overflow: hidden;
-  background: #101713;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 28% 14%, rgba(98, 119, 82, .16), transparent 38%),
+    #0b100d;
   border: 1px solid rgba(210, 224, 190, .09);
-  box-shadow: inset 0 0 80px rgba(0,0,0,.38);
+  box-shadow:
+    inset 0 0 100px rgba(0,0,0,.42),
+    0 22px 55px rgba(0,0,0,.24);
   touch-action: none;
 }
 
 .bookshelf-3d-canvas-wrap canvas {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100% !important;
   height: 100% !important;
 }
 
+.bookshelf-3d-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.12), transparent 18%, transparent 72%, rgba(0,0,0,.28)),
+    radial-gradient(ellipse at center, transparent 43%, rgba(0,0,0,.31) 100%);
+  box-shadow: inset 0 0 95px rgba(0,0,0,.25);
+}
+
+.bookshelf-3d-hud {
+  position: absolute;
+  z-index: 3;
+  left: 18px;
+  bottom: 17px;
+  display: grid;
+  gap: 3px;
+  max-width: min(430px, calc(100% - 36px));
+  padding: 12px 14px 13px;
+  border: 1px solid rgba(231, 235, 217, .12);
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(11, 16, 13, .72), rgba(9, 14, 11, .88));
+  box-shadow: 0 14px 38px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.035);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+  transform: translateY(3px);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.bookshelf-3d-hud.is-visible {
+  transform: translateY(0);
+  border-color: rgba(205, 221, 178, .2);
+  background: linear-gradient(180deg, rgba(16, 24, 18, .78), rgba(8, 14, 10, .91));
+}
+
+.bookshelf-3d-hud span {
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: .19em;
+  font-weight: 800;
+  color: #a8c387;
+}
+
+.bookshelf-3d-hud strong {
+  overflow: hidden;
+  color: #f7f0df;
+  font: 600 clamp(17px, 2vw, 23px)/1.1 Georgia, "Times New Roman", serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookshelf-3d-hud small {
+  overflow: hidden;
+  color: rgba(231, 235, 217, .68);
+  font-size: 12px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .bookshelf-3d-loading {
   position: absolute;
   inset: 0;
+  z-index: 4;
   display: grid;
   place-items: center;
   pointer-events: none;
   color: #e8eddc;
   font: 600 14px Georgia, "Times New Roman", serif;
   letter-spacing: .04em;
-  background: radial-gradient(circle at 50% 55%, rgba(64, 89, 58, .2), transparent 40%);
+  background:
+    radial-gradient(circle at 50% 55%, rgba(64, 89, 58, .23), transparent 42%),
+    rgba(8, 13, 10, .18);
+  backdrop-filter: blur(1px);
+}
+
+.bookshelf-3d-status-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  padding: 10px 3px 0;
+}
+
+.bookshelf-3d-status-row span {
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid rgba(195, 211, 171, .095);
+  border-radius: 999px;
+  color: rgba(225, 232, 211, .62);
+  background: rgba(255,255,255,.018);
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+  letter-spacing: .035em;
 }
 
 .bookshelf-3d-note {
-  margin: 10px 5px 1px;
+  margin: 9px 5px 1px;
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.48;
 }
 
 @media (max-width: 760px) {
@@ -123,14 +230,14 @@
     margin: 12px -2px 28px;
     width: calc(100% + 4px);
     padding: 8px;
-    border-radius: 14px;
+    border-radius: 15px;
   }
 
   .bookshelf-3d-header {
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
-    padding: 4px 3px 10px;
+    padding: 5px 4px 11px;
   }
 
   .bookshelf-3d-close {
@@ -138,8 +245,27 @@
   }
 
   .bookshelf-3d-canvas-wrap {
-    height: 390px;
-    min-height: 390px;
+    height: 430px;
+    min-height: 430px;
+    border-radius: 12px;
+  }
+
+  .bookshelf-3d-hud {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    max-width: none;
+    padding: 10px 12px 11px;
+  }
+
+  .bookshelf-3d-hud strong {
+    font-size: 17px;
+  }
+
+  .bookshelf-3d-status-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding-top: 8px;
   }
 
   .bookshelf-3d-launch-row {
@@ -152,9 +278,26 @@
   }
 }
 
+@media (max-width: 440px) {
+  .bookshelf-3d-canvas-wrap {
+    height: 405px;
+    min-height: 405px;
+  }
+
+  .bookshelf-3d-header strong {
+    font-size: 19px;
+  }
+
+  .bookshelf-3d-status-row span {
+    padding-inline: 7px;
+    font-size: 9px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bookshelf-3d-close,
-  .bookshelf-3d-launch {
+  .bookshelf-3d-launch,
+  .bookshelf-3d-hud {
     transition: none !important;
   }
 }
