@@ -157,7 +157,16 @@ test("reset cover choices clears the saved decision without reloading the page",
   });
   await resetCover.click();
 
-  await expect(page.locator('.toast[role="status"]')).toContainText("Reset cover choices for Fourth Wing");
+  await expect(resetCover).toBeDisabled();
+  await expect.poll(() => page.evaluate(() => {
+    const books = JSON.parse(window.localStorage.getItem("shelf-of-fame-library-v1") || "[]") as Array<{
+      title?: string;
+      preferredCover?: unknown;
+      coverFeedback?: unknown;
+    }>;
+    const book = books.find((item) => item.title === "Fourth Wing");
+    return Boolean(book && !book.preferredCover && !book.coverFeedback);
+  })).toBe(true);
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __coverResetMarker?: string }).__coverResetMarker)).toBe("alive");
 });
 
