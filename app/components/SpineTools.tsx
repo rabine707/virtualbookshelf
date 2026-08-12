@@ -118,6 +118,8 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
 
   if (!coverUrl) return null;
 
+  const confirmedCoverUrl = coverUrl;
+
   const savedPosition = storedSpinePosition(saved);
   const aiButtonText = busy === "ai"
     ? "✨ Generating AI spine…"
@@ -160,7 +162,7 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
 
       if (data.sharedSpine) {
         emitSpine({
-          coverUrl,
+          coverUrl: confirmedCoverUrl,
           image: data.sharedSpine,
           renderMode: "overlay",
           shared: true,
@@ -188,9 +190,9 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
     if (!aiPreview) return;
     setBusy("ai-save");
     try {
-      await saveGeneratedSpine(coverUrl, aiPreview.image, "integrated");
+      await saveGeneratedSpine(confirmedCoverUrl, aiPreview.image, "integrated");
       setSaved(aiPreview.image);
-      emitSpine({ coverUrl, image: aiPreview.image, renderMode: "integrated" });
+      emitSpine({ coverUrl: confirmedCoverUrl, image: aiPreview.image, renderMode: "integrated" });
       setStatus(`AI spine saved for ${title}.${attemptText(aiPreview.data)}`);
       setAiPreview(null);
     } catch {
@@ -234,14 +236,14 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
 
   async function saveCrop() {
     if (!cropPosition) return;
-    const image = generatedSpineUrl(coverUrl, cropPosition);
+    const image = generatedSpineUrl(confirmedCoverUrl, cropPosition);
     setBusy("crop-save");
     setCropStatus("Saving spine…");
     try {
-      await saveGeneratedSpine(coverUrl, image, "overlay");
+      await saveGeneratedSpine(confirmedCoverUrl, image, "overlay");
       setSaved(image);
       setSharedInUse(false);
-      emitSpine({ coverUrl, image, position: cropPosition, renderMode: "overlay" });
+      emitSpine({ coverUrl: confirmedCoverUrl, image, position: cropPosition, renderMode: "overlay" });
       setStatus(`${positionLabel(cropPosition)} saved for ${title}.`);
       setCropPosition(null);
       setCropStatus("× rejects • ↻ cycles • ✓ saves");
