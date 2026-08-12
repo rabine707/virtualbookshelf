@@ -5,26 +5,30 @@ import { createPortal } from "react-dom";
 
 const ASSET_ROOT = "/themes/botanical/v3";
 
-type DecorKind = "plant" | "lamp" | "frame" | "candle-stack";
+type DecorKind =
+  | "plant-bottles"
+  | "lamp-frame"
+  | "candle-stack"
+  | "plant-frame"
+  | "bottles"
+  | "small-plant";
 type DecorSide = "left" | "right";
-type RowDecorSpec = {
-  left?: DecorKind;
-  right?: DecorKind;
-};
+type RowDecorSpec = { left?: DecorKind; right?: DecorKind };
 
-// Keep the collection dominant while making the cabinet feel inhabited.
+// The first shelves carry the strongest atmosphere. Lower shelves progressively
+// quiet down so a large library still feels like a collection, not a prop wall.
 const ROW_DECOR_PLAN: RowDecorSpec[] = [
-  { left: "plant", right: "lamp" },
-  { left: "candle-stack", right: "frame" },
+  { left: "plant-bottles", right: "lamp-frame" },
+  { left: "candle-stack", right: "plant-frame" },
+  { left: "small-plant" },
+  { right: "bottles" },
   {},
-  { right: "plant" },
+  { left: "plant-frame" },
   {},
-  { left: "frame" },
-  {},
-  { left: "plant" },
+  { right: "small-plant" },
   {},
   {},
-  { right: "candle-stack" },
+  { left: "candle-stack" },
   {},
 ];
 
@@ -33,12 +37,51 @@ function botanicalActive() {
 }
 
 function clearRow(row: HTMLElement) {
-  row.classList.remove(
-    "botanical-decor-left",
-    "botanical-decor-right",
-    "botanical-decor-both",
-  );
+  row.classList.remove("botanical-decor-left", "botanical-decor-right", "botanical-decor-both");
   row.querySelectorAll<HTMLElement>(".botanical-row-decor").forEach((node) => node.remove());
+}
+
+function plantImage(className: string, eager: boolean) {
+  return `<img class="${className}" src="${ASSET_ROOT}/ceramic-pothos-planter.webp" alt="" loading="${eager ? "eager" : "lazy"}" decoding="async" />`;
+}
+
+function bottlesMarkup() {
+  return `
+    <span class="botanical-apothecary botanical-apothecary-wide"><i></i></span>
+    <span class="botanical-apothecary botanical-apothecary-tall"><i></i></span>
+  `;
+}
+
+function frameMarkup() {
+  return `
+    <span class="botanical-mini-frame">
+      <i class="botanical-mini-frame-sky"></i>
+      <i class="botanical-mini-frame-hill botanical-mini-frame-hill-back"></i>
+      <i class="botanical-mini-frame-hill botanical-mini-frame-hill-front"></i>
+    </span>
+  `;
+}
+
+function lampMarkup() {
+  return `
+    <span class="botanical-lamp-aura"></span>
+    <span class="botanical-lamp-glass">
+      <i class="botanical-lamp-bulb"></i>
+      <i class="botanical-lamp-highlight"></i>
+    </span>
+    <span class="botanical-lamp-cap"></span>
+    <span class="botanical-lamp-stem"></span>
+    <span class="botanical-lamp-foot"></span>
+  `;
+}
+
+function candleStackMarkup() {
+  return `
+    <span class="botanical-stack-book botanical-stack-book-one"></span>
+    <span class="botanical-stack-book botanical-stack-book-two"></span>
+    <span class="botanical-stack-book botanical-stack-book-three"></span>
+    <span class="botanical-stack-candle"><i></i><b></b></span>
+  `;
 }
 
 function buildDecor(kind: DecorKind, side: DecorSide, eager: boolean) {
@@ -48,42 +91,27 @@ function buildDecor(kind: DecorKind, side: DecorSide, eager: boolean) {
   wrapper.dataset.side = side;
   wrapper.setAttribute("aria-hidden", "true");
 
-  if (kind === "plant") {
-    const image = document.createElement("img");
-    image.src = `${ASSET_ROOT}/ceramic-pothos-planter.webp`;
-    image.alt = "";
-    image.loading = eager ? "eager" : "lazy";
-    image.decoding = "async";
-    wrapper.appendChild(image);
-    return wrapper;
+  switch (kind) {
+    case "plant-bottles":
+      wrapper.innerHTML = `${plantImage("botanical-decor-plant botanical-decor-plant-large", eager)}<span class="botanical-bottle-group">${bottlesMarkup()}</span>`;
+      break;
+    case "lamp-frame":
+      wrapper.innerHTML = `${lampMarkup()}<span class="botanical-frame-companion">${frameMarkup()}</span>`;
+      break;
+    case "candle-stack":
+      wrapper.innerHTML = candleStackMarkup();
+      break;
+    case "plant-frame":
+      wrapper.innerHTML = `${plantImage("botanical-decor-plant botanical-decor-plant-medium", eager)}<span class="botanical-frame-companion botanical-frame-companion-low">${frameMarkup()}</span>`;
+      break;
+    case "bottles":
+      wrapper.innerHTML = `<span class="botanical-bottle-group botanical-bottle-group-solo">${bottlesMarkup()}</span>`;
+      break;
+    case "small-plant":
+      wrapper.innerHTML = plantImage("botanical-decor-plant botanical-decor-plant-small", eager);
+      break;
   }
 
-  if (kind === "lamp") {
-    wrapper.innerHTML = `
-      <span class="botanical-lamp-glow"></span>
-      <span class="botanical-lamp-shade"><i></i></span>
-      <span class="botanical-lamp-stem"></span>
-      <span class="botanical-lamp-base"></span>
-    `;
-    return wrapper;
-  }
-
-  if (kind === "frame") {
-    wrapper.innerHTML = `
-      <span class="botanical-mini-frame">
-        <i class="botanical-mini-frame-sky"></i>
-        <i class="botanical-mini-frame-hill"></i>
-      </span>
-    `;
-    return wrapper;
-  }
-
-  wrapper.innerHTML = `
-    <span class="botanical-stack-book botanical-stack-book-one"></span>
-    <span class="botanical-stack-book botanical-stack-book-two"></span>
-    <span class="botanical-stack-book botanical-stack-book-three"></span>
-    <span class="botanical-stack-candle"><i></i></span>
-  `;
   return wrapper;
 }
 
@@ -91,7 +119,6 @@ function syncRowDecor(active: boolean) {
   const rows = [...document.querySelectorAll<HTMLElement>(".shelf-row")];
 
   rows.forEach((row, index) => {
-    // Botanical v4 owns the scene composition. Remove older generic theme art.
     row.querySelectorAll<HTMLElement>(".asset-decor-set.asset-theme-botanical").forEach((node) => node.remove());
 
     if (!active) {
@@ -160,26 +187,33 @@ export default function BotanicalSceneEnricher() {
     <>
       {createPortal(
         <div className="botanical-v3-room" aria-hidden="true">
-          <div className="botanical-room-wall-wash" />
+          <div className="botanical-room-wall" />
           <div className="botanical-room-window-light" />
-          <img className="botanical-room-window" src={`${ASSET_ROOT}/window-left.webp`} alt="" draggable={false} />
-          <img className="botanical-room-vine-left" src={`${ASSET_ROOT}/hanging-vine-right.webp`} alt="" draggable={false} />
-          <img className="botanical-room-vine-canopy" src={`${ASSET_ROOT}/hanging-vine-right.webp`} alt="" draggable={false} />
+          <div className="botanical-room-window-architecture">
+            <div className="botanical-room-window-view" />
+            <span className="botanical-room-window-mullion botanical-room-window-mullion-v" />
+            <span className="botanical-room-window-mullion botanical-room-window-mullion-h botanical-room-window-mullion-h-one" />
+            <span className="botanical-room-window-mullion botanical-room-window-mullion-h botanical-room-window-mullion-h-two" />
+          </div>
+          <img className="botanical-room-vine-window" src={`${ASSET_ROOT}/hanging-vine-right.webp`} alt="" draggable={false} />
+          <img className="botanical-room-vine-corner" src={`${ASSET_ROOT}/hanging-vine-right.webp`} alt="" draggable={false} />
+          <img className="botanical-room-vine-upper" src={`${ASSET_ROOT}/hanging-vine-right.webp`} alt="" draggable={false} />
           <div className="botanical-room-frame" role="presentation">
             <span className="botanical-room-frame-paper">
-              <i className="botanical-room-frame-stem botanical-room-frame-stem-one" />
-              <i className="botanical-room-frame-stem botanical-room-frame-stem-two" />
-              <i className="botanical-room-frame-cap botanical-room-frame-cap-one" />
-              <i className="botanical-room-frame-cap botanical-room-frame-cap-two" />
+              <i className="botanical-room-frame-fern botanical-room-frame-fern-one" />
+              <i className="botanical-room-frame-fern botanical-room-frame-fern-two" />
+              <i className="botanical-room-frame-fern botanical-room-frame-fern-three" />
             </span>
           </div>
           <div className="botanical-room-grain" />
+          <div className="botanical-room-vignette" />
         </div>,
         document.body,
       )}
       {createPortal(
         <div className="botanical-v3-foreground" aria-hidden="true">
-          <img className="botanical-room-vine-right" src={`${ASSET_ROOT}/hanging-vine-right.webp`} alt="" draggable={false} />
+          <img className="botanical-room-vine-edge-left" src={`${ASSET_ROOT}/hanging-vine-right.webp`} alt="" draggable={false} />
+          <img className="botanical-room-vine-edge-right" src={`${ASSET_ROOT}/hanging-vine-right.webp`} alt="" draggable={false} />
         </div>,
         document.body,
       )}
