@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { canPublishSharedSpines, publishSharedSpine } from "./shared-spines";
 
 type Candidate = {
   id: string;
@@ -12,6 +13,7 @@ type Candidate = {
   spineImage?: string; // Legacy/manual spine uploads stay separate from cover review.
   source: "upload" | "web";
   kind?: "cover" | "spine";
+  shared?: boolean;
   createdAt: number;
 };
 
@@ -56,13 +58,30 @@ function isCoverCandidate(candidate: Candidate) {
   // came from the separate real-spine tool and must not enter cover review.
   return candidate.source === "web";
 }
+function modalDetail(modal: HTMLElement, label: string) {
+  for (const dt of modal.querySelectorAll<HTMLElement>(".details dt")) {
+    if (dt.textContent?.trim().toLowerCase() !== label.toLowerCase()) continue;
+    return dt.nextElementSibling?.textContent?.trim() || "";
+  }
+  return "";
+}
 function modalBook() {
   const modal = document.querySelector<HTMLElement>(".modal");
   if (!modal) return null;
   const title = modal.querySelector<HTMLElement>(".details h2")?.textContent?.trim() || "";
   const author = (modal.querySelector<HTMLElement>(".details .author")?.textContent || "").replace(/^by\s+/i, "").trim();
-  const coverUrl = modal.querySelector<HTMLImageElement>(".cover-image")?.src || "";
-  return title ? { title, author, coverUrl } : null;
+  const cover = modal.querySelector<HTMLImageElement>(".cover-image");
+  const coverUrl = cover?.currentSrc || cover?.src || "";
+  if (!title) return null;
+  const isbnRaw = modalDetail(modal, "ISBN");
+  const asinRaw = modalDetail(modal, "Audible ASIN");
+  return {
+    title,
+    author,
+    coverUrl,
+    isbn: isbnRaw && isbnRaw !== "N/A" ? isbnRaw : undefined,
+    asin: asinRaw || undefined,
+  };
 }
 function libraryCover(title: string, author: string) {
   const wanted = identity(title, author);
@@ -115,9 +134,63 @@ export default function SpineCommunityEnricher() {
       if (!feedback || !book) return;
       const holder = document.createElement("div"); holder.className = "spine-community-tools"; holder.setAttribute("data-spine-community-tools", "1");
       const google = document.createElement("button"); google.type = "button"; google.className = "primary spine-google-button"; google.textContent = "🔎 Find real spine online"; google.onclick = () => window.open(googleSpineUrl(book.title, book.author), "_blank", "noopener,noreferrer");
-      const upload = document.createElement("button"); upload.type = "button"; upload.className = "primary spine-upload-button"; upload.textContent = "📷 Upload spine candidate";
+      const upload = document.createElement("button"); upload.type = "button"; upload.className = "primary spine-upload-button"; upload.textContent = "📷 Upload personal spine";
+      void canPublishSharedSpines().then((isCurator) => {
+        if (upload.isConnected || holder.isConnected) upload.textContent = isCurator ? "📷 Upload community spine" : "📷 Upload personal spine";
+      });
       const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.hidden = true; upload.onclick = () => input.click();
-      input.onchange = async () => { const file = input.files?.[0]; if (!file) return; try { const image = await fileToDataUrl(file); writeCandidates([...readCandidates(), { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, title: book.title, author: book.author, coverUrl: book.coverUrl || libraryCover(book.title, book.author), spineImage: image, source: "upload", kind: "spine", createdAt: Date.now() }]); upload.textContent = "✓ Spine saved"; setRevision((v) => v + 1); } catch { upload.textContent = "Upload failed"; } input.value = ""; };
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        try {
+          const image = await fileToDataUrl(file);
+          const sourceCoverUrl = book.coverUrl || libraryCover(book.title, book.author);
+          let spineImage = image;
+          let shared = false;
+          let communityFailed = false;
+
+          if (await canPublishSharedSpines()) {
+            try {
+              const result = await publishSharedSpine(
+                { title: book.title, author: book.author, isbn: book.isbn, asin: book.asin },
+                image,
+                sourceCoverUrl,
+                "AI-integrated",
+                "manual-upload",
+              );
+              if (result.shared) {
+                spineImage = result.url;
+                shared = true;
+              }
+            } catch {
+              communityFailed = true;
+            }
+          }
+
+          writeCandidates([...readCandidates(), {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            title: book.title,
+            author: book.author,
+            coverUrl: sourceCoverUrl,
+            spineImage,
+            source: "upload",
+            kind: "spine",
+            shared,
+            createdAt: Date.now(),
+          }]);
+          setRevision((v) => v + 1);
+          window.dispatchEvent(new CustomEvent("shelf-spine-gallery-changed"));
+          if (shared) {
+            window.dispatchEvent(new CustomEvent("shelf-community-spine-published", {
+              detail: { coverUrl: sourceCoverUrl, image: spineImage, renderMode: "integrated", shared: true, sharedUrl: spineImage },
+            }));
+          }
+          upload.textContent = shared ? "✓ Shared to community" : communityFailed ? "✓ Saved locally — community retry needed" : "✓ Saved to your shelf";
+        } catch {
+          upload.textContent = "Upload failed";
+        }
+        input.value = "";
+      };
       holder.append(google, upload, input); feedback.appendChild(holder);
     };
     mountModalTools(); const observer = new MutationObserver(() => requestAnimationFrame(mountModalTools)); observer.observe(document.body, { childList: true, subtree: true }); return () => observer.disconnect();
