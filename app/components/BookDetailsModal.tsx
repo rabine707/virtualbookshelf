@@ -12,6 +12,7 @@ import {
   WebCoverResult,
 } from "../../lib/books/client-library";
 import { BookInfoEditor } from "./BookInfoEditor";
+import { SpineTools } from "./SpineTools";
 
 type BookDetailsModalProps = {
   selected: Book;
@@ -189,6 +190,13 @@ export function BookDetailsModal({
                 Another edition
               </button>
             </div>
+            <SpineTools
+              title={selected.title}
+              author={selected.author}
+              coverUrl={cover?.url}
+              isbn={selectedIsbn}
+              asin={selected.asin}
+            />
           </div>
         </div>
 
