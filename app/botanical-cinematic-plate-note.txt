@@ -1,0 +1,1 @@
+Binary V4 environment assets are committed in the same PR and referenced by botanical-cinematic-plate.css.
