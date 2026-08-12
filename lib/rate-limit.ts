@@ -1,11 +1,12 @@
-type RateLimitBucket = {
-  count: number;
-  resetAt: number;
-};
-
 type RateLimitPolicy = {
   limit: number;
   windowMs: number;
+};
+
+type RateLimitResult = {
+  allowed?: boolean;
+  remaining?: number;
+  retry_after_seconds?: number;
 };
 
 const POLICIES: Record<string, RateLimitPolicy> = {
@@ -17,66 +18,83 @@ const POLICIES: Record<string, RateLimitPolicy> = {
   "/api/book-search": { limit: 90, windowMs: 60_000 },
 };
 
-const globalRateLimit = globalThis as typeof globalThis & {
-  __shelfOfFameRateLimitBuckets?: Map<string, RateLimitBucket>;
-  __shelfOfFameRateLimitOperations?: number;
-};
-
-const buckets = globalRateLimit.__shelfOfFameRateLimitBuckets
-  ?? (globalRateLimit.__shelfOfFameRateLimitBuckets = new Map<string, RateLimitBucket>());
-
 function clientAddress(request: Request) {
+  const vercelForwarded = request.headers.get("x-vercel-forwarded-for");
   const forwarded = request.headers.get("x-forwarded-for");
   const realIp = request.headers.get("x-real-ip");
-  const value = forwarded?.split(",")[0]?.trim() || realIp?.trim() || "unknown";
+  const value = vercelForwarded?.split(",")[0]?.trim()
+    || forwarded?.split(",")[0]?.trim()
+    || realIp?.trim()
+    || "unknown";
   return value.slice(0, 128);
 }
 
-function cleanup(now: number) {
-  globalRateLimit.__shelfOfFameRateLimitOperations = (globalRateLimit.__shelfOfFameRateLimitOperations || 0) + 1;
-  const operations = globalRateLimit.__shelfOfFameRateLimitOperations;
-  if (operations % 100 !== 0 && buckets.size <= 5_000) return;
-
-  for (const [key, bucket] of buckets) {
-    if (bucket.resetAt <= now) buckets.delete(key);
-  }
-
-  if (buckets.size <= 5_000) return;
-  const overflow = buckets.size - 4_000;
-  let removed = 0;
-  for (const key of buckets.keys()) {
-    buckets.delete(key);
-    removed += 1;
-    if (removed >= overflow) break;
-  }
+async function hashBucketKey(pathname: string, address: string) {
+  const input = new TextEncoder().encode(`${pathname}:${address}`);
+  const digest = await crypto.subtle.digest("SHA-256", input);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-export function enforceApiRateLimit(request: Request) {
-  const policy = POLICIES[new URL(request.url).pathname];
-  if (!policy) return null;
-
-  const now = Date.now();
-  cleanup(now);
-
-  const pathname = new URL(request.url).pathname;
-  const key = `${pathname}:${clientAddress(request)}`;
-  const current = buckets.get(key);
-  const bucket = !current || current.resetAt <= now
-    ? { count: 1, resetAt: now + policy.windowMs }
-    : { count: current.count + 1, resetAt: current.resetAt };
-
-  buckets.set(key, bucket);
-  if (bucket.count <= policy.limit) return null;
-
-  const retryAfterSeconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1_000));
+function tooManyRequests(retryAfterSeconds: number) {
   return Response.json(
     { error: "Too many requests. Please try again shortly." },
     {
       status: 429,
       headers: {
         "Cache-Control": "no-store",
-        "Retry-After": String(retryAfterSeconds),
+        "Retry-After": String(Math.max(1, retryAfterSeconds)),
       },
     },
   );
+}
+
+export async function enforceApiRateLimit(request: Request) {
+  const pathname = new URL(request.url).pathname;
+  const policy = POLICIES[pathname];
+  if (!policy) return null;
+
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "https://vrkuimrfdkejfhpxlwlf.supabase.co").trim();
+
+  // The paid AI endpoint still has its own authenticated, per-user generation
+  // allowance. This shared limiter is defense-in-depth for distributed Vercel
+  // traffic and for the public upstream-search endpoints.
+  if (!serviceRoleKey || !supabaseUrl) return null;
+
+  try {
+    const bucketKey = await hashBucketKey(pathname, clientAddress(request));
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_api_rate_limit`, {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        p_bucket_key: bucketKey,
+        p_limit: policy.limit,
+        p_window_seconds: Math.max(1, Math.ceil(policy.windowMs / 1_000)),
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn("Shared API rate-limit check failed", response.status);
+      return null;
+    }
+
+    const payload = await response.json() as RateLimitResult[] | RateLimitResult | null;
+    const result = Array.isArray(payload) ? payload[0] : payload;
+    if (!result || result.allowed !== false) return null;
+
+    return tooManyRequests(Number(result.retry_after_seconds || 1));
+  } catch (error) {
+    console.warn(
+      "Shared API rate-limit check failed",
+      error instanceof Error ? error.message : "unknown error",
+    );
+    return null;
+  }
 }
