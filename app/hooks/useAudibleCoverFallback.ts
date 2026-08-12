@@ -21,14 +21,33 @@ export function useAudibleCoverFallback({
   setSelected,
   setCover,
 }: UseAudibleCoverFallbackOptions) {
-  const attempted = useRef(new Set<string>());
+  const activeBookId = useRef<string | null>(null);
+  const sawPrimaryLookup = useRef(false);
+  const attempted = useRef(false);
 
   useEffect(() => {
-    if (!selected || coverLoading || cover || selected.preferredCover?.url) return;
-    if (attempted.current.has(selected.id)) return;
-    attempted.current.add(selected.id);
+    const selectedId = selected?.id || null;
+    if (activeBookId.current !== selectedId) {
+      activeBookId.current = selectedId;
+      sawPrimaryLookup.current = false;
+      attempted.current = false;
+    }
+
+    if (!selected) return;
+
+    // The cover-manager effect starts its fetch after the same render that opens
+    // the modal. Requiring an observed loading=true state prevents Audible from
+    // racing ahead on that first render, so it remains a true fallback.
+    if (coverLoading) {
+      sawPrimaryLookup.current = true;
+      return;
+    }
+
+    if (!sawPrimaryLookup.current || attempted.current || cover || selected.preferredCover?.url) return;
+    attempted.current = true;
 
     const controller = new AbortController();
+    let settled = false;
     const params = new URLSearchParams({
       title: selected.title,
       author: selected.author,
@@ -52,8 +71,14 @@ export function useAudibleCoverFallback({
           setCover(updated.preferredCover);
         }
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        settled = true;
+      });
 
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (!settled && activeBookId.current === selected.id) attempted.current = false;
+    };
   }, [cover, coverLoading, selected, setBooks, setCover, setSelected]);
 }
