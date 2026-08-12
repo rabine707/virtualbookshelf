@@ -5,7 +5,6 @@ import AuthEnricher from "./AuthEnricher";
 import BotanicalSceneEnricher from "./BotanicalSceneEnricher";
 import CloudAccountSettings from "./CloudAccountSettings";
 import CloudSyncEnricher from "./CloudSyncEnricher";
-import CommunityCoverSync from "./CommunityCoverSync";
 import HelpShelfLauncher from "./HelpShelfLauncher";
 import MobileTapFix from "./MobileTapFix";
 import QoLEnricher from "./QoLEnricher";
@@ -113,7 +112,6 @@ export default function ClientEnhancers() {
     <ShelfScanner />
     <CloudAccountSettings />
     <HelpShelfLauncher />
-    <CommunityCoverSync />
     <SpineArtEnricher />
     <SharedSpineEnricher />
     <SpineGenerator />

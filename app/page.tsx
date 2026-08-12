@@ -9,9 +9,10 @@ import { ShelfToolbar } from "./components/ShelfToolbar";
 import { useAudibleCoverFallback } from "./hooks/useAudibleCoverFallback";
 import { useBookCoverManager } from "./hooks/useBookCoverManager";
 import { useBookMetadataEditor } from "./hooks/useBookMetadataEditor";
+import { useCommunityCoverSync } from "./hooks/useCommunityCoverSync";
 import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
-import { Book } from "../lib/books/client-library";
+import { Book, CoverResult, WebCoverResult } from "../lib/books/client-library";
 
 export default function Home() {
   const {
@@ -23,6 +24,7 @@ export default function Home() {
     importGoodreadsCsv,
   } = useShelfLibrary();
 
+  const { submitCoverChoice } = useCommunityCoverSync({ books, setBooks });
   useRomanceShelfEnrichment({ books, setBooks });
 
   const {
@@ -67,6 +69,18 @@ export default function Home() {
     setSelected,
     setCover,
   });
+
+  function chooseCoverAndSync(option: CoverResult) {
+    chooseCover(option);
+    if (selected) void submitCoverChoice(selected, option);
+  }
+
+  function chooseWebCoverAndSync(result: WebCoverResult) {
+    chooseWebCover(result);
+    if (selected) {
+      void submitCoverChoice(selected, { url: result.url, source: "Web image" });
+    }
+  }
 
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("title");
@@ -168,11 +182,11 @@ export default function Home() {
           canResetCoverChoices={canResetCoverChoices}
           onClose={() => setSelected(null)}
           onClearCover={() => setCover(null)}
-          onUseSavedCover={chooseCover}
+          onUseSavedCover={chooseCoverAndSync}
           onRemoveSavedCover={removeSavedCover}
           onSearchWebCovers={searchWebCovers}
-          onChooseWebCover={chooseWebCover}
-          onChooseCover={chooseCover}
+          onChooseWebCover={chooseWebCoverAndSync}
+          onChooseCover={chooseCoverAndSync}
           onRejectCurrentCover={rejectCurrentCover}
           onSearchMoreCovers={searchMoreCovers}
           onResetCoverChoices={resetCoverChoices}
