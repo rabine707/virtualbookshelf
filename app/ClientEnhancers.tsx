@@ -13,7 +13,6 @@ import SpineArtEnricher from "./SpineArtEnricher";
 import SpineAuthorCorrector from "./SpineAuthorCorrector";
 import SpineCommunityEnricher from "./SpineCommunityEnricher";
 import SpineGallery from "./SpineGallery";
-import SpineGenerator from "./SpineGenerator";
 import ThemeEnricher from "./ThemeEnricher";
 
 function MobileBottomNav() {
@@ -112,7 +111,6 @@ export default function ClientEnhancers() {
     <HelpShelfLauncher />
     <SpineArtEnricher />
     <SharedSpineEnricher />
-    <SpineGenerator />
     <SpineGallery />
     <SpineAuthorCorrector />
     <SpineCommunityEnricher />
