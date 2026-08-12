@@ -10,7 +10,6 @@ import HelpShelfLauncher from "./HelpShelfLauncher";
 import IdentifierEditor from "./IdentifierEditor";
 import MobileTapFix from "./MobileTapFix";
 import QoLEnricher from "./QoLEnricher";
-import RomanceShelfEnricher from "./RomanceShelfEnricher";
 import ShelfScanner from "./ShelfScanner";
 import SharedSpineEnricher from "./SharedSpineEnricher";
 import SpineArtEnricher from "./SpineArtEnricher";
@@ -117,7 +116,6 @@ export default function ClientEnhancers() {
     <CloudAccountSettings />
     <HelpShelfLauncher />
     <CommunityCoverSync />
-    <RomanceShelfEnricher />
     <SpineArtEnricher />
     <SharedSpineEnricher />
     <SpineGenerator />

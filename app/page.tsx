@@ -8,6 +8,7 @@ import { CoverUndoToast } from "./components/CoverUndoToast";
 import { ShelfToolbar } from "./components/ShelfToolbar";
 import { useAudibleCoverFallback } from "./hooks/useAudibleCoverFallback";
 import { useBookCoverManager } from "./hooks/useBookCoverManager";
+import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
 import { Book } from "../lib/books/client-library";
 
@@ -20,6 +21,9 @@ export default function Home() {
     showToast,
     importGoodreadsCsv,
   } = useShelfLibrary();
+
+  useRomanceShelfEnrichment({ books, setBooks });
+
   const {
     selected,
     setSelected,
