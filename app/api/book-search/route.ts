@@ -380,7 +380,7 @@ function mergeResults(candidates: SearchCandidate[]) {
 }
 
 export async function GET(request: NextRequest) {
-  const rateLimited = enforceApiRateLimit(request);
+  const rateLimited = await enforceApiRateLimit(request);
   if (rateLimited) return rateLimited;
 
   const title = request.nextUrl.searchParams.get("title")?.replace(/\s+/g, " ").trim() || "";
