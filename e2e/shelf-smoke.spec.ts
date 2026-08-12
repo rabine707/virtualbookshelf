@@ -74,7 +74,7 @@ async function openFourthWing(page: Page) {
 }
 
 async function revealSecondCover(page: Page) {
-  const secondCover = page.getByRole("button", { name: "Use this Open Library cover on the shelf" });
+  const secondCover = page.getByRole("button", { name: "Use this OL cover on the shelf" });
   await expect(secondCover).toBeVisible({ timeout: 12_000 });
   return secondCover;
 }
