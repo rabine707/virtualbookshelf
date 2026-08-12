@@ -332,7 +332,7 @@ async function discoverIsbn(title: string, author: string) {
 }
 
 export async function proxy(request: NextRequest) {
-  const rateLimited = enforceApiRateLimit(request);
+  const rateLimited = await enforceApiRateLimit(request);
   if (rateLimited) return rateLimited;
 
   if (request.nextUrl.pathname !== "/api/cover") return NextResponse.next();
