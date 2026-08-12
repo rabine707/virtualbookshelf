@@ -23,6 +23,10 @@ type StoredSession = {
   user?: { id?: string; email?: string };
 };
 
+type CuratorRow = {
+  trusted_curator?: boolean | null;
+};
+
 type SharedSpineRow = {
   storage_path: string;
   source_cover_url?: string | null;
@@ -80,6 +84,29 @@ async function supabaseJson(path: string, init: RequestInit = {}, authenticated 
   return data;
 }
 
+let curatorCache: { userId: string; value: boolean; expires: number } | null = null;
+
+export async function canPublishSharedSpines(force = false) {
+  const session = readSession();
+  const userId = session?.user?.id;
+  const token = session?.access_token;
+  if (!userId || !token) return false;
+  if (!force && curatorCache?.userId === userId && curatorCache.expires > Date.now()) return curatorCache.value;
+
+  try {
+    const rows = await supabaseJson(
+      `/rest/v1/profiles?select=trusted_curator&id=eq.${encodeURIComponent(userId)}&limit=1`,
+      { cache: "no-store" },
+      true,
+    ) as CuratorRow[];
+    const value = rows?.[0]?.trusted_curator === true;
+    curatorCache = { userId, value, expires: Date.now() + 30_000 };
+    return value;
+  } catch {
+    return false;
+  }
+}
+
 async function findOrCreateBook(identity: SharedBookIdentity) {
   const normalizedTitle = normalizeBookText(identity.title);
   const normalizedAuthor = normalizeBookText(identity.author);
@@ -132,6 +159,7 @@ export async function publishSharedSpine(identity: SharedBookIdentity, image: st
   const userId = session?.user?.id;
   const token = session?.access_token;
   if (!userId || !token) return { shared: false as const, reason: "signed-out" as const };
+  if (!await canPublishSharedSpines()) return { shared: false as const, reason: "not-curator" as const };
 
   const bookId = await findOrCreateBook(identity);
   const imageResponse = await fetch(image);
