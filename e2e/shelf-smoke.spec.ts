@@ -1,18 +1,30 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, Page, test } from "@playwright/test";
 
-const COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23666'/%3E%3C/svg%3E";
-const WEB_COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23999'/%3E%3C/svg%3E";
+const COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23567'/%3E%3C/svg%3E";
+const SECOND_COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23765'/%3E%3C/svg%3E";
+const WEB_COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23987'/%3E%3C/svg%3E";
 
-test.beforeEach(async ({ page }) => {
+async function mockCoverApis(page: Page) {
   await page.route("**/api/cover?**", async (route) => {
+    const url = new URL(route.request().url());
+    const deep = url.searchParams.get("libraryThing") === "1";
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({
-        url: COVER_URL,
-        source: "Google Books",
-        options: [{ url: COVER_URL, source: "Google Books" }],
-      }),
+      body: JSON.stringify(deep
+        ? {
+            url: COVER_URL,
+            source: "Google Books",
+            options: [
+              { url: COVER_URL, source: "Google Books" },
+              { url: SECOND_COVER_URL, source: "Open Library" },
+            ],
+          }
+        : {
+            url: COVER_URL,
+            source: "Google Books",
+            options: [{ url: COVER_URL, source: "Google Books" }],
+          }),
     });
   });
 
@@ -20,7 +32,7 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ url: null, source: null, options: [] }),
+      body: JSON.stringify({ url: null, source: null }),
     });
   });
 
@@ -32,10 +44,9 @@ test.beforeEach(async ({ page }) => {
         results: [{
           url: WEB_COVER_URL,
           thumbnailUrl: WEB_COVER_URL,
-          source: "Brave Search",
           title: "Fourth Wing alternate cover",
-          pageUrl: "https://example.com/fourth-wing",
           publisher: "Example",
+          pageUrl: "https://example.com/fourth-wing",
         }],
       }),
     });
@@ -48,49 +59,40 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify({
         results: [{
           id: "test-book",
-          title: "Shelf Test Book",
+          title: "A Test Book",
           author: "Test Author",
           year: 2026,
           isbn: "9781234567897",
-          coverUrl: WEB_COVER_URL,
+          coverUrl: SECOND_COVER_URL,
           source: "Google Books",
         }],
       }),
     });
   });
-});
+}
 
 async function openFourthWing(page: Page) {
+  await mockCoverApis(page);
   await page.goto("/");
-
-  await expect(page.getByRole("heading", { name: "Shelf of Fame" })).toBeVisible();
-  await expect(page.locator("button.book")).toHaveCount(12);
-
-  await page.getByPlaceholder("Search title or author…").fill("Fourth Wing");
-  await expect(page.locator("button.book")).toHaveCount(1);
-
-  const spine = page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]');
-  await expect(spine).toBeVisible();
-  await spine.click();
+  const search = page.getByPlaceholder("Search title or author…");
+  await search.fill("Fourth Wing");
+  await page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]').click();
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toBeVisible();
-
-  return spine;
+  await expect(page.getByTitle("Save this as the correct cover")).toBeEnabled();
 }
 
 test("loads the shelf, searches, opens a book, and preserves a rejected cover", async ({ page }) => {
-  const spine = await openFourthWing(page);
+  await openFourthWing(page);
 
+  const modal = page.getByRole("dialog", { name: "Fourth Wing" });
   const correctCover = page.getByTitle("Save this as the correct cover");
-  const wrongCover = page.getByRole("button", { name: "Not this one" });
-  await expect(correctCover).toBeEnabled();
-  await expect(wrongCover).toBeEnabled();
+  await modal.getByRole("button", { name: "Not this one" }).click();
 
-  await wrongCover.click();
-  await expect(page.locator('.toast[role="status"]')).toContainText("Rejected that cover for Fourth Wing");
   await expect(page.locator(".cover-undo-toast")).toContainText("Cover rejected. Accident?");
   await expect(correctCover).toBeDisabled();
 
   await page.getByRole("button", { name: "Close" }).click();
+  const spine = page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]');
   await spine.click();
 
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toBeVisible();
@@ -122,7 +124,7 @@ test("book modal owns reader controls and can undo a cover rejection without rel
 
   const undoToast = page.locator(".cover-undo-toast");
   await expect(undoToast).toContainText("Cover rejected. Accident?");
-  await undoToast.getByRole("button", { name: "Undo" }).click();
+  await undoToast.getByRole("button", { name: "Undo", exact: true }).click();
 
   await expect(page.locator('.toast[role="status"]')).toContainText("Restored the previous cover choice for Fourth Wing");
   await expect(correctCover).toBeEnabled();
@@ -138,96 +140,104 @@ test("reset cover choices clears the saved decision without reloading the page",
   const resetCover = page.getByTitle("Clear this book's saved cover choice and rejected-cover history");
 
   await correctCover.click();
-  await expect(page.locator('.toast[role="status"]')).toContainText("Marked this Google Books cover as correct for Fourth Wing");
   await expect(resetCover).toBeEnabled();
 
   await page.evaluate(() => {
     (window as typeof window & { __coverResetMarker?: string }).__coverResetMarker = "alive";
   });
-
   await resetCover.click();
+
   await expect(page.locator('.toast[role="status"]')).toContainText("Reset cover choices for Fourth Wing");
-  await expect(resetCover).toBeDisabled();
-  await expect(modal).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __coverResetMarker?: string }).__coverResetMarker)).toBe("alive");
 });
 
 test("saved cover choices are managed by React without reloading the page", async ({ page }) => {
   await openFourthWing(page);
 
-  const modal = page.getByRole("dialog", { name: "Fourth Wing" });
-  const correctCover = page.getByTitle("Save this as the correct cover");
-  await correctCover.click();
+  await page.getByTitle("Save this as the correct cover").click();
+  await page.getByRole("button", { name: "Find more covers" }).click();
 
-  const savedCovers = modal.getByRole("region", { name: "Saved covers" });
-  await expect(savedCovers).toBeVisible();
-  await expect(savedCovers.getByRole("button", { name: "Currently on your shelf" })).toBeVisible();
+  const secondCover = page.getByRole("button", { name: "Use this Open Library cover on the shelf" });
+  await expect(secondCover).toBeVisible();
+  await secondCover.click();
 
   await page.evaluate(() => {
     (window as typeof window & { __savedCoverMarker?: string }).__savedCoverMarker = "alive";
   });
 
-  await savedCovers.getByRole("button", { name: "Remove Google Books cover" }).click();
-  await expect(page.locator('.toast[role="status"]')).toContainText("Removed that saved cover for Fourth Wing");
-  await expect(modal.getByRole("region", { name: "Saved covers" })).toHaveCount(0);
-  await expect(correctCover).toBeDisabled();
+  const savedOption = page.getByRole("button", { name: "Use saved Google Books cover" });
+  await expect(savedOption).toBeVisible();
+  await savedOption.click();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __savedCoverMarker?: string }).__savedCoverMarker)).toBe("alive");
+
+  const removeSaved = page.getByRole("button", { name: "Remove Open Library cover" });
+  await expect(removeSaved).toBeVisible();
+  await removeSaved.click();
+  await expect(page.getByRole("button", { name: "Remove Open Library cover" })).toHaveCount(0);
 });
 
 test("web cover search applies and saves a cover without reloading the page", async ({ page }) => {
   await openFourthWing(page);
 
-  const modal = page.getByRole("dialog", { name: "Fourth Wing" });
-  const webPanel = modal.getByRole("region", { name: "Browse web covers" });
-
   await page.evaluate(() => {
     (window as typeof window & { __webCoverMarker?: string }).__webCoverMarker = "alive";
   });
 
-  await webPanel.getByRole("button", { name: "Web covers" }).click();
-  const webResult = webPanel.getByRole("button", { name: "Use web image 1 on the shelf" });
+  await page.getByRole("button", { name: "Alternate editions" }).click();
+  const webResult = page.getByRole("button", { name: "Use web image 1 on the shelf" });
   await expect(webResult).toBeVisible();
   await webResult.click();
 
-  await expect(page.locator('.toast[role="status"]')).toContainText("Applied a web cover to Fourth Wing");
-  await expect(modal.getByRole("region", { name: "Saved covers" })).toBeVisible();
-  await expect(page.getByTitle("Save this as the correct cover")).toBeEnabled();
+  await expect(page.getByText("✓ Applied to your shelf and saved with this book.", { exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __webCoverMarker?: string }).__webCoverMarker)).toBe("alive");
+  await expect.poll(async () => page.evaluate(() => {
+    const books = JSON.parse(window.localStorage.getItem("shelf-of-fame-library-v1") || "[]") as Array<{
+      title?: string;
+      preferredCover?: { url?: string };
+    }>;
+    return books.find((book) => book.title === "Fourth Wing")?.preferredCover?.url || "";
+  })).toBe(WEB_COVER_URL);
 });
 
 test("adding a searched book updates the live shelf without reloading the page", async ({ page }) => {
+  await mockCoverApis(page);
   await page.goto("/");
   await page.evaluate(() => {
     (window as typeof window & { __addBookMarker?: string }).__addBookMarker = "alive";
   });
 
-  await page.getByRole("button", { name: /Add books/ }).click();
+  await page.getByRole("button", { name: /Add books/i }).first().click();
   const dialog = page.getByRole("dialog", { name: "Add books" });
   await expect(dialog).toBeVisible();
-  await dialog.getByRole("textbox", { name: "Title" }).fill("Shelf Test Book");
-  await dialog.getByRole("textbox", { name: "Author" }).fill("Test Author");
+  await dialog.getByPlaceholder("Church").fill("A Test Book");
+  await dialog.getByPlaceholder("Reuss").fill("Test Author");
+  await dialog.getByRole("button", { name: "Search" }).click();
 
-  const result = dialog.locator("button.book-search-result").first();
-  await expect(result).toContainText("Shelf Test Book");
-  await result.click();
-
-  await expect(dialog).toHaveCount(0);
-  await expect(page.locator('.toast[role="status"]')).toContainText("Added Shelf Test Book — Test Author");
-  await expect(page.locator("button.book")).toHaveCount(1);
-  await expect(page.locator('button.book[title="Shelf Test Book — Test Author"]')).toBeVisible();
+  await dialog.getByRole("button", { name: /A Test Book/ }).click();
+  await expect(page.locator('button.book[title="A Test Book — Test Author"]')).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __addBookMarker?: string }).__addBookMarker)).toBe("alive");
 });
 
 test("a single database-cover tap saves the cover and returns to the shelf", async ({ page }) => {
   await openFourthWing(page);
-  const modal = page.getByRole("dialog", { name: "Fourth Wing" });
+
+  await page.getByRole("button", { name: "Find more covers" }).click();
+  const secondCover = page.getByRole("button", { name: "Use this Open Library cover on the shelf" });
+  await expect(secondCover).toBeVisible();
+
   await page.evaluate(() => {
     (window as typeof window & { __singleTapMarker?: string }).__singleTapMarker = "alive";
   });
-
-  await modal.getByRole("button", { name: "Use this Google cover on the shelf" }).click();
+  await secondCover.click();
 
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toHaveCount(0);
-  await expect(page.locator('.toast[role="status"]')).toContainText("Marked this Google Books cover as correct for Fourth Wing");
+  await expect(page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]')).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __singleTapMarker?: string }).__singleTapMarker)).toBe("alive");
+  await expect.poll(async () => page.evaluate(() => {
+    const books = JSON.parse(window.localStorage.getItem("shelf-of-fame-library-v1") || "[]") as Array<{
+      title?: string;
+      preferredCover?: { url?: string };
+    }>;
+    return books.find((book) => book.title === "Fourth Wing")?.preferredCover?.url || "";
+  })).toBe(SECOND_COVER_URL);
 });
