@@ -81,22 +81,47 @@ async function openFourthWing(page: Page) {
   await expect(page.getByTitle("Save this as the correct cover")).toBeEnabled();
 }
 
+async function revealSecondCover(page: Page) {
+  const secondCover = page.getByRole("button", { name: "Use this Open Library cover on the shelf" });
+  if (await secondCover.isVisible().catch(() => false)) return secondCover;
+
+  const findMore = page.getByRole("button", { name: "Find more covers" });
+  if (await findMore.isVisible().catch(() => false)) await findMore.click();
+
+  await expect(secondCover).toBeVisible({ timeout: 12_000 });
+  return secondCover;
+}
+
+async function rejectedCoverIsPersisted(page: Page) {
+  return page.evaluate((rejectedUrl) => {
+    const books = JSON.parse(window.localStorage.getItem("shelf-of-fame-library-v1") || "[]") as Array<{
+      title?: string;
+      coverFeedback?: { rejected?: string[] };
+    }>;
+    const book = books.find((item) => item.title === "Fourth Wing");
+    return Boolean(book?.coverFeedback?.rejected?.includes(rejectedUrl));
+  }, COVER_URL);
+}
+
 test("loads the shelf, searches, opens a book, and preserves a rejected cover", async ({ page }) => {
   await openFourthWing(page);
 
   const modal = page.getByRole("dialog", { name: "Fourth Wing" });
-  const correctCover = page.getByTitle("Save this as the correct cover");
   await modal.getByRole("button", { name: "Not this one" }).click();
 
   await expect(page.locator(".cover-undo-toast")).toContainText("Cover rejected. Accident?");
-  await expect(correctCover).toBeDisabled();
+  await expect.poll(() => rejectedCoverIsPersisted(page)).toBe(true);
 
   await page.getByRole("button", { name: "Close" }).click();
   const spine = page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]');
   await spine.click();
 
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toBeVisible();
-  await expect(page.getByTitle("Save this as the correct cover")).toBeDisabled();
+  await expect.poll(() => rejectedCoverIsPersisted(page)).toBe(true);
+  await expect.poll(async () => page.evaluate((rejectedUrl) => {
+    const image = document.querySelector<HTMLImageElement>(".modal .cover-image");
+    return !image || image.getAttribute("src") !== rejectedUrl;
+  }, COVER_URL)).toBe(true);
 });
 
 test("book modal owns reader controls and can undo a cover rejection without reload", async ({ page }) => {
@@ -118,16 +143,15 @@ test("book modal owns reader controls and can undo a cover rejection without rel
     (window as typeof window & { __coverUndoMarker?: string }).__coverUndoMarker = "alive";
   });
 
-  const correctCover = page.getByTitle("Save this as the correct cover");
   await modal.getByRole("button", { name: "Not this one" }).click();
-  await expect(correctCover).toBeDisabled();
+  await expect.poll(() => rejectedCoverIsPersisted(page)).toBe(true);
 
   const undoToast = page.locator(".cover-undo-toast");
   await expect(undoToast).toContainText("Cover rejected. Accident?");
   await undoToast.getByRole("button", { name: "Undo", exact: true }).click();
 
   await expect(page.locator('.toast[role="status"]')).toContainText("Restored the previous cover choice for Fourth Wing");
-  await expect(correctCover).toBeEnabled();
+  await expect.poll(() => rejectedCoverIsPersisted(page)).toBe(false);
   await expect(page.locator(".cover-undo-toast")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __coverUndoMarker?: string }).__coverUndoMarker)).toBe("alive");
 });
@@ -135,7 +159,6 @@ test("book modal owns reader controls and can undo a cover rejection without rel
 test("reset cover choices clears the saved decision without reloading the page", async ({ page }) => {
   await openFourthWing(page);
 
-  const modal = page.getByRole("dialog", { name: "Fourth Wing" });
   const correctCover = page.getByTitle("Save this as the correct cover");
   const resetCover = page.getByTitle("Clear this book's saved cover choice and rejected-cover history");
 
@@ -155,10 +178,7 @@ test("saved cover choices are managed by React without reloading the page", asyn
   await openFourthWing(page);
 
   await page.getByTitle("Save this as the correct cover").click();
-  await page.getByRole("button", { name: "Find more covers" }).click();
-
-  const secondCover = page.getByRole("button", { name: "Use this Open Library cover on the shelf" });
-  await expect(secondCover).toBeVisible();
+  const secondCover = await revealSecondCover(page);
   await secondCover.click();
 
   await page.evaluate(() => {
@@ -213,7 +233,9 @@ test("adding a searched book updates the live shelf without reloading the page",
   await dialog.getByPlaceholder("Reuss").fill("Test Author");
   await dialog.getByRole("button", { name: "Search" }).click();
 
-  await dialog.getByRole("button", { name: /A Test Book/ }).click();
+  const searchResult = dialog.locator(".book-search-result").filter({ hasText: "A Test Book" }).first();
+  await expect(searchResult).toBeVisible();
+  await searchResult.click();
   await expect(page.locator('button.book[title="A Test Book — Test Author"]')).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __addBookMarker?: string }).__addBookMarker)).toBe("alive");
 });
@@ -221,9 +243,7 @@ test("adding a searched book updates the live shelf without reloading the page",
 test("a single database-cover tap saves the cover and returns to the shelf", async ({ page }) => {
   await openFourthWing(page);
 
-  await page.getByRole("button", { name: "Find more covers" }).click();
-  const secondCover = page.getByRole("button", { name: "Use this Open Library cover on the shelf" });
-  await expect(secondCover).toBeVisible();
+  const secondCover = await revealSecondCover(page);
 
   await page.evaluate(() => {
     (window as typeof window & { __singleTapMarker?: string }).__singleTapMarker = "alive";
