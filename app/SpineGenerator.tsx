@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
+import {
+  SPINE_POSITIONS as POSITIONS,
+  generatedSpineUrl as spineUrl,
+  getGeneratedSpine,
+  saveGeneratedSpine,
+  storedSpinePosition as savedPosition,
+  type SpinePosition,
+  type SpineRenderMode,
+} from "../lib/spines/client";
 
-const DB_NAME = "shelf-of-fame-art";
-const STORE_NAME = "generated-spines";
-const DB_VERSION = 1;
 const SESSION_KEY = "shelf-of-fame-supabase-session";
-const MODE_KEY_PREFIX = "mode:";
-const POSITIONS = ["left", "center", "right"] as const;
-type SpinePosition = (typeof POSITIONS)[number];
-type SpineRenderMode = "integrated" | "overlay";
 
 type GenerateSpineResponse = {
   image?: string;
@@ -23,47 +25,6 @@ type GenerateSpineResponse = {
   sharedSpine?: string;
   limitReached?: boolean;
 };
-
-function openDb() {
-  return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function saveGeneratedSpine(coverUrl: string, image: string, renderMode: SpineRenderMode) {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    store.put(image, coverUrl);
-    store.put(renderMode, `${MODE_KEY_PREFIX}${coverUrl}`);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-  db.close();
-}
-
-async function getGeneratedSpine(coverUrl: string) {
-  try {
-    const db = await openDb();
-    const value = await new Promise<string | undefined>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const request = tx.objectStore(STORE_NAME).get(coverUrl);
-      request.onsuccess = () => resolve(typeof request.result === "string" ? request.result : undefined);
-      request.onerror = () => reject(request.error);
-    });
-    db.close();
-    return value;
-  } catch {
-    return undefined;
-  }
-}
 
 function accessToken() {
   try {
@@ -114,22 +75,6 @@ function spineDisplayAuthor(author: string) {
   const parts = cleaned.split(" ").filter(Boolean);
   if (parts.length > 2) return `${parts[0]} ${parts[parts.length - 1]}`;
   return `${cleaned.slice(0, 22).trim()}…`;
-}
-
-function spineUrl(coverUrl: string, position: SpinePosition) {
-  return `/api/spine?v=3&position=${position}&cover=${encodeURIComponent(coverUrl)}`;
-}
-
-function savedPosition(image?: string): SpinePosition | null {
-  if (!image) return null;
-  try {
-    const url = new URL(image, window.location.origin);
-    if (url.pathname !== "/api/spine") return null;
-    const position = url.searchParams.get("position");
-    return POSITIONS.includes(position as SpinePosition) ? position as SpinePosition : null;
-  } catch {
-    return null;
-  }
 }
 
 function positionLabel(position: SpinePosition) {
