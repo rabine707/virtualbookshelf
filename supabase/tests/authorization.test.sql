@@ -50,18 +50,9 @@ select is(
   'authenticated user cannot read another users books'
 );
 
-select is(
-  (
-    with attempted as (
-      update public.user_books
-      set favorite = true
-      where user_id = '22222222-2222-4222-8222-222222222222'
-      returning 1
-    )
-    select count(*) from attempted
-  ),
-  0::bigint,
-  'authenticated user cannot update another users books'
+select ok(
+  not has_table_privilege('authenticated', 'public.user_books', 'UPDATE'),
+  'authenticated users cannot directly update shelf rows'
 );
 
 select is(
