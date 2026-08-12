@@ -1,0 +1,57 @@
+name: Wire React spine tools
+
+on:
+  push:
+    branches:
+      - ci-only/architecture-batch-20260812
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ci-only/architecture-batch-20260812
+
+      - name: Add React spine tools to book modal
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("app/components/BookDetailsModal.tsx")
+          text = path.read_text()
+
+          import_line = 'import { BookInfoEditor } from "./BookInfoEditor";\n'
+          if import_line not in text:
+              raise SystemExit("BookInfoEditor import not found")
+          text = text.replace(
+              import_line,
+              import_line + 'import { SpineTools } from "./SpineTools";\n',
+              1,
+          )
+
+          old = '''              >\n                Another edition\n              </button>\n            </div>\n          </div>\n        </div>\n'''
+          new = '''              >\n                Another edition\n              </button>\n            </div>\n            <SpineTools\n              title={selected.title}\n              author={selected.author}\n              coverUrl={cover?.url}\n              isbn={selectedIsbn}\n              asin={selected.asin}\n            />\n          </div>\n        </div>\n'''
+          if old not in text:
+              raise SystemExit("Cover feedback insertion point not found")
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+
+      - name: Commit modal wiring
+        shell: bash
+        run: |
+          if git diff --quiet -- app/components/BookDetailsModal.tsx; then
+            echo "No modal changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/components/BookDetailsModal.tsx
+          git commit -m "Render spine controls directly in book modal"
+          git push origin HEAD:ci-only/architecture-batch-20260812
