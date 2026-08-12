@@ -46,7 +46,7 @@ export function mergeBookSearchResult(
     normalize(book.title) === canonicalTitle && normalize(book.author) === canonicalAuthor
   );
 
-  let upgradingManual = false;
+  let upgradingManual = targetIndex >= 0 && base[targetIndex]?.importSource === "Added manually";
   if (targetIndex < 0) {
     targetIndex = base.findIndex((book) =>
       book.importSource === "Added manually"
