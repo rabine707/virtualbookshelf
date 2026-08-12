@@ -5,6 +5,7 @@ import {
   Book,
   coverSourceLabel,
   CoverResult,
+  WebCoverResult,
 } from "../../lib/books/client-library";
 
 type BookDetailsModalProps = {
@@ -12,6 +13,10 @@ type BookDetailsModalProps = {
   selectedIsbn?: string;
   cover: CoverResult | null;
   coverOptions: CoverResult[];
+  savedCovers: CoverResult[];
+  webCoverResults: WebCoverResult[];
+  webCoverLoading: boolean;
+  webCoverMessage: string;
   coverLoading: boolean;
   deepSearchLoading: boolean;
   deepSearchDone: boolean;
@@ -19,6 +24,10 @@ type BookDetailsModalProps = {
   onClose: () => void;
   onClearCover: () => void;
   onPreviewCover: (option: CoverResult) => void;
+  onUseSavedCover: (option: CoverResult) => void;
+  onRemoveSavedCover: (option: CoverResult) => void;
+  onSearchWebCovers: (mode: "covers" | "alternate" | "custom") => void;
+  onChooseWebCover: (result: WebCoverResult) => void;
   onChooseCover: (option: CoverResult) => void;
   onRejectCurrentCover: (kind: "wrong" | "edition") => void;
   onSearchMoreCovers: () => void;
@@ -30,6 +39,10 @@ export function BookDetailsModal({
   selectedIsbn,
   cover,
   coverOptions,
+  savedCovers,
+  webCoverResults,
+  webCoverLoading,
+  webCoverMessage,
   coverLoading,
   deepSearchLoading,
   deepSearchDone,
@@ -37,6 +50,10 @@ export function BookDetailsModal({
   onClose,
   onClearCover,
   onPreviewCover,
+  onUseSavedCover,
+  onRemoveSavedCover,
+  onSearchWebCovers,
+  onChooseWebCover,
   onChooseCover,
   onRejectCurrentCover,
   onSearchMoreCovers,
@@ -204,6 +221,43 @@ export function BookDetailsModal({
               {hasCoverOptions ? <span>{coverOptions.length} {coverOptions.length === 1 ? "match" : "matches"}</span> : null}
             </div>
 
+            {savedCovers.length ? (
+              <section className="saved-cover-choices" aria-label="Saved covers">
+                <div className="saved-cover-heading">
+                  <strong>Saved covers</strong>
+                  <span>tap a cover to use it</span>
+                </div>
+                <div className="saved-cover-grid">
+                  {savedCovers.map((saved) => {
+                    const active = selected.preferredCover?.url === saved.url;
+                    return (
+                      <div className="saved-cover-item" key={saved.url}>
+                        <button
+                          type="button"
+                          className={`saved-cover-option${active ? " active" : ""}`}
+                          title={active ? "Currently on your shelf" : "Use this saved cover on the shelf"}
+                          aria-label={active ? "Currently on your shelf" : `Use saved ${saved.source} cover`}
+                          onClick={() => { if (!active) onUseSavedCover(saved); }}
+                        >
+                          <img src={saved.url} alt="" loading="lazy" decoding="async" />
+                          <span>{saved.source || "Saved"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="saved-cover-remove"
+                          title="Remove this saved cover"
+                          aria-label={`Remove ${saved.source || "saved"} cover`}
+                          onClick={() => onRemoveSavedCover(saved)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
             {hasCoverOptions ? (
               <div className="cover-options">
                 {coverOptions.map((option, index) => (
@@ -259,6 +313,34 @@ export function BookDetailsModal({
             >
               ↻ Reset cover choices
             </button>
+
+            <section className="web-cover-panel" aria-label="Browse web covers">
+              <div className="web-cover-heading">
+                <strong>Browse web covers</strong>
+                <span>5 images at a time</span>
+              </div>
+              <div className="web-cover-modes">
+                <button type="button" disabled={webCoverLoading} onClick={() => onSearchWebCovers("covers")}>Web covers</button>
+                <button type="button" disabled={webCoverLoading} onClick={() => onSearchWebCovers("alternate")}>Alternate editions</button>
+                <button type="button" disabled={webCoverLoading} onClick={() => onSearchWebCovers("custom")}>Custom & Etsy</button>
+              </div>
+              <div className="web-cover-results">
+                {webCoverResults.map((result, index) => (
+                  <button
+                    key={`${result.url}-${index}`}
+                    type="button"
+                    className="web-cover-result"
+                    title={result.title || `Web cover result ${index + 1}`}
+                    aria-label={`Use web image ${index + 1} on the shelf`}
+                    onClick={() => onChooseWebCover(result)}
+                  >
+                    <img src={result.thumbnailUrl || result.url} alt="" loading="lazy" decoding="async" />
+                    <span>{result.publisher || "Web"}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="web-cover-status" role="status">{webCoverMessage}</p>
+            </section>
           </section>
         </div>
       </article>

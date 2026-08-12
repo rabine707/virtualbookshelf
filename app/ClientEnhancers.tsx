@@ -17,7 +17,6 @@ import PageRefreshButton from "./PageRefreshButton";
 import QoLEnricher from "./QoLEnricher";
 import RemoveAudibleImport from "./RemoveAudibleImport";
 import RomanceShelfEnricher from "./RomanceShelfEnricher";
-import SavedCoverChoices from "./SavedCoverChoices";
 import ShelfScanner from "./ShelfScanner";
 import SharedSpineEnricher from "./SharedSpineEnricher";
 import SpineArtEnricher from "./SpineArtEnricher";
@@ -27,7 +26,6 @@ import SpineErrorSanitizer from "./SpineErrorSanitizer";
 import SpineGallery from "./SpineGallery";
 import SpineGenerator from "./SpineGenerator";
 import ThemeEnricher from "./ThemeEnricher";
-import WebCoverEnricher from "./WebCoverEnricher";
 
 function MobileBottomNav() {
   const click = (selector: string) => {
@@ -123,9 +121,7 @@ export default function ClientEnhancers() {
     <HelpShelfLauncher />
     <CoreInteractionEnricher />
     <ModalScrollLock />
-    <SavedCoverChoices />
     <CommunityCoverSync />
-    <WebCoverEnricher />
     <RomanceShelfEnricher />
     <AudibleCoverEnricher />
     <SpineArtEnricher />

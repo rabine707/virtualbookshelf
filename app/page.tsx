@@ -26,12 +26,20 @@ export default function Home() {
     cover,
     setCover,
     coverOptions,
+    savedCoverOptions,
+    webCoverResults,
+    webCoverLoading,
+    webCoverMessage,
     coverLoading,
     deepSearchLoading,
     deepSearchDone,
     canResetCoverChoices,
     coverUndo,
+    previewCover,
     chooseCover,
+    removeSavedCover,
+    chooseWebCover,
+    searchWebCovers,
     rejectCurrentCover,
     undoCoverDecision,
     dismissCoverUndo,
@@ -130,13 +138,21 @@ export default function Home() {
           selectedIsbn={selectedIsbn}
           cover={cover}
           coverOptions={coverOptions}
+          savedCovers={savedCoverOptions}
+          webCoverResults={webCoverResults}
+          webCoverLoading={webCoverLoading}
+          webCoverMessage={webCoverMessage}
           coverLoading={coverLoading}
           deepSearchLoading={deepSearchLoading}
           deepSearchDone={deepSearchDone}
           canResetCoverChoices={canResetCoverChoices}
           onClose={() => setSelected(null)}
           onClearCover={() => setCover(null)}
-          onPreviewCover={setCover}
+          onPreviewCover={previewCover}
+          onUseSavedCover={chooseCover}
+          onRemoveSavedCover={removeSavedCover}
+          onSearchWebCovers={searchWebCovers}
+          onChooseWebCover={chooseWebCover}
           onChooseCover={chooseCover}
           onRejectCurrentCover={rejectCurrentCover}
           onSearchMoreCovers={searchMoreCovers}

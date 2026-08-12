@@ -14,7 +14,13 @@ import {
   isbnForBook,
   rejectedUrls,
   romanceCoverRequestUrl,
+  uniqueCovers,
+  WebCoverResult,
 } from "../../lib/books/client-library";
+
+type WebCoverMode = "covers" | "alternate" | "custom";
+
+type WebCoverResponse = { results?: WebCoverResult[]; error?: string; setupRequired?: boolean };
 
 type UseBookCoverManagerOptions = {
   setBooks: Dispatch<SetStateAction<Book[]>>;
@@ -27,6 +33,49 @@ type CoverUndoState = {
   coverOptions: CoverResult[];
   kind: "wrong" | "edition";
 };
+
+const LEGACY_SAVED_COVER_HISTORY_KEY = "shelf-of-fame-saved-cover-history-v1";
+
+type SavedCoverHistory = Record<string, CoverResult[]>;
+
+function historyIdentity(book: Pick<Book, "title" | "author">) {
+  const normalize = (value: string) => value
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  return `${normalize(book.title)}::${normalize(book.author)}`;
+}
+
+function takeLegacySavedCovers(book: Book) {
+  try {
+    const raw = window.localStorage.getItem(LEGACY_SAVED_COVER_HISTORY_KEY);
+    if (!raw) return [];
+    const history = JSON.parse(raw) as SavedCoverHistory;
+    if (!history || typeof history !== "object" || Array.isArray(history)) return [];
+    const key = historyIdentity(book);
+    const covers = Array.isArray(history[key]) ? uniqueCovers(history[key]) : [];
+    if (!covers.length) return [];
+    delete history[key];
+    if (Object.keys(history).length) {
+      window.localStorage.setItem(LEGACY_SAVED_COVER_HISTORY_KEY, JSON.stringify(history));
+    } else {
+      window.localStorage.removeItem(LEGACY_SAVED_COVER_HISTORY_KEY);
+    }
+    return covers;
+  } catch {
+    return [];
+  }
+}
+
+function rememberSavedCover(book: Book, option: CoverResult) {
+  const savedCovers = uniqueCovers([
+    ...(book.savedCovers || []),
+    ...(book.preferredCover?.url ? [book.preferredCover] : []),
+    option,
+  ]);
+  return { ...book, savedCovers };
+}
 
 type BookWithCoverLookupState = Book & {
   romanceioCheckedAt?: number;
@@ -41,6 +90,27 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
   const [deepSearchLoading, setDeepSearchLoading] = useState(false);
   const [deepSearchDone, setDeepSearchDone] = useState(false);
   const [coverUndo, setCoverUndo] = useState<CoverUndoState | null>(null);
+  const [webCoverResults, setWebCoverResults] = useState<WebCoverResult[]>([]);
+  const [webCoverLoading, setWebCoverLoading] = useState(false);
+  const [webCoverMessage, setWebCoverMessage] = useState("Search the wider web when the database covers aren't what you want.");
+
+  useEffect(() => {
+    setWebCoverResults([]);
+    setWebCoverLoading(false);
+    setWebCoverMessage("Search the wider web when the database covers aren't what you want.");
+  }, [selected?.id]);
+
+  useEffect(() => {
+    if (!selected) return;
+    const legacy = takeLegacySavedCovers(selected);
+    if (!legacy.length) return;
+    const updated = {
+      ...selected,
+      savedCovers: uniqueCovers([...(selected.savedCovers || []), ...legacy]),
+    };
+    setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
+    setSelected(updated);
+  }, [selected?.id, setBooks]);
 
   useEffect(() => {
     if (!selected) {
@@ -103,6 +173,12 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
   }, [selected?.id, selected?.coverFeedback, selected?.preferredCover, setBooks]);
 
   const selectedIsbn = selected ? isbnForBook(selected) : undefined;
+  const savedCoverOptions = selected
+    ? allowedCovers(selected, uniqueCovers([
+        ...(selected.savedCovers || []),
+        ...(selected.preferredCover?.url ? [selected.preferredCover] : []),
+      ]))
+    : [];
   const canResetCoverChoices = Boolean(
     selected?.preferredCover?.url
       || selected?.coverFeedback?.accepted
@@ -110,20 +186,117 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
       || selected?.coverFeedback?.wrongEdition?.length,
   );
 
+  function previewCover(option: CoverResult) {
+    if (!selected) return;
+    const updated = rememberSavedCover(selected, option);
+    setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
+    setSelected(updated);
+    setCover(option);
+  }
+
   function chooseCover(option: CoverResult) {
     if (!selected) return;
+    const withSavedCover = rememberSavedCover(selected, option);
     const feedback: CoverFeedback = {
       ...selected.coverFeedback,
       accepted: option.url,
       rejected: (selected.coverFeedback?.rejected || []).filter((url) => url !== option.url),
       wrongEdition: (selected.coverFeedback?.wrongEdition || []).filter((url) => url !== option.url),
     };
-    const updated = { ...selected, preferredCover: option, coverFeedback: feedback };
+    const updated = { ...withSavedCover, preferredCover: option, coverFeedback: feedback };
     setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
     setSelected(updated);
     setCover(option);
     coverMemory.set(coverKey(updated), option);
     showToast(`Marked this ${option.source} cover as correct for ${selected.title}.`);
+  }
+
+  function removeSavedCover(option: CoverResult) {
+    if (!selected) return;
+    const rejected = new Set(selected.coverFeedback?.rejected || []);
+    rejected.add(option.url);
+    const feedback: CoverFeedback = {
+      ...selected.coverFeedback,
+      accepted: selected.coverFeedback?.accepted === option.url ? undefined : selected.coverFeedback?.accepted,
+      rejected: [...rejected],
+      wrongEdition: (selected.coverFeedback?.wrongEdition || []).filter((url) => url !== option.url),
+    };
+    const updated: Book = {
+      ...selected,
+      preferredCover: selected.preferredCover?.url === option.url ? undefined : selected.preferredCover,
+      savedCovers: (selected.savedCovers || []).filter((saved) => saved.url !== option.url),
+      coverFeedback: feedback,
+    };
+    const remaining = allowedCovers(updated, coverOptions.filter((candidate) => candidate.url !== option.url));
+    const next = cover?.url === option.url ? remaining[0] || null : cover;
+
+    setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
+    setSelected(updated);
+    setCoverOptions(remaining);
+    setCover(next);
+    coverOptionsMemory.set(coverKey(updated), remaining);
+    coverMemory.set(coverKey(updated), next);
+    setDeepSearchDone(false);
+    showToast(`Removed that saved cover for ${selected.title}.`);
+  }
+
+  function chooseWebCover(result: WebCoverResult) {
+    if (!selected) return;
+    const option: CoverResult = { url: result.url, source: "Web image" };
+    const withSavedCover = rememberSavedCover(selected, option);
+    const feedback: CoverFeedback = {
+      ...selected.coverFeedback,
+      accepted: option.url,
+      rejected: (selected.coverFeedback?.rejected || []).filter((url) => url !== option.url),
+      wrongEdition: (selected.coverFeedback?.wrongEdition || []).filter((url) => url !== option.url),
+    };
+    const updated: Book = {
+      ...withSavedCover,
+      preferredCover: option,
+      coverFeedback: feedback,
+      webCoverPageUrl: result.pageUrl || undefined,
+      webCoverTitle: result.title || undefined,
+    };
+    setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
+    setSelected(updated);
+    setCover(option);
+    coverMemory.set(coverKey(updated), option);
+    setWebCoverMessage("✓ Applied to your shelf and saved with this book.");
+    showToast(`Applied a web cover to ${selected.title}.`);
+  }
+
+  async function searchWebCovers(mode: WebCoverMode) {
+    if (!selected || webCoverLoading) return;
+    setWebCoverResults([]);
+    setWebCoverLoading(true);
+    setWebCoverMessage(mode === "custom"
+      ? "Searching custom, special-edition, and Etsy-style covers…"
+      : mode === "alternate"
+        ? "Searching alternate and special editions…"
+        : "Searching the web for book covers…");
+
+    try {
+      const params = new URLSearchParams({ title: selected.title, author: selected.author, mode });
+      const response = await fetch(`/api/web-covers?${params.toString()}`, { cache: "no-store" });
+      const data = await response.json() as WebCoverResponse;
+      if (data.setupRequired) {
+        setWebCoverMessage("Web cover search is ready, but the Brave Search API key still needs to be added in Vercel.");
+        return;
+      }
+      if (!response.ok) {
+        setWebCoverMessage(data.error || "Web image search could not finish.");
+        return;
+      }
+      const results = Array.isArray(data.results) ? data.results.filter((result) => Boolean(result?.url)) : [];
+      setWebCoverResults(results);
+      setWebCoverMessage(results.length
+        ? `${results.length} web result${results.length === 1 ? "" : "s"} — tap one to use it on your shelf.`
+        : "No web images found for this search.");
+    } catch {
+      setWebCoverMessage("Web image search could not finish.");
+    } finally {
+      setWebCoverLoading(false);
+    }
   }
 
   function rejectCurrentCover(kind: "wrong" | "edition") {
@@ -282,12 +455,20 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
     cover,
     setCover,
     coverOptions,
+    savedCoverOptions,
+    webCoverResults,
+    webCoverLoading,
+    webCoverMessage,
     coverLoading,
     deepSearchLoading,
     deepSearchDone,
     canResetCoverChoices,
     coverUndo,
+    previewCover,
     chooseCover,
+    removeSavedCover,
+    chooseWebCover,
+    searchWebCovers,
     rejectCurrentCover,
     undoCoverDecision,
     dismissCoverUndo: () => setCoverUndo(null),

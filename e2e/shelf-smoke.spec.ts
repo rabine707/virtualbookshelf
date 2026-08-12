@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23666'/%3E%3C/svg%3E";
+const WEB_COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23999'/%3E%3C/svg%3E";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/cover?**", async (route) => {
@@ -20,6 +21,23 @@ test.beforeEach(async ({ page }) => {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ url: null, source: null, options: [] }),
+    });
+  });
+
+  await page.route("**/api/web-covers?**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        results: [{
+          url: WEB_COVER_URL,
+          thumbnailUrl: WEB_COVER_URL,
+          source: "Brave Search",
+          title: "Fourth Wing alternate cover",
+          pageUrl: "https://example.com/fourth-wing",
+          publisher: "Example",
+        }],
+      }),
     });
   });
 });
@@ -114,4 +132,47 @@ test("reset cover choices clears the saved decision without reloading the page",
   await expect(resetCover).toBeDisabled();
   await expect(modal).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __coverResetMarker?: string }).__coverResetMarker)).toBe("alive");
+});
+
+test("saved cover choices are managed by React without reloading the page", async ({ page }) => {
+  await openFourthWing(page);
+
+  const modal = page.getByRole("dialog", { name: "Fourth Wing" });
+  const correctCover = page.getByTitle("Save this as the correct cover");
+  await correctCover.click();
+
+  const savedCovers = modal.getByRole("region", { name: "Saved covers" });
+  await expect(savedCovers).toBeVisible();
+  await expect(savedCovers.getByRole("button", { name: "Currently on your shelf" })).toBeVisible();
+
+  await page.evaluate(() => {
+    (window as typeof window & { __savedCoverMarker?: string }).__savedCoverMarker = "alive";
+  });
+
+  await savedCovers.getByRole("button", { name: "Remove Google Books cover" }).click();
+  await expect(page.locator('.toast[role="status"]')).toContainText("Removed that saved cover for Fourth Wing");
+  await expect(modal.getByRole("region", { name: "Saved covers" })).toHaveCount(0);
+  await expect(correctCover).toBeDisabled();
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { __savedCoverMarker?: string }).__savedCoverMarker)).toBe("alive");
+});
+
+test("web cover search applies and saves a cover without reloading the page", async ({ page }) => {
+  await openFourthWing(page);
+
+  const modal = page.getByRole("dialog", { name: "Fourth Wing" });
+  const webPanel = modal.getByRole("region", { name: "Browse web covers" });
+
+  await page.evaluate(() => {
+    (window as typeof window & { __webCoverMarker?: string }).__webCoverMarker = "alive";
+  });
+
+  await webPanel.getByRole("button", { name: "Web covers" }).click();
+  const webResult = webPanel.getByRole("button", { name: "Use web image 1 on the shelf" });
+  await expect(webResult).toBeVisible();
+  await webResult.click();
+
+  await expect(page.locator('.toast[role="status"]')).toContainText("Applied a web cover to Fourth Wing");
+  await expect(modal.getByRole("region", { name: "Saved covers" })).toBeVisible();
+  await expect(page.getByTitle("Save this as the correct cover")).toBeEnabled();
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { __webCoverMarker?: string }).__webCoverMarker)).toBe("alive");
 });
