@@ -41,6 +41,7 @@ import BotanicalAssetEnricher from "./BotanicalAssetEnricher";
 import BotanicalMaterialStyles from "./BotanicalMaterialStyles";
 import BotanicalPropStyles from "./BotanicalPropStyles";
 import BotanicalLampFixStyles from "./BotanicalLampFixStyles";
+import BotanicalLightingStyles from "./BotanicalLightingStyles";
 import ClientEnhancers from "./ClientEnhancers";
 import ThreeDPrototypeLauncher from "./ThreeDPrototypeLauncher";
 
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <BotanicalMaterialStyles />
         <BotanicalPropStyles />
         <BotanicalLampFixStyles />
+        <BotanicalLightingStyles />
         {children}
         <ClientEnhancers />
         <BotanicalAssetEnricher />
