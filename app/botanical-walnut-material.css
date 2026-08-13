@@ -10,7 +10,7 @@ html[data-shelf-theme="botanical"] .shelf-row {
     linear-gradient(112deg, rgba(255,236,196,.09) 0%, rgba(255,226,180,.035) 18%, transparent 38%),
     linear-gradient(to bottom, rgba(0,0,0,.08), transparent 36%, rgba(0,0,0,.18) 100%),
     linear-gradient(90deg, rgba(255,222,177,.035), transparent 24%, transparent 77%, rgba(0,0,0,.12)),
-    url("/themes/botanical/v4/shelf-back.webp") center / 100% 100% no-repeat !important;
+    url("/themes/botanical/v4/shelf-back-clean.webp") center / cover no-repeat !important;
   background-color: #24160f !important;
   box-shadow:
     inset 24px 0 34px rgba(0,0,0,.30),
