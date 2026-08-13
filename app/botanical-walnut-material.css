@@ -1,0 +1,48 @@
+/* Botanical photographed walnut material pass.
+   Keep the original deep wood backing the user preferred.
+   Use photographed walnut only for the structural shelf faces; CSS supplies lighting/depth. */
+
+html[data-shelf-theme="botanical"] .modular-shelf-row,
+html[data-shelf-theme="botanical"] .shelf-row {
+  border-left-color: #3b2416 !important;
+  border-right-color: #241309 !important;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.08), transparent 36%, rgba(0,0,0,.18) 100%),
+    linear-gradient(90deg, rgba(255,222,177,.035), transparent 24%, transparent 77%, rgba(0,0,0,.12)),
+    url("/themes/botanical/v4/shelf-back.webp") center / 100% 100% no-repeat !important;
+  background-color: #24160f !important;
+  box-shadow:
+    inset 24px 0 34px rgba(0,0,0,.30),
+    inset -28px 0 38px rgba(0,0,0,.38),
+    inset 0 18px 22px rgba(0,0,0,.22) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row::before,
+html[data-shelf-theme="botanical"] .shelf-row::before {
+  background:
+    linear-gradient(to bottom, rgba(255,224,184,.12), transparent 30%, rgba(15,7,3,.34) 100%),
+    url("/themes/botanical/v4/walnut-front-v2.webp") center / 100% 100% no-repeat !important;
+  border-bottom-color: rgba(10,5,2,.72) !important;
+  box-shadow:
+    0 8px 18px rgba(0,0,0,.46),
+    inset 0 2px rgba(255,220,174,.12) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row::after,
+html[data-shelf-theme="botanical"] .shelf-row::after {
+  background:
+    radial-gradient(ellipse at 16% 12%, rgba(255,228,177,.055), transparent 32%),
+    linear-gradient(90deg, rgba(0,0,0,.12), transparent 9%, transparent 90%, rgba(0,0,0,.20)) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row > .wood-shelf,
+html[data-shelf-theme="botanical"] .shelf-row > .wood-shelf {
+  border-top-color: rgba(245,202,145,.22) !important;
+  background:
+    linear-gradient(to bottom, rgba(255,224,178,.11), transparent 30%, rgba(20,9,4,.30) 100%),
+    url("/themes/botanical/v4/walnut-front-v2.webp") center / 100% 100% no-repeat !important;
+  box-shadow:
+    0 -5px 10px rgba(0,0,0,.28),
+    0 13px 22px rgba(0,0,0,.67),
+    inset 0 3px rgba(255,218,165,.10) !important;
+}

@@ -34,6 +34,7 @@ import "./theme-ui-polish.css";
 import "./desktop-toolbar-refine.css";
 import "./shelf-art-polish.css";
 import "./botanical-production.css";
+import "./botanical-walnut-material.css";
 import "./bookshelf-3d-prototype.css";
 import "./prototype-page.css";
 import ClientEnhancers from "./ClientEnhancers";
