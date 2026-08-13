@@ -154,12 +154,66 @@ export default function BotanicalPropStyles() {
 
     html[data-shelf-theme="botanical"] .botanical-practical-glow { opacity: .52 !important; }
 
+    /* Physical shelf occupancy: props and books participate in one flex row.
+       The prop now reserves real horizontal space, so resizing cannot put books over it. */
+    html[data-shelf-theme="botanical"] .shelf-occupant-flow {
+      justify-content: center !important;
+      align-items: flex-end !important;
+      gap: 12px !important;
+    }
+
+    html[data-shelf-theme="botanical"] .shelf-occupant-flow > .book-flow {
+      display: flex !important;
+      flex: 0 1 auto !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      align-items: flex-end !important;
+      gap: 8px !important;
+    }
+
+    html[data-shelf-theme="botanical"] .shelf-occupant-flow > .book-flow.book-layout-split {
+      gap: 38px !important;
+    }
+
+    html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor {
+      display: block !important;
+      position: relative !important;
+      z-index: 12 !important;
+      left: auto !important;
+      right: auto !important;
+      bottom: 0 !important;
+      flex: 0 0 auto !important;
+      align-self: flex-end !important;
+      height: 220px !important;
+      margin: 0 !important;
+      pointer-events: none !important;
+    }
+
+    html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor-plant {
+      width: 150px !important;
+      flex-basis: 150px !important;
+    }
+
+    html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor-plant-small {
+      width: 118px !important;
+      flex-basis: 118px !important;
+    }
+
+    html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor-warm-glow {
+      width: 104px !important;
+      flex-basis: 104px !important;
+    }
+
     @media (max-width: 1100px) {
       html[data-shelf-theme="botanical"] .botanical-real-room-frame { right: 28px; width: 168px; }
       html[data-shelf-theme="botanical"] .botanical-real-room-sconce { right: 190px; width: 94px; }
       html[data-shelf-theme="botanical"] .botanical-real-sconce-glow { right: 145px; }
       html[data-shelf-theme="botanical"] .botanical-real-window { width: 238px; }
       html[data-shelf-theme="botanical"] .botanical-real-room-plant { width: 205px; left: 30px; }
+      html[data-shelf-theme="botanical"] .shelf-occupant-flow { gap: 8px !important; }
+      html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor-plant { width: 128px !important; flex-basis: 128px !important; }
+      html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor-plant-small { width: 102px !important; flex-basis: 102px !important; }
+      html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor-warm-glow { width: 92px !important; flex-basis: 92px !important; }
     }
 
     @media (max-width: 760px) {
@@ -170,6 +224,7 @@ export default function BotanicalPropStyles() {
       html[data-shelf-theme="botanical"] .botanical-real-sconce-glow { display: none !important; }
       html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow::before,
       html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow::after { display: none !important; }
+      html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor { display: none !important; }
     }
   `}</style>;
 }
