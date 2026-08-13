@@ -2,9 +2,8 @@
 
 export default function BotanicalLampFixStyles() {
   return <style>{`
-    /* The Poly Haven shelf thumbnail renders the oil lamp chimney as an opaque
-       dark rectangle. Keep the sourced ornate lamp body, crop away that bad
-       upper section, then rebuild only the clear glass chimney + flame in CSS. */
+    /* Crop the bad opaque chimney from the Poly Haven preview, but preserve the
+       lamp body's narrow silhouette instead of stretching it across the slot. */
     html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow::before {
       width: 104px !important;
       height: 86px !important;
@@ -12,9 +11,15 @@ export default function BotanicalLampFixStyles() {
       background-size: 104px 160px !important;
       background-position: center bottom !important;
       background-repeat: no-repeat !important;
+      transform: translateX(-50%) scaleX(.62) !important;
+      transform-origin: center bottom !important;
       filter: brightness(.84) saturate(.90)
         drop-shadow(0 3px 2px rgba(0,0,0,.48))
         drop-shadow(0 8px 8px rgba(0,0,0,.36)) !important;
+    }
+
+    html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor-warm-glow::after {
+      width: 56% !important;
     }
 
     html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow .botanical-practical-glow {
@@ -45,7 +50,6 @@ export default function BotanicalLampFixStyles() {
       pointer-events: none !important;
     }
 
-    /* Small real-looking wick flame inside the clear chimney. */
     html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow .botanical-practical-glow::before {
       content: "";
       position: absolute;
@@ -62,7 +66,6 @@ export default function BotanicalLampFixStyles() {
       transform-origin: center bottom;
     }
 
-    /* Tight local light only; no large compositing layer or rectangular tile. */
     html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow .botanical-practical-glow::after {
       content: "";
       position: absolute;
@@ -84,6 +87,7 @@ export default function BotanicalLampFixStyles() {
         width: 92px !important;
         background-size: 92px 142px !important;
         height: 78px !important;
+        transform: translateX(-50%) scaleX(.64) !important;
       }
       html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow .botanical-practical-glow {
         bottom: 69px !important;
