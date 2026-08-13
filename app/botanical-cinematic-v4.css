@@ -1,0 +1,182 @@
+/* Botanical Room V4
+   This layer intentionally overrides the earlier V2/V3 experiments.
+   The generated cinematic plate is decoded by BotanicalSceneEnricher and exposed
+   through --botanical-v4-header / --botanical-v4-shelf-back. */
+
+html[data-shelf-theme="botanical"] body {
+  background: #07100a !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-v4-room {
+  position: absolute !important;
+  inset: 0 0 auto 0 !important;
+  width: 100% !important;
+  height: 360px !important;
+  overflow: hidden !important;
+  background: #102318 !important;
+  z-index: 0 !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-v4-cinematic-plate {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-image: var(--botanical-v4-header);
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+  transition: opacity 240ms ease;
+  filter: saturate(.96) contrast(1.03) brightness(.92);
+}
+
+html[data-shelf-theme="botanical"] .botanical-v4-room-ready .botanical-v4-cinematic-plate {
+  opacity: 1;
+}
+
+/* The generated plate already contains the architectural window, vines and art.
+   Only keep physically plausible light spill over it. */
+html[data-shelf-theme="botanical"] .botanical-v4-room .botanical-room-window-light {
+  left: -3vw !important;
+  top: -55px !important;
+  width: 58vw !important;
+  height: 430px !important;
+  opacity: .38 !important;
+  background: linear-gradient(108deg, rgba(255,245,195,.34), rgba(224,231,181,.10) 37%, transparent 71%) !important;
+  filter: blur(32px) !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-v4-room .botanical-room-window-rays {
+  left: 8vw !important;
+  top: 75px !important;
+  width: 42vw !important;
+  height: 245px !important;
+  opacity: .15 !important;
+  filter: blur(22px) !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-v4-room .botanical-room-grain {
+  opacity: .045 !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-v4-room .botanical-room-vignette {
+  box-shadow: inset 0 -65px 90px rgba(4,10,6,.46), inset 0 0 120px rgba(0,0,0,.22) !important;
+}
+
+/* The foreground is deliberately empty in V4. The plate itself frames the UI;
+   no pasted plant sprites should cover controls or shelves. */
+html[data-shelf-theme="botanical"] .botanical-v4-foreground {
+  display: none !important;
+}
+
+/* Let the real page UI sit in the clean central wall space of the plate. */
+html[data-shelf-theme="botanical"] main {
+  width: min(1500px, calc(100% - 28px)) !important;
+  padding-top: 10px !important;
+  position: relative !important;
+  z-index: 3 !important;
+}
+
+html[data-shelf-theme="botanical"] .reader-hero {
+  margin-left: clamp(285px, 20vw, 330px) !important;
+  margin-right: clamp(160px, 11vw, 190px) !important;
+  padding: 8px 4px 2px !important;
+  min-height: 105px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-shelf-theme="botanical"] .reader-hero h1 {
+  font-size: clamp(50px, 4.5vw, 70px) !important;
+  line-height: .9 !important;
+  letter-spacing: -.045em !important;
+  text-shadow: 0 5px 26px rgba(0,0,0,.46) !important;
+}
+
+html[data-shelf-theme="botanical"] .reader-toolbar {
+  margin: 0 clamp(160px, 11vw, 190px) 14px clamp(285px, 20vw, 330px) !important;
+}
+
+/* Real photographic shelf recess. Repeat a clean 512x300 panel horizontally,
+   then add asymmetric window falloff and contact darkness. */
+html[data-shelf-theme="botanical"] .modular-shelf-row {
+  background-color: #110e0b !important;
+  background-image:
+    linear-gradient(90deg, rgba(224,197,122,.12), transparent 24%, transparent 66%, rgba(0,0,0,.28)),
+    linear-gradient(180deg, rgba(255,203,105,.035), rgba(0,0,0,.08) 55%, rgba(0,0,0,.34)),
+    var(--botanical-v4-shelf-back) !important;
+  background-size: 100% 100%, 100% 100%, 512px 300px !important;
+  background-repeat: no-repeat, no-repeat, repeat-x !important;
+  background-position: center, center, calc(var(--shelf-row, 1) * -83px) center !important;
+  border-left-color: #2f1a0f !important;
+  border-right-color: #1d100a !important;
+  box-shadow:
+    inset 23px 0 34px rgba(0,0,0,.44),
+    inset -25px 0 38px rgba(0,0,0,.52),
+    inset 0 19px 26px rgba(0,0,0,.28),
+    inset 0 -25px 35px rgba(0,0,0,.30) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row::after {
+  background:
+    radial-gradient(ellipse at 12% 28%, rgba(240,201,115,.07), transparent 26%),
+    linear-gradient(90deg, rgba(0,0,0,.22), transparent 9%, transparent 90%, rgba(0,0,0,.31)),
+    linear-gradient(180deg, rgba(0,0,0,.04), transparent 56%, rgba(0,0,0,.24)) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row > .books {
+  z-index: 7 !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row .book-spine {
+  filter:
+    drop-shadow(5px 3px 4px rgba(0,0,0,.55))
+    drop-shadow(12px 5px 13px rgba(0,0,0,.28)) !important;
+}
+
+/* Keep sparse real planter imagery, but remove every fake illustrated prop. */
+html[data-shelf-theme="botanical"] .botanical-row-decor:not(.botanical-row-decor-plant-frame):not(.botanical-row-decor-small-plant):not(.botanical-row-decor-plant-bottles) {
+  display: none !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-row-decor-plant-bottles .botanical-bottle-group,
+html[data-shelf-theme="botanical"] .botanical-row-decor-plant-frame .botanical-frame-companion {
+  display: none !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-decor-plant {
+  filter: saturate(.92) contrast(1.03) brightness(.82) drop-shadow(6px 9px 10px rgba(0,0,0,.58)) !important;
+}
+
+@media (max-width: 1050px) {
+  html[data-shelf-theme="botanical"] .botanical-v4-room { height: 325px !important; }
+  html[data-shelf-theme="botanical"] .botanical-v4-cinematic-plate {
+    background-size: auto 325px;
+    background-position: 32% top;
+  }
+  html[data-shelf-theme="botanical"] .reader-hero,
+  html[data-shelf-theme="botanical"] .reader-toolbar {
+    margin-left: 16px !important;
+    margin-right: 16px !important;
+  }
+  html[data-shelf-theme="botanical"] .reader-hero {
+    padding-left: 18px !important;
+    background: linear-gradient(90deg, rgba(7,16,10,.76), rgba(7,16,10,.38), transparent) !important;
+    border-radius: 12px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-shelf-theme="botanical"] .botanical-v4-room { height: 285px !important; }
+  html[data-shelf-theme="botanical"] .botanical-v4-cinematic-plate {
+    background-size: auto 285px;
+    background-position: 25% top;
+    filter: brightness(.76) saturate(.9);
+  }
+  html[data-shelf-theme="botanical"] .reader-hero h1 {
+    font-size: clamp(40px, 12vw, 56px) !important;
+  }
+  html[data-shelf-theme="botanical"] .reader-toolbar {
+    margin-bottom: 8px !important;
+  }
+}
