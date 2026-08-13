@@ -84,7 +84,7 @@ export function Bookshelf({ shelves, onSelect }: BookshelfProps) {
           <BookSpine
             key={book.id}
             book={book}
-            bookNumber={shelfIndex * 8 + index}
+            bookNumber={shelfIndex * 14 + index}
             onSelect={onSelect}
           />
         );
