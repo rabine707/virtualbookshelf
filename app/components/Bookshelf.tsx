@@ -100,18 +100,20 @@ export function Bookshelf({ shelves, onSelect }: BookshelfProps) {
             data-shelf-row={rowNumber}
             data-book-layout={layout}
           >
-            {decor.left && <ShelfDecor kind={decor.left} side="left" eager={shelfIndex < 2} />}
-            <div className={`books book-placement-layer book-layout-${layout}`}>
-              <div className="book-cluster book-cluster-a">
-                {firstCluster.map((book, index) => renderBook(book, index))}
-              </div>
-              {secondCluster.length ? (
-                <div className="book-cluster book-cluster-b">
-                  {secondCluster.map((book, index) => renderBook(book, splitAt + index))}
+            <div className="books book-placement-layer shelf-occupant-flow">
+              {decor.left && <ShelfDecor kind={decor.left} side="left" eager={shelfIndex < 2} />}
+              <div className={`book-flow book-layout-${layout}`}>
+                <div className="book-cluster book-cluster-a">
+                  {firstCluster.map((book, index) => renderBook(book, index))}
                 </div>
-              ) : null}
+                {secondCluster.length ? (
+                  <div className="book-cluster book-cluster-b">
+                    {secondCluster.map((book, index) => renderBook(book, splitAt + index))}
+                  </div>
+                ) : null}
+              </div>
+              {decor.right && <ShelfDecor kind={decor.right} side="right" eager={shelfIndex < 2} />}
             </div>
-            {decor.right && <ShelfDecor kind={decor.right} side="right" eager={shelfIndex < 2} />}
             <div className="wood-shelf" aria-hidden="true" />
           </div>
         );
