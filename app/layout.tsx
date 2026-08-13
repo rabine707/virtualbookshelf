@@ -37,6 +37,9 @@ import "./botanical-production.css";
 import "./botanical-walnut-material.css";
 import "./bookshelf-3d-prototype.css";
 import "./prototype-page.css";
+import BotanicalAssetEnricher from "./BotanicalAssetEnricher";
+import BotanicalMaterialStyles from "./BotanicalMaterialStyles";
+import BotanicalPropStyles from "./BotanicalPropStyles";
 import ClientEnhancers from "./ClientEnhancers";
 import ThreeDPrototypeLauncher from "./ThreeDPrototypeLauncher";
 
@@ -49,8 +52,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
+        <BotanicalMaterialStyles />
+        <BotanicalPropStyles />
         {children}
         <ClientEnhancers />
+        <BotanicalAssetEnricher />
         <ThreeDPrototypeLauncher />
       </body>
     </html>
