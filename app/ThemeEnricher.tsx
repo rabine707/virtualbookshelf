@@ -150,7 +150,7 @@ export default function ThemeEnricher() {
 
   if (!toolbar) return null;
 
-  return createPortal(
+  const controls = createPortal(
     <>
       <button type="button" className="theme-picker-trigger" onClick={() => setPickerOpen(true)}>
         Theme
@@ -158,9 +158,20 @@ export default function ThemeEnricher() {
       <button type="button" className="spine-label-toggle" onClick={toggleSpineLabels}>
         {spineLabels ? "Hide spine text" : "Show spine text"}
       </button>
-      {pickerOpen && (
+    </>,
+    toolbar,
+  );
+
+  const picker = pickerOpen
+    ? createPortal(
         <div className="theme-picker-backdrop" onClick={() => setPickerOpen(false)}>
-          <div className="theme-picker" role="dialog" aria-modal="true" aria-label="Choose bookshelf theme" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="theme-picker"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Choose bookshelf theme"
+            onClick={(event) => event.stopPropagation()}
+          >
             <button type="button" className="theme-picker-close" onClick={() => setPickerOpen(false)} aria-label="Close theme picker">×</button>
             <h2>Choose a shelf theme</h2>
             <button
@@ -192,9 +203,10 @@ export default function ThemeEnricher() {
               ))}
             </div>
           </div>
-        </div>
-      )}
-    </>,
-    toolbar,
-  );
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return <>{controls}{picker}</>;
 }
