@@ -95,9 +95,9 @@ export default function BotanicalPropStyles() {
       width: 210px;
       height: 210px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,205,118,.29), rgba(232,165,80,.15) 23%, rgba(190,123,54,.055) 48%, transparent 72%);
-      filter: blur(8px);
-      mix-blend-mode: screen;
+      background: radial-gradient(circle, rgba(255,205,118,.24), rgba(232,165,80,.11) 24%, rgba(190,123,54,.035) 48%, transparent 72%);
+      filter: blur(12px);
+      opacity: .82;
     }
 
     html[data-shelf-theme="botanical"] .botanical-decor-plant { opacity: 0 !important; }
@@ -109,12 +109,12 @@ export default function BotanicalPropStyles() {
       position: absolute;
       z-index: 2;
       left: 50%;
-      bottom: 2px;
+      bottom: -1px;
       transform: translateX(-50%);
       background-position: center bottom;
       background-repeat: no-repeat;
       background-size: contain;
-      filter: drop-shadow(0 11px 12px rgba(0,0,0,.48));
+      filter: drop-shadow(0 3px 2px rgba(0,0,0,.46)) drop-shadow(0 9px 9px rgba(0,0,0,.38));
     }
 
     html[data-shelf-theme="botanical"] .botanical-row-decor-plant::before {
@@ -132,30 +132,48 @@ export default function BotanicalPropStyles() {
     html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow::before {
       width: 104px;
       height: 160px;
-      bottom: -1px;
+      bottom: -2px;
       background-image: url("https://cdn.polyhaven.com/asset_img/thumbs/vintage_oil_lamp.png?format=png");
-      filter: brightness(.82) saturate(.88) drop-shadow(0 10px 12px rgba(0,0,0,.52));
+      filter: brightness(.82) saturate(.88) drop-shadow(0 3px 2px rgba(0,0,0,.48)) drop-shadow(0 8px 8px rgba(0,0,0,.38));
     }
 
-    html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow::after {
+    /* A real contact shadow grounds every prop on the front edge of the plank. */
+    html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor::after {
       content: "";
       position: absolute;
-      z-index: 1;
+      z-index: 0;
       left: 50%;
-      bottom: 36px;
-      width: 160px;
-      height: 160px;
+      bottom: -4px;
+      width: 76%;
+      height: 14px;
       transform: translateX(-50%);
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,192,90,.25), rgba(218,137,55,.10) 34%, transparent 69%);
-      filter: blur(7px);
-      mix-blend-mode: screen;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,.58) 0%, rgba(0,0,0,.38) 38%, rgba(0,0,0,.14) 60%, transparent 78%);
+      filter: blur(2.5px);
+      opacity: .9;
+      pointer-events: none;
     }
 
-    html[data-shelf-theme="botanical"] .botanical-practical-glow { opacity: .52 !important; }
+    /* Glow is now a soft radial layer rather than a blend-mode surface.
+       This avoids Chromium compositing tiles showing up as a rectangular block. */
+    html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow .botanical-practical-glow {
+      position: absolute !important;
+      z-index: 1 !important;
+      left: 50% !important;
+      bottom: 35px !important;
+      width: 136px !important;
+      height: 136px !important;
+      transform: translateX(-50%) !important;
+      border-radius: 50% !important;
+      background: radial-gradient(circle, rgba(255,207,123,.26) 0%, rgba(237,166,76,.12) 27%, rgba(204,126,48,.045) 48%, transparent 70%) !important;
+      filter: blur(12px) !important;
+      opacity: .66 !important;
+      mix-blend-mode: normal !important;
+      pointer-events: none !important;
+    }
 
     /* Physical shelf occupancy: props and books participate in one flex row.
-       The prop now reserves real horizontal space, so resizing cannot put books over it. */
+       The prop reserves real horizontal space, so resizing cannot put books over it. */
     html[data-shelf-theme="botanical"] .shelf-occupant-flow {
       justify-content: center !important;
       align-items: flex-end !important;
@@ -223,7 +241,7 @@ export default function BotanicalPropStyles() {
       html[data-shelf-theme="botanical"] .botanical-real-room-sconce,
       html[data-shelf-theme="botanical"] .botanical-real-sconce-glow { display: none !important; }
       html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow::before,
-      html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow::after { display: none !important; }
+      html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow .botanical-practical-glow { display: none !important; }
       html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor { display: none !important; }
     }
   `}</style>;
