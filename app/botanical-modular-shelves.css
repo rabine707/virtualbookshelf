@@ -1,0 +1,288 @@
+/* Botanical modular shelf system.
+   The room is a finite cinematic header. Every shelf row below it is an
+   independent repeatable unit so a large library can grow naturally. */
+
+.botanical-row-decor {
+  display: none;
+}
+
+html[data-shelf-theme="botanical"] body {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 18% 4%, rgba(229, 222, 164, .08), transparent 25%),
+    linear-gradient(180deg, #172a1c 0%, #101d14 33%, #0b150f 100%) !important;
+}
+
+/* The cinematic room belongs to the top of the document, not the entire scroll. */
+html[data-shelf-theme="botanical"] .botanical-v3-room,
+html[data-shelf-theme="botanical"] .botanical-v3-foreground {
+  position: absolute !important;
+  inset: 0 0 auto 0 !important;
+  height: 390px !important;
+  overflow: hidden !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-v3-room { z-index: 0 !important; }
+html[data-shelf-theme="botanical"] .botanical-v3-foreground { z-index: 2 !important; }
+
+html[data-shelf-theme="botanical"] .botanical-room-vine-edge-left,
+html[data-shelf-theme="botanical"] .botanical-room-vine-edge-right {
+  max-height: 385px;
+  opacity: .42 !important;
+}
+
+html[data-shelf-theme="botanical"] main {
+  position: relative;
+  z-index: 3;
+  width: min(1480px, calc(100% - 24px)) !important;
+}
+
+/* The top controls live in the cinematic header. */
+html[data-shelf-theme="botanical"] .reader-hero {
+  min-height: 132px;
+  margin-bottom: 2px;
+}
+
+html[data-shelf-theme="botanical"] .reader-toolbar {
+  position: relative;
+  z-index: 4;
+  margin-bottom: 20px !important;
+}
+
+/* Kill the old single-cabinet box. The bookcase is now only a row stack. */
+html[data-shelf-theme="botanical"] .bookcase.modular-bookcase {
+  width: min(1540px, calc(100vw - 20px));
+  margin: 0 50% 0 !important;
+  transform: translateX(-50%);
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  border-image: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+html[data-shelf-theme="botanical"] .bookcase.modular-bookcase::before,
+html[data-shelf-theme="botanical"] .bookcase.modular-bookcase::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Every row is one complete shelf slice. */
+html[data-shelf-theme="botanical"] .modular-shelf-row {
+  position: relative;
+  isolation: isolate;
+  height: 300px !important;
+  min-height: 300px !important;
+  margin: 0 !important;
+  overflow: visible;
+  border-left: 24px solid #3a2114;
+  border-right: 24px solid #2b180f;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.40), transparent 5%, transparent 95%, rgba(0,0,0,.44)),
+    radial-gradient(ellipse at 50% 0%, rgba(190,150,82,.08), transparent 42%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.012) 0 1px, transparent 1px 6px),
+    linear-gradient(180deg, rgba(34,52,35,.78) 0%, rgba(20,34,23,.88) 62%, rgba(12,22,15,.96) 100%) !important;
+  box-shadow:
+    inset 18px 0 24px rgba(0,0,0,.24),
+    inset -18px 0 24px rgba(0,0,0,.28);
+}
+
+/* A slim top rail joins each module to the one above. */
+html[data-shelf-theme="botanical"] .modular-shelf-row::before {
+  content: "" !important;
+  position: absolute !important;
+  z-index: 10 !important;
+  top: 0 !important;
+  left: -24px !important;
+  right: -24px !important;
+  height: 18px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.10), transparent 18%),
+    linear-gradient(180deg, #5b351f 0%, #3e2315 48%, #25140d 100%) !important;
+  box-shadow:
+    0 7px 12px rgba(0,0,0,.38),
+    inset 0 -2px rgba(0,0,0,.40) !important;
+  filter: none !important;
+  pointer-events: none;
+}
+
+/* Recess shadow only; no giant green block. */
+html[data-shelf-theme="botanical"] .modular-shelf-row::after {
+  content: "" !important;
+  position: absolute !important;
+  z-index: 2 !important;
+  inset: 18px 0 34px !important;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.24), transparent 7%, transparent 93%, rgba(0,0,0,.26)),
+    linear-gradient(180deg, rgba(0,0,0,.18), transparent 19%, transparent 78%, rgba(0,0,0,.20)) !important;
+  pointer-events: none;
+}
+
+/* Books are pinned to the plank within each independent shelf module. */
+html[data-shelf-theme="botanical"] .modular-shelf-row > .book-placement-layer {
+  position: absolute !important;
+  z-index: 7 !important;
+  left: 0;
+  right: 0;
+  bottom: 34px;
+  height: 246px !important;
+  min-height: 0 !important;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 34px 0 !important;
+  background: transparent !important;
+}
+
+/* Deterministic decor reserves a compact lane, rather than moving the books
+   with viewport percentages. */
+html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-left > .book-placement-layer {
+  padding-left: 162px !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-right > .book-placement-layer {
+  padding-right: 162px !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-both > .book-placement-layer {
+  padding-left: 162px !important;
+  padding-right: 162px !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row > .wood-shelf {
+  position: absolute !important;
+  z-index: 12 !important;
+  left: -10px;
+  right: -10px;
+  bottom: 0;
+  width: auto !important;
+  height: 38px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 2px, transparent 2px 32px),
+    linear-gradient(180deg, #72472b 0%, #52311e 36%, #301b11 72%, #1f110b 100%) !important;
+  box-shadow:
+    inset 0 2px rgba(255,255,255,.12),
+    inset 0 -3px rgba(0,0,0,.38),
+    0 12px 15px rgba(0,0,0,.46) !important;
+  filter: none !important;
+}
+
+/* Shelf decor is part of the row render, not injected later by observers. */
+html[data-shelf-theme="botanical"] .modular-shelf-row > .botanical-row-decor {
+  display: flex !important;
+  position: absolute;
+  z-index: 6;
+  bottom: 38px;
+  width: 132px;
+  height: 218px;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row > .botanical-row-decor-left { left: 16px; }
+html[data-shelf-theme="botanical"] .modular-shelf-row > .botanical-row-decor-right { right: 16px; }
+
+/* Slightly calm lower rows without introducing JS scroll effects. */
+html[data-shelf-theme="botanical"] .modular-shelf-row:nth-child(4n + 3) {
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.42), transparent 5%, transparent 95%, rgba(0,0,0,.45)),
+    radial-gradient(ellipse at 50% 0%, rgba(173,135,72,.055), transparent 42%),
+    linear-gradient(180deg, rgba(29,46,31,.82), rgba(14,26,18,.96)) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row:nth-child(4n) {
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.43), transparent 5%, transparent 95%, rgba(0,0,0,.46)),
+    radial-gradient(ellipse at 60% 0%, rgba(177,139,74,.045), transparent 38%),
+    linear-gradient(180deg, rgba(27,43,29,.84), rgba(12,23,16,.97)) !important;
+}
+
+/* A baseboard-style finish at the true end of the current library. */
+html[data-shelf-theme="botanical"] .modular-bookcase > .modular-shelf-row:last-child .wood-shelf {
+  height: 46px !important;
+  box-shadow:
+    inset 0 2px rgba(255,255,255,.12),
+    inset 0 -5px rgba(0,0,0,.48),
+    0 18px 26px rgba(0,0,0,.58) !important;
+}
+
+html[data-shelf-theme="botanical"] footer {
+  position: relative;
+  z-index: 4;
+  margin-top: 12px;
+}
+
+@media (max-width: 1000px) {
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase {
+    width: calc(100vw - 12px);
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row {
+    border-left-width: 15px;
+    border-right-width: 15px;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row::before {
+    left: -15px !important;
+    right: -15px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-left > .book-placement-layer {
+    padding-left: 132px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-right > .book-placement-layer {
+    padding-right: 132px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-both > .book-placement-layer {
+    padding-left: 132px !important;
+    padding-right: 132px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-shelf-theme="botanical"] .botanical-v3-room,
+  html[data-shelf-theme="botanical"] .botanical-v3-foreground {
+    height: 300px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row {
+    height: 250px !important;
+    min-height: 250px !important;
+    border-left-width: 8px;
+    border-right-width: 8px;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row::before {
+    left: -8px !important;
+    right: -8px !important;
+    height: 13px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .book-placement-layer,
+  html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-left > .book-placement-layer,
+  html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-right > .book-placement-layer,
+  html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-both > .book-placement-layer {
+    bottom: 30px;
+    height: 208px !important;
+    padding: 12px 3px 0 !important;
+    gap: 5px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .botanical-row-decor {
+    display: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .wood-shelf {
+    height: 31px !important;
+  }
+}

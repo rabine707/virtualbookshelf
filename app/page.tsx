@@ -108,36 +108,46 @@ export default function Home() {
   }, [visibleBooks]);
 
   return (
-    <main>
-      <header className="hero reader-hero">
-        <div className="hero-copy">
-          <p className="eyebrow">YOUR READING LIFE, ON DISPLAY</p>
-          <h1>Shelf of Fame</h1>
-          <p className="subhead">Turn the books you’ve read into a shelf worth showing off.</p>
-        </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button className="primary reader-original-import" onClick={() => goodreadsInput.current?.click()}>Import Goodreads</button>
-          <div className="reader-add-books">
-            <button
-              type="button"
-              className="primary reader-add-books-trigger"
-              aria-haspopup="dialog"
-              onClick={() => window.dispatchEvent(new Event("shelf-open-book-search"))}
-            >
-              ＋ Add books
-            </button>
-          </div>
-        </div>
-        <input ref={goodreadsInput} type="file" accept=".csv,text/csv" hidden onChange={importGoodreadsCsv} />
-      </header>
+    <main className="shelf-page">
+      <section className="cinematic-room" aria-label="Shelf of Fame controls">
+        <div className="cinematic-room__plate" aria-hidden="true" />
+        <div className="cinematic-room__daylight" aria-hidden="true" />
+        <div className="cinematic-room__vignette" aria-hidden="true" />
 
-      <ShelfToolbar
-        query={query}
-        sort={sort}
-        count={visibleBooks.length}
-        onQueryChange={setQuery}
-        onSortChange={setSort}
-      />
+        <div className="cinematic-room__content">
+          <header className="hero reader-hero">
+            <div className="hero-copy">
+              <p className="eyebrow">YOUR READING LIFE, ON DISPLAY</p>
+              <h1>Shelf of Fame</h1>
+              <p className="subhead">Turn the books you’ve read into a shelf worth showing off.</p>
+            </div>
+            <div className="reader-hero-actions">
+              <button className="primary reader-original-import" onClick={() => goodreadsInput.current?.click()}>
+                Import Goodreads
+              </button>
+              <div className="reader-add-books">
+                <button
+                  type="button"
+                  className="primary reader-add-books-trigger"
+                  aria-haspopup="dialog"
+                  onClick={() => window.dispatchEvent(new Event("shelf-open-book-search"))}
+                >
+                  ＋ Add books
+                </button>
+              </div>
+            </div>
+            <input ref={goodreadsInput} type="file" accept=".csv,text/csv" hidden onChange={importGoodreadsCsv} />
+          </header>
+
+          <ShelfToolbar
+            query={query}
+            sort={sort}
+            count={visibleBooks.length}
+            onQueryChange={setQuery}
+            onSortChange={setSort}
+          />
+        </div>
+      </section>
 
       <Bookshelf shelves={shelves} onSelect={setSelected} />
 

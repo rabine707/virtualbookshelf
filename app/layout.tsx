@@ -33,7 +33,7 @@ import "./mobile-shelf-compression.css";
 import "./theme-ui-polish.css";
 import "./desktop-toolbar-refine.css";
 import "./shelf-art-polish.css";
-import "./botanical-v3.css";
+import "./botanical-production.css";
 import "./bookshelf-3d-prototype.css";
 import "./prototype-page.css";
 import ClientEnhancers from "./ClientEnhancers";

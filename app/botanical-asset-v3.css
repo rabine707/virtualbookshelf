@@ -1,0 +1,486 @@
+/* Botanical Room V3: asset-driven visual reset.
+   The modular shelf engine remains; this file replaces the illustrated/CSS-prop
+   look with the existing rendered room, wood, texture and plant assets. */
+
+html[data-shelf-theme="botanical"] {
+  --botanical-cream: #f1efdc;
+  --botanical-wall: #101b14;
+  --botanical-wall-deep: #08110c;
+  --botanical-walnut: #4b2b1a;
+  --botanical-walnut-deep: #21120b;
+}
+
+html[data-shelf-theme="botanical"] body {
+  background-color: var(--botanical-wall-deep) !important;
+  background-image:
+    linear-gradient(90deg, rgba(205,220,174,.075) 0%, transparent 31%, rgba(0,0,0,.16) 72%, rgba(0,0,0,.34) 100%),
+    linear-gradient(180deg, rgba(19,34,24,.44), rgba(5,12,8,.78)),
+    url('/themes/botanical/v3/back-texture.webp') !important;
+  background-size: auto, auto, 520px 520px !important;
+  background-repeat: no-repeat, no-repeat, repeat !important;
+  background-attachment: fixed !important;
+}
+
+/* ---------- cinematic header plate ---------- */
+html[data-shelf-theme="botanical"] .botanical-v3-room.botanical-asset-room {
+  position: absolute !important;
+  inset: 0 0 auto 0 !important;
+  height: 365px !important;
+  overflow: hidden !important;
+  z-index: 0 !important;
+  background:
+    linear-gradient(90deg, rgba(211,220,177,.065), transparent 39%, rgba(0,0,0,.13) 78%),
+    url('/themes/botanical/v3/back-texture.webp') center top / 520px 520px repeat !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-wall {
+  position: absolute !important;
+  inset: 0 !important;
+  background:
+    radial-gradient(ellipse at 17% 14%, rgba(233,226,174,.14), transparent 26%),
+    linear-gradient(180deg, rgba(20,36,25,.18), rgba(7,15,10,.62)) !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-window-asset {
+  position: absolute;
+  z-index: 1;
+  left: max(-28px, calc(50% - 820px));
+  top: -10px;
+  width: clamp(255px, 20vw, 350px);
+  height: 385px;
+  object-fit: cover;
+  object-position: center top;
+  opacity: .92;
+  filter: saturate(.88) brightness(.82) contrast(1.04) drop-shadow(18px 18px 28px rgba(0,0,0,.34));
+  -webkit-mask-image: linear-gradient(90deg, #000 0 80%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0 80%, transparent 100%);
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-window-light {
+  position: absolute !important;
+  z-index: 0 !important;
+  left: max(-90px, calc(50% - 920px)) !important;
+  top: -55px !important;
+  width: min(850px, 58vw) !important;
+  height: 520px !important;
+  opacity: .72 !important;
+  clip-path: polygon(0 0, 62% 0, 100% 100%, 0 100%) !important;
+  background: linear-gradient(111deg,
+    rgba(255,248,207,.24) 0%,
+    rgba(220,231,181,.11) 31%,
+    rgba(159,183,129,.04) 51%,
+    transparent 74%) !important;
+  filter: blur(26px) !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-window-rays {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  left: clamp(170px, 13vw, 245px);
+  top: 38px;
+  width: min(690px, 44vw);
+  height: 310px;
+  opacity: .22;
+  background:
+    linear-gradient(105deg, rgba(248,240,190,.18), transparent 34%),
+    linear-gradient(101deg, transparent 28%, rgba(223,231,181,.10) 43%, transparent 62%);
+  filter: blur(18px);
+  mix-blend-mode: screen;
+  transform: skewX(-5deg);
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-vine-window {
+  z-index: 2 !important;
+  left: max(-24px, calc(50% - 790px)) !important;
+  top: -42px !important;
+  width: clamp(170px, 12vw, 225px) !important;
+  opacity: .78 !important;
+  transform: scaleX(-1) rotate(-8deg) !important;
+  filter: saturate(.86) brightness(.66) contrast(1.06) drop-shadow(8px 14px 18px rgba(0,0,0,.40)) !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-vine-corner {
+  z-index: 2 !important;
+  right: max(-44px, calc(50% - 810px)) !important;
+  top: -66px !important;
+  width: clamp(165px, 11vw, 215px) !important;
+  opacity: .38 !important;
+  transform: rotate(13deg) !important;
+  filter: saturate(.82) brightness(.54) drop-shadow(-8px 14px 22px rgba(0,0,0,.42)) !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-frame,
+html[data-shelf-theme="botanical"] .botanical-room-window-architecture,
+html[data-shelf-theme="botanical"] .botanical-room-window-view,
+html[data-shelf-theme="botanical"] .botanical-room-window-mullion {
+  display: none !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-vignette {
+  box-shadow: inset 0 0 145px 34px rgba(0,4,2,.38) !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-grain {
+  opacity: .07 !important;
+}
+
+/* Persistent foliage should frame, never sit over controls/books. */
+html[data-shelf-theme="botanical"] .botanical-v3-foreground.botanical-asset-foreground {
+  position: fixed !important;
+  inset: 0 !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  z-index: 5 !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-vine-edge-left {
+  left: -92px !important;
+  top: 54vh !important;
+  width: clamp(145px, 11vw, 205px) !important;
+  opacity: .26 !important;
+  transform: scaleX(-1) rotate(-14deg) !important;
+  filter: saturate(.82) brightness(.48) drop-shadow(10px 14px 22px rgba(0,0,0,.48)) !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-room-vine-edge-right {
+  right: -105px !important;
+  top: 47vh !important;
+  width: clamp(155px, 11vw, 215px) !important;
+  opacity: .24 !important;
+  transform: rotate(15deg) !important;
+  filter: saturate(.82) brightness(.47) drop-shadow(-10px 14px 24px rgba(0,0,0,.50)) !important;
+}
+
+/* ---------- UI belongs to the room, not a dashboard card ---------- */
+html[data-shelf-theme="botanical"] main {
+  width: min(1520px, calc(100% - 18px)) !important;
+  padding-top: 8px !important;
+}
+
+html[data-shelf-theme="botanical"] .reader-hero {
+  margin-left: clamp(270px, 22vw, 350px) !important;
+  margin-right: clamp(72px, 6vw, 105px) !important;
+  min-height: 112px !important;
+  padding: 10px 8px 4px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-shelf-theme="botanical"] .reader-hero h1 {
+  color: var(--botanical-cream) !important;
+  font-size: clamp(48px, 4.6vw, 68px) !important;
+  line-height: .9 !important;
+  text-shadow: 0 5px 26px rgba(0,0,0,.42) !important;
+}
+
+html[data-shelf-theme="botanical"] .reader-toolbar {
+  margin: 2px clamp(72px, 6vw, 105px) 16px clamp(270px, 22vw, 350px) !important;
+  gap: 6px !important;
+}
+
+html[data-shelf-theme="botanical"] .reader-toolbar .search,
+html[data-shelf-theme="botanical"] .reader-toolbar select,
+html[data-shelf-theme="botanical"] .reader-toolbar .count-pill,
+html[data-shelf-theme="botanical"] .reader-toolbar .page-refresh-button,
+html[data-shelf-theme="botanical"] .reader-toolbar > .spine-review-launch,
+html[data-shelf-theme="botanical"] .reader-toolbar > .theme-picker-trigger,
+html[data-shelf-theme="botanical"] .reader-toolbar > .spine-label-toggle,
+html[data-shelf-theme="botanical"] .reader-toolbar .qol-fix-button {
+  background: rgba(5,15,9,.55) !important;
+  border-color: rgba(193,211,168,.16) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.025), 0 8px 22px rgba(0,0,0,.14) !important;
+  backdrop-filter: blur(10px) saturate(.9) !important;
+}
+
+/* ---------- repeatable rendered shelf modules ---------- */
+html[data-shelf-theme="botanical"] .bookcase.modular-bookcase {
+  width: min(1540px, calc(100vw - 18px)) !important;
+  margin-top: 0 !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row {
+  position: relative;
+  height: 286px !important;
+  min-height: 286px !important;
+  border-left: 18px solid #342014 !important;
+  border-right: 18px solid #21140d !important;
+  background-color: #0d1811 !important;
+  background-image:
+    linear-gradient(90deg, rgba(222,226,182,.07), transparent 24%, transparent 70%, rgba(0,0,0,.24)),
+    linear-gradient(180deg, rgba(255,255,255,.025), rgba(0,0,0,.18) 76%, rgba(0,0,0,.34)),
+    url('/themes/botanical/v3/back-texture.webp') !important;
+  background-size: auto, auto, 460px 460px !important;
+  background-repeat: no-repeat, no-repeat, repeat !important;
+  background-position: center, center, center calc(var(--shelf-row, 1) * -31px) !important;
+  box-shadow:
+    inset 20px 0 26px rgba(0,0,0,.31),
+    inset -20px 0 28px rgba(0,0,0,.37),
+    inset 0 18px 26px rgba(0,0,0,.18) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row::before {
+  left: -18px !important;
+  right: -18px !important;
+  top: 0 !important;
+  height: 15px !important;
+  background-color: #3c2416 !important;
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.10), rgba(0,0,0,.16)),
+    url('/themes/botanical/v3/shelf-strip.webp') !important;
+  background-size: 100% 100%, 100% 100% !important;
+  background-repeat: no-repeat !important;
+  box-shadow: 0 8px 14px rgba(0,0,0,.43), inset 0 -2px rgba(0,0,0,.42) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row::after {
+  inset: 15px 0 31px !important;
+  background:
+    radial-gradient(ellipse at 20% 12%, rgba(217,219,174,.055), transparent 31%),
+    linear-gradient(90deg, rgba(0,0,0,.22), transparent 8%, transparent 91%, rgba(0,0,0,.30)),
+    linear-gradient(180deg, rgba(0,0,0,.12), transparent 25%, transparent 75%, rgba(0,0,0,.25)) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row > .wood-shelf {
+  left: -8px !important;
+  right: -8px !important;
+  height: 34px !important;
+  background-color: #4c2c1b !important;
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.13), transparent 22%, rgba(0,0,0,.18) 68%, rgba(0,0,0,.38)),
+    url('/themes/botanical/v3/shelf-strip.webp') !important;
+  background-size: 100% 100%, 100% 100% !important;
+  background-repeat: no-repeat !important;
+  box-shadow:
+    inset 0 2px rgba(255,255,255,.11),
+    inset 0 -3px rgba(0,0,0,.46),
+    0 11px 18px rgba(0,0,0,.55) !important;
+}
+
+/* The previous illustrated props are intentionally gone. */
+html[data-shelf-theme="botanical"] .botanical-lamp-glass,
+html[data-shelf-theme="botanical"] .botanical-lamp-cap,
+html[data-shelf-theme="botanical"] .botanical-lamp-stem,
+html[data-shelf-theme="botanical"] .botanical-lamp-foot,
+html[data-shelf-theme="botanical"] .botanical-frame-companion,
+html[data-shelf-theme="botanical"] .botanical-bottle-group,
+html[data-shelf-theme="botanical"] .botanical-stack-book,
+html[data-shelf-theme="botanical"] .botanical-stack-candle,
+html[data-shelf-theme="botanical"] .botanical-mini-frame {
+  display: none !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row > .botanical-row-decor {
+  bottom: 34px !important;
+  width: 124px !important;
+  height: 214px !important;
+  z-index: 6 !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row > .botanical-row-decor-left {
+  left: 24px !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row > .botanical-row-decor-right {
+  right: 24px !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-decor-plant {
+  display: block !important;
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 1px !important;
+  transform: translateX(-50%) !important;
+  width: auto !important;
+  max-width: none !important;
+  height: auto !important;
+  filter: saturate(.90) brightness(.82) contrast(1.04) drop-shadow(5px 8px 9px rgba(0,0,0,.48)) !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-decor-plant-large {
+  width: 102px !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-decor-plant-small {
+  width: 78px !important;
+  opacity: .90 !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-row-decor-warm-glow {
+  width: 178px !important;
+  overflow: visible !important;
+}
+
+html[data-shelf-theme="botanical"] .botanical-practical-glow {
+  position: absolute;
+  display: block;
+  width: 220px;
+  height: 185px;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse,
+    rgba(255,193,101,.16) 0%,
+    rgba(225,145,67,.075) 34%,
+    rgba(190,108,43,.025) 57%,
+    transparent 74%);
+  filter: blur(17px);
+  mix-blend-mode: screen;
+  opacity: .78;
+}
+
+/* ---------- natural book composition ---------- */
+html[data-shelf-theme="botanical"] .modular-shelf-row > .book-placement-layer {
+  bottom: 32px !important;
+  height: 238px !important;
+  padding: 18px 42px 0 !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-left > .book-placement-layer {
+  padding-left: 150px !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-right > .book-placement-layer {
+  padding-right: 150px !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-both > .book-placement-layer {
+  padding-left: 150px !important;
+  padding-right: 150px !important;
+}
+
+html[data-shelf-theme="botanical"] .book-cluster {
+  display: flex;
+  height: 100%;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+html[data-shelf-theme="botanical"] .book-layout-center .book-cluster-a {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+html[data-shelf-theme="botanical"] .book-layout-left .book-cluster-a {
+  margin-left: clamp(22px, 4vw, 72px);
+}
+
+html[data-shelf-theme="botanical"] .book-layout-right .book-cluster-a {
+  margin-left: auto;
+  margin-right: clamp(22px, 4vw, 72px);
+}
+
+html[data-shelf-theme="botanical"] .book-layout-split {
+  justify-content: space-between !important;
+}
+
+html[data-shelf-theme="botanical"] .book-layout-split .book-cluster-a {
+  margin-left: clamp(10px, 2.4vw, 42px);
+}
+
+html[data-shelf-theme="botanical"] .book-layout-split .book-cluster-b {
+  margin-left: auto;
+  margin-right: clamp(10px, 2.4vw, 42px);
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row .book {
+  filter:
+    drop-shadow(4px 2px 5px rgba(0,0,0,.57))
+    drop-shadow(10px 5px 12px rgba(0,0,0,.30)) !important;
+}
+
+html[data-shelf-theme="botanical"] .modular-shelf-row .book:hover,
+html[data-shelf-theme="botanical"] .modular-shelf-row .book:focus-visible {
+  filter:
+    drop-shadow(5px 4px 7px rgba(0,0,0,.64))
+    drop-shadow(14px 7px 17px rgba(0,0,0,.34)) !important;
+}
+
+html[data-shelf-theme="botanical"] body::after {
+  opacity: .018 !important;
+}
+
+@media (max-width: 1000px) {
+  html[data-shelf-theme="botanical"] .reader-hero,
+  html[data-shelf-theme="botanical"] .reader-toolbar {
+    margin-left: clamp(190px, 20vw, 235px) !important;
+    margin-right: 18px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row {
+    border-left-width: 12px !important;
+    border-right-width: 12px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row::before {
+    left: -12px !important;
+    right: -12px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-shelf-theme="botanical"] .botanical-v3-room.botanical-asset-room {
+    height: 290px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-room-window-asset {
+    width: 180px !important;
+    height: 300px !important;
+    left: -62px !important;
+    opacity: .46 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-v3-foreground.botanical-asset-foreground {
+    display: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero,
+  html[data-shelf-theme="botanical"] .reader-toolbar {
+    margin-left: 8px !important;
+    margin-right: 8px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row {
+    height: 250px !important;
+    min-height: 250px !important;
+    border-left-width: 7px !important;
+    border-right-width: 7px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row::before {
+    left: -7px !important;
+    right: -7px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .botanical-row-decor {
+    display: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .book-placement-layer,
+  html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-left > .book-placement-layer,
+  html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-right > .book-placement-layer,
+  html[data-shelf-theme="botanical"] .modular-shelf-row.botanical-decor-both > .book-placement-layer {
+    bottom: 29px !important;
+    height: 208px !important;
+    padding: 10px 4px 0 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .book-layout-left .book-cluster-a,
+  html[data-shelf-theme="botanical"] .book-layout-right .book-cluster-a,
+  html[data-shelf-theme="botanical"] .book-layout-split .book-cluster-a,
+  html[data-shelf-theme="botanical"] .book-layout-split .book-cluster-b {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  html[data-shelf-theme="botanical"] .book-layout-split .book-cluster-b {
+    display: none;
+  }
+}

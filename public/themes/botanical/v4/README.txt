@@ -1,0 +1,1 @@
+Shelf of Fame Botanical Room V4 assets. Cinematic environment plate and decor are generated specifically for the interactive botanical theme; real UI and book spines remain live DOM elements.
