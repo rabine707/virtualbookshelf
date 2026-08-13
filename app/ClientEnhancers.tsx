@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
-import BotanicalSceneEnricher from "./BotanicalSceneEnricher";
 import CloudAccountSettings from "./CloudAccountSettings";
 import HelpShelfLauncher from "./HelpShelfLauncher";
 import MobileTapFix from "./MobileTapFix";
@@ -116,7 +115,6 @@ export default function ClientEnhancers() {
     <SpineCommunityEnricher />
     <MobileTapFix />
     <ThemeEnricher />
-    <BotanicalSceneEnricher />
     <QoLEnricher />
     <MobileBottomNav />
   </>;
