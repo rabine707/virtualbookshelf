@@ -103,7 +103,7 @@ export default function Home() {
 
   const shelves = useMemo(() => {
     const result: Book[][] = [];
-    for (let i = 0; i < visibleBooks.length; i += 8) result.push(visibleBooks.slice(i, i + 8));
+    for (let i = 0; i < visibleBooks.length; i += 14) result.push(visibleBooks.slice(i, i + 14));
     return result;
   }, [visibleBooks]);
 
