@@ -19,4 +19,13 @@ export const assetCredits: AssetCredit[] = [
     attribution: "Hanging Vines PNGs by Vecteezy",
     usage: "Botanical theme foreground foliage",
   },
+  {
+    id: "vecteezy-leaf-canopy",
+    name: "Hanging Leaf Canopy PNG",
+    source: "Vecteezy",
+    sourceUrl: "https://www.vecteezy.com/free-png/leaf",
+    license: "Vecteezy free asset — attribution required",
+    attribution: "Leaf PNGs by Vecteezy",
+    usage: "Botanical theme upper window and header canopy foliage",
+  },
 ];
