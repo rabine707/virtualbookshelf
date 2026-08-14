@@ -37,4 +37,13 @@ export const assetCredits: AssetCredit[] = [
     attribution: "Globe PNGs by Vecteezy",
     usage: "Botanical theme lower-shelf focal decor",
   },
+  {
+    id: "vecteezy-tree-branches",
+    name: "Tree Branches PNG",
+    source: "Vecteezy",
+    sourceUrl: "https://www.vecteezy.com/free-png/tree",
+    license: "Vecteezy free asset — attribution required",
+    attribution: "Tree PNGs by Vecteezy",
+    usage: "Botanical theme exterior window foliage layer",
+  },
 ];
