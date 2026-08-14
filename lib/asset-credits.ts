@@ -28,4 +28,13 @@ export const assetCredits: AssetCredit[] = [
     attribution: "Leaf PNGs by Vecteezy",
     usage: "Botanical theme upper window and header canopy foliage",
   },
+  {
+    id: "vecteezy-antique-globe",
+    name: "Antique Style Vintage Globe PNG",
+    source: "Vecteezy",
+    sourceUrl: "https://www.vecteezy.com/free-png/globe",
+    license: "Vecteezy free asset — attribution required",
+    attribution: "Globe PNGs by Vecteezy",
+    usage: "Botanical theme lower-shelf focal decor",
+  },
 ];
