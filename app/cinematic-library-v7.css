@@ -1,0 +1,46 @@
+/* Shelf of Fame — foreground furniture pass.
+   The uploaded chair is treated as room furniture, not shelf decor. */
+
+@media (min-width: 1200px) {
+  html[data-shelf-theme="botanical"] .botanical-real-room-props {
+    overflow: visible !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-reading-chair {
+    position: absolute !important;
+    z-index: 18 !important;
+    left: clamp(8px, 1.4vw, 28px) !important;
+    top: clamp(315px, 35vh, 410px) !important;
+    width: clamp(220px, 16vw, 286px) !important;
+    height: auto !important;
+    object-fit: contain !important;
+    transform: rotate(-1.2deg) !important;
+    transform-origin: center bottom !important;
+    filter:
+      saturate(.76)
+      brightness(.70)
+      contrast(1.06)
+      drop-shadow(15px 22px 18px rgba(0,0,0,.58)) !important;
+    opacity: .96 !important;
+    pointer-events: none !important;
+  }
+
+  /* Contact shadow anchors the chair to the room instead of letting it float. */
+  html[data-shelf-theme="botanical"] .botanical-reading-chair::after {
+    content: "";
+  }
+}
+
+@media (min-width: 1600px) {
+  html[data-shelf-theme="botanical"] .botanical-reading-chair {
+    left: 28px !important;
+    top: clamp(330px, 36vh, 430px) !important;
+    width: min(17vw, 300px) !important;
+  }
+}
+
+@media (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] .botanical-reading-chair {
+    display: none !important;
+  }
+}
