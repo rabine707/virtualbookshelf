@@ -14,7 +14,7 @@ function isBotanical() {
 }
 
 export default function BotanicalAssetEnricher() {
-  const [room, setRoom] = useState<Element | null>(null);
+  const [scene, setScene] = useState<Element | null>(null);
   const [active, setActive] = useState(false);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function BotanicalAssetEnricher() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         setActive(isBotanical());
-        setRoom(document.querySelector(".cinematic-room"));
+        setScene(document.querySelector("main.shelf-page"));
       });
     };
 
@@ -41,10 +41,13 @@ export default function BotanicalAssetEnricher() {
     };
   }, []);
 
-  if (!active || !room) return null;
+  if (!active || !scene) return null;
 
   return createPortal(
     <div className="botanical-real-room-props" aria-hidden="true">
+      <span className="botanical-architecture-window-glow" />
+      <span className="botanical-architecture-vine botanical-architecture-vine-left" />
+      <span className="botanical-architecture-vine botanical-architecture-vine-right" />
       <div className="botanical-real-window">
         <span className="botanical-real-window-glass" />
         <span className="botanical-real-window-lace" />
@@ -56,6 +59,6 @@ export default function BotanicalAssetEnricher() {
       <span className="botanical-real-sconce-glow" />
       <img className="botanical-real-room-sconce" src={ROOM_PROPS.sconce} alt="" decoding="async" />
     </div>,
-    room,
+    scene,
   );
 }
