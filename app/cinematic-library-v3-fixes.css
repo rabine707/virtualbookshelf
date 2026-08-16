@@ -2,16 +2,35 @@
 @media (min-width: 901px) {
   html[data-shelf-theme="botanical"] .cinematic-room {
     z-index: 6 !important;
+    min-height: 286px !important;
   }
 
   html[data-shelf-theme="botanical"] .cinematic-room__plate {
     background:
-      linear-gradient(90deg, rgba(26,45,29,.48), rgba(12,25,16,.70) 54%, rgba(4,11,7,.87)),
-      linear-gradient(180deg, rgba(255,255,255,.018), transparent 34%),
+      linear-gradient(90deg, rgba(26,45,29,.42), rgba(12,25,16,.66) 54%, rgba(4,11,7,.86)),
+      linear-gradient(180deg, rgba(255,255,255,.014), transparent 34%),
       url("https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/plastered_wall/plastered_wall_diff_2k.jpg") center 35% / 980px auto repeat !important;
+    filter: saturate(.62) contrast(1.08) brightness(.56) !important;
   }
 
-  /* Architecture lives between the wall/header and the cabinet so vines can cross
+  html[data-shelf-theme="botanical"] .cinematic-room__content {
+    padding-top: 20px !important;
+    padding-bottom: 4px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero {
+    min-height: 116px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero .hero-copy {
+    margin-left: clamp(286px, 18.5vw, 352px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-toolbar {
+    margin-top: 7px !important;
+  }
+
+  /* Architecture lives between the wall/header and the cabinet so props can cross
      the furniture edge without ever blocking the actual interactive masthead. */
   html[data-shelf-theme="botanical"] .botanical-real-room-props {
     z-index: 5 !important;
@@ -20,5 +39,165 @@
   html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
   html[data-shelf-theme="botanical"] .bookcase {
     z-index: 4 !important;
+    margin-top: -2px !important;
+  }
+
+  /* The screenshot showed the tiny decorative vine assets being stretched until
+     they became visibly pixelated. Keep this pass clean and photographic; lush
+     foreground foliage can come back when we have a proper high-resolution asset. */
+  html[data-shelf-theme="botanical"] .cinematic-room::after,
+  html[data-shelf-theme="botanical"] .botanical-architecture-vine-left,
+  html[data-shelf-theme="botanical"] .botanical-architecture-vine-right {
+    display: none !important;
+  }
+
+  /* One architectural window instead of a blurred image strip. Keep the glass and
+     mullions crisp; the soft depth comes from light gradients, not a low-res photo. */
+  html[data-shelf-theme="botanical"] .botanical-real-window {
+    z-index: 4 !important;
+    left: -18px !important;
+    top: -18px !important;
+    width: clamp(226px, 14.6vw, 278px) !important;
+    height: min(1110px, calc(100vh + 255px)) !important;
+    border: 14px solid #2b1b12 !important;
+    border-left-width: 18px !important;
+    border-radius: 0 3px 4px 0 !important;
+    background:
+      linear-gradient(118deg, rgba(255,252,220,.92), rgba(223,232,190,.72) 32%, rgba(127,151,104,.66) 100%) !important;
+    box-shadow:
+      14px 0 30px rgba(0,0,0,.34),
+      inset -24px -18px 46px rgba(34,63,38,.26) !important;
+    opacity: 1 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-window-glass {
+    background:
+      radial-gradient(circle at 18% 12%, rgba(255,255,235,.98), transparent 24%),
+      radial-gradient(circle at 72% 28%, rgba(191,211,160,.28), transparent 25%),
+      linear-gradient(145deg, rgba(255,255,226,.45), rgba(196,215,169,.15) 52%, rgba(58,92,57,.22)) !important;
+    box-shadow: inset 0 0 46px rgba(255,255,220,.20) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-window-mullion {
+    background: linear-gradient(90deg,#5c3a25,#321e13 72%,#1d100a) !important;
+    box-shadow: 4px 4px 10px rgba(0,0,0,.32) !important;
+  }
+  html[data-shelf-theme="botanical"] .botanical-real-window-mullion-v {
+    left: 51% !important;
+    width: 9px !important;
+  }
+  html[data-shelf-theme="botanical"] .botanical-real-window-mullion-h {
+    top: 26% !important;
+    height: 9px !important;
+    box-shadow: 0 270px 0 #342015, 0 540px 0 #342015, 4px 4px 10px rgba(0,0,0,.30) !important;
+  }
+
+  /* The room plant was visually duplicating the shelf planter in the screenshot. */
+  html[data-shelf-theme="botanical"] .botanical-real-room-plant {
+    display: none !important;
+  }
+
+  /* Keep the right wall intentionally restrained until higher-resolution props are
+     available. The frame and sconce stay small enough that their source images hold up. */
+  html[data-shelf-theme="botanical"] .botanical-real-room-frame {
+    right: 34px !important;
+    top: 88px !important;
+    width: 142px !important;
+    opacity: .82 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-room-sconce {
+    right: 205px !important;
+    top: 143px !important;
+    width: 68px !important;
+    opacity: .90 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-sconce-glow {
+    right: 153px !important;
+    top: 91px !important;
+    width: 178px !important;
+    height: 178px !important;
+    opacity: .72 !important;
+  }
+
+  /* Pull the shelves closer to the render: dark paneled recess, thin walnut rails,
+     stronger local amber light and less empty green wall around the books. */
+  html[data-shelf-theme="botanical"] .modular-shelf-row,
+  html[data-shelf-theme="botanical"] .shelf-row {
+    height: 238px !important;
+    min-height: 238px !important;
+    background:
+      linear-gradient(180deg, rgba(255,180,75,.12), rgba(214,130,43,.03) 12%, transparent 30%),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 106px, rgba(0,0,0,.105) 106px 108px),
+      linear-gradient(90deg, rgba(0,0,0,.24), transparent 8%, transparent 91%, rgba(0,0,0,.38)),
+      linear-gradient(180deg, #13251a 0%, #0b1a11 48%, #07110b 100%) !important;
+    box-shadow:
+      inset 22px 0 34px rgba(0,0,0,.42),
+      inset -28px 0 40px rgba(0,0,0,.54),
+      inset 0 15px 23px rgba(0,0,0,.31),
+      inset 0 -16px 28px rgba(0,0,0,.26) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row::before,
+  html[data-shelf-theme="botanical"] .shelf-row::before {
+    height: 13px !important;
+    box-shadow:
+      0 4px 7px rgba(0,0,0,.45),
+      0 9px 22px rgba(237,153,62,.14),
+      inset 0 1px rgba(255,224,181,.18),
+      inset 0 -2px rgba(0,0,0,.37) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row::after,
+  html[data-shelf-theme="botanical"] .shelf-row::after {
+    inset: 13px 0 21px !important;
+    background:
+      linear-gradient(180deg, rgba(255,190,90,.19), rgba(245,155,58,.08) 7px, rgba(201,112,36,.025) 28px, transparent 54px),
+      linear-gradient(90deg, rgba(0,0,0,.19), transparent 9%, transparent 90%, rgba(0,0,0,.31)) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .books,
+  html[data-shelf-theme="botanical"] .shelf-row > .books {
+    bottom: 21px !important;
+    height: 211px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .wood-shelf,
+  html[data-shelf-theme="botanical"] .shelf-row > .wood-shelf {
+    height: 21px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .wood-shelf::before {
+    background: linear-gradient(90deg, transparent, rgba(255,194,102,.28) 9%, rgba(255,184,79,.46) 50%, rgba(255,194,102,.25) 91%, transparent) !important;
+    box-shadow: 0 -4px 19px rgba(235,148,54,.16) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .book {
+    height: clamp(194px, calc(var(--book-height) * 1.05), 219px) !important;
+    width: clamp(52px, calc(var(--book-width) * .80), 75px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .book-cover-art {
+    filter: saturate(.88) contrast(1.05) brightness(.86) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor {
+    height: 202px !important;
+  }
+
+  /* The preview only has a handful of local books when signed out; don't let the
+     page abruptly turn into an unrelated blank block underneath that test row. */
+  html[data-shelf-theme="botanical"] .shelf-footer {
+    margin-top: 0 !important;
+    border-top-color: rgba(255,255,255,.035) !important;
+    background: linear-gradient(180deg, #07110b 0%, #050c08 100%) !important;
+  }
+}
+
+@media (min-width: 1500px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-strip: clamp(230px, 14.8vw, 286px) !important;
+    --sof-content-left: clamp(292px, 18.8vw, 360px) !important;
   }
 }
