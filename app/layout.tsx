@@ -38,6 +38,7 @@ import "./botanical-walnut-material.css";
 import "./bookshelf-3d-prototype.css";
 import "./prototype-page.css";
 import "./cinematic-library-v2.css";
+import "./cinematic-library-v3.css";
 import BotanicalAssetEnricher from "./BotanicalAssetEnricher";
 import BotanicalMaterialStyles from "./BotanicalMaterialStyles";
 import BotanicalPropStyles from "./BotanicalPropStyles";
