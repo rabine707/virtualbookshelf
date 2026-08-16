@@ -1,0 +1,285 @@
+/* Shelf of Fame — screenshot correction pass.
+   Goal: remove dead header space, make the window architectural, and let the
+   bookcase read like built-in furniture instead of a green framed strip. */
+
+@media (min-width: 901px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-strip: clamp(220px, 14.8vw, 282px) !important;
+    --sof-content-left: clamp(300px, 19vw, 360px) !important;
+    position: relative !important;
+  }
+
+  /* Continuous architectural window. This avoids enlarging the tiny decorative
+     window/vine assets and gives the room one crisp left edge from top to shelf. */
+  html[data-shelf-theme="botanical"] main.shelf-page::before {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    left: 0;
+    top: 0;
+    width: var(--sof-window-strip);
+    height: min(1180px, calc(100vh + 360px));
+    border-right: 16px solid #2b1b12;
+    box-shadow:
+      15px 0 34px rgba(0,0,0,.38),
+      inset -22px 0 32px rgba(40,58,32,.18);
+    background:
+      linear-gradient(90deg,
+        transparent 0 48%,
+        #5b3924 48% calc(48% + 10px),
+        transparent calc(48% + 10px)),
+      linear-gradient(180deg,
+        transparent 0 25%,
+        #51321f 25% calc(25% + 9px),
+        transparent calc(25% + 9px) 51%,
+        #51321f 51% calc(51% + 9px),
+        transparent calc(51% + 9px) 77%,
+        #51321f 77% calc(77% + 9px),
+        transparent calc(77% + 9px)),
+      radial-gradient(circle at 18% 10%, rgba(255,255,231,.98), transparent 18%),
+      radial-gradient(circle at 76% 20%, rgba(238,245,202,.82), transparent 20%),
+      radial-gradient(circle at 30% 43%, rgba(172,195,126,.45), transparent 19%),
+      radial-gradient(circle at 78% 62%, rgba(93,135,72,.34), transparent 18%),
+      linear-gradient(132deg, #eef0c8 0%, #d4dfaa 27%, #9bb481 55%, #587355 100%);
+  }
+
+  /* Warm room ambience on the opposite side; the lamp itself can stay a modest
+     asset while the lighting does the cinematic heavy lifting. */
+  html[data-shelf-theme="botanical"] main.shelf-page::after {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    right: 1.5%;
+    top: 70px;
+    width: 390px;
+    height: 330px;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+      rgba(255,205,112,.16) 0%,
+      rgba(227,145,54,.07) 35%,
+      rgba(183,100,30,.025) 55%,
+      transparent 72%);
+    filter: blur(18px);
+  }
+
+  /* The portal-built CSS window is replaced by the continuous architectural one. */
+  html[data-shelf-theme="botanical"] .botanical-real-window {
+    display: none !important;
+  }
+
+  /* Pull the shelf up into the masthead. The screenshot had ~80px of dead wall
+     between the controls and the furniture. */
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    min-height: 244px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .cinematic-room__content {
+    padding-top: 16px !important;
+    padding-bottom: 0 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero {
+    min-height: 102px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero .hero-copy {
+    margin-left: var(--sof-content-left) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero h1 {
+    color: #f0dfb3 !important;
+    font-size: clamp(54px, 4.25vw, 72px) !important;
+    text-shadow:
+      0 2px 0 rgba(102,61,24,.38),
+      0 3px 15px rgba(232,174,84,.10),
+      0 7px 28px rgba(0,0,0,.70) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero .subhead {
+    margin-top: 4px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-toolbar {
+    margin-top: 4px !important;
+    width: min(1040px, calc(100% - var(--sof-content-left) - 250px)) !important;
+    grid-template-rows: 42px 40px !important;
+    gap: 7px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-toolbar .search-wrap,
+  html[data-shelf-theme="botanical"] .reader-toolbar select,
+  html[data-shelf-theme="botanical"] .reader-toolbar .page-refresh-button,
+  html[data-shelf-theme="botanical"] .reader-toolbar .count-pill {
+    min-height: 42px !important;
+    height: 42px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-toolbar > .spine-review-launch,
+  html[data-shelf-theme="botanical"] .reader-toolbar > .theme-picker-trigger,
+  html[data-shelf-theme="botanical"] .reader-toolbar > .spine-label-toggle,
+  html[data-shelf-theme="botanical"] .reader-toolbar > .qol-toolbar .qol-fix-button {
+    min-height: 40px !important;
+    height: 40px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero-actions {
+    top: 26px !important;
+  }
+
+  /* Cabinet now starts immediately below the controls and carries more furniture
+     mass around the books. */
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    margin-top: -5px !important;
+    margin-left: var(--sof-window-strip) !important;
+    width: calc(100% - var(--sof-window-strip) - 16px) !important;
+    border-left: 10px solid #28170e !important;
+    border-right: 10px solid #180d08 !important;
+    background: #07100a !important;
+    box-shadow:
+      0 34px 80px rgba(0,0,0,.52),
+      -14px 0 30px rgba(0,0,0,.28),
+      inset 0 0 0 1px rgba(255,255,255,.02) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase::before {
+    top: -17px !important;
+    left: -18px !important;
+    right: -10px !important;
+    height: 20px !important;
+    background:
+      linear-gradient(180deg,rgba(255,225,181,.18),transparent 15%,rgba(9,4,2,.48) 81%),
+      url("/themes/botanical/v4/walnut-shelf-front.webp") center / cover repeat-x !important;
+    box-shadow:
+      0 9px 17px rgba(0,0,0,.55),
+      0 4px 14px rgba(229,143,53,.10),
+      inset 0 2px rgba(255,222,178,.18),
+      inset 0 -3px rgba(5,2,1,.46) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row,
+  html[data-shelf-theme="botanical"] .shelf-row {
+    height: 262px !important;
+    min-height: 262px !important;
+    border-left-width: 10px !important;
+    border-right-width: 10px !important;
+    background:
+      linear-gradient(180deg, rgba(255,187,86,.15), rgba(220,136,47,.038) 11%, transparent 28%),
+      repeating-linear-gradient(90deg,
+        rgba(255,255,255,.012) 0 1px,
+        transparent 1px 122px,
+        rgba(0,0,0,.11) 122px 124px),
+      linear-gradient(90deg,rgba(0,0,0,.22),transparent 8%,transparent 91%,rgba(0,0,0,.40)),
+      linear-gradient(180deg,#17261c 0%,#0d1d14 47%,#07110b 100%) !important;
+    box-shadow:
+      inset 24px 0 34px rgba(0,0,0,.44),
+      inset -30px 0 42px rgba(0,0,0,.58),
+      inset 0 16px 25px rgba(0,0,0,.34),
+      inset 0 -18px 30px rgba(0,0,0,.30) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row::before,
+  html[data-shelf-theme="botanical"] .shelf-row::before {
+    left: -10px !important;
+    right: -10px !important;
+    height: 14px !important;
+    background:
+      linear-gradient(180deg,rgba(255,230,190,.16),transparent 14%,rgba(8,3,2,.44) 80%),
+      url("/themes/botanical/v4/walnut-shelf-front.webp") center / cover repeat-x !important;
+    box-shadow:
+      0 4px 7px rgba(0,0,0,.45),
+      0 10px 24px rgba(239,156,63,.16),
+      inset 0 1px rgba(255,224,181,.18),
+      inset 0 -2px rgba(0,0,0,.38) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row::after,
+  html[data-shelf-theme="botanical"] .shelf-row::after {
+    inset: 14px 0 22px !important;
+    background:
+      linear-gradient(180deg,
+        rgba(255,202,111,.22) 0,
+        rgba(249,168,70,.10) 7px,
+        rgba(205,117,37,.03) 29px,
+        transparent 62px),
+      radial-gradient(ellipse at 18% 7%,rgba(255,237,185,.07),transparent 31%),
+      linear-gradient(90deg,rgba(0,0,0,.18),transparent 9%,transparent 90%,rgba(0,0,0,.32)) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .books,
+  html[data-shelf-theme="botanical"] .shelf-row > .books {
+    left: 3.2% !important;
+    right: 3.2% !important;
+    bottom: 22px !important;
+    height: 232px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .wood-shelf,
+  html[data-shelf-theme="botanical"] .shelf-row > .wood-shelf {
+    height: 22px !important;
+    left: -1% !important;
+    right: -1% !important;
+    background:
+      linear-gradient(180deg,rgba(255,228,188,.17),transparent 14%,rgba(9,4,2,.50) 80%),
+      url("/themes/botanical/v4/walnut-shelf-front.webp") center / cover repeat-x !important;
+    box-shadow:
+      0 14px 23px rgba(0,0,0,.66),
+      0 4px 7px rgba(0,0,0,.34),
+      inset 0 2px rgba(255,222,181,.18) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .wood-shelf::before {
+    height: 2px !important;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(255,203,117,.34) 9%,
+      rgba(255,181,75,.55) 50%,
+      rgba(255,203,117,.30) 91%,
+      transparent) !important;
+    box-shadow: 0 -5px 22px rgba(238,151,55,.19) !important;
+  }
+
+  /* More visual authority for the books, but without the exaggerated 3D stagger. */
+  html[data-shelf-theme="botanical"] .book {
+    height: clamp(207px, calc(var(--book-height) * 1.10), 236px) !important;
+    width: clamp(53px, calc(var(--book-width) * .80), 76px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .book-flow,
+  html[data-shelf-theme="botanical"] .book-cluster {
+    gap: 4px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor {
+    height: 224px !important;
+  }
+
+  /* Keep the signed-out test footer quiet. Logged-in shelves with hundreds of
+     books naturally continue into additional furniture rows instead. */
+  html[data-shelf-theme="botanical"] .shelf-footer {
+    min-height: 120px !important;
+    padding-top: 18px !important;
+    background:
+      linear-gradient(180deg,rgba(8,18,11,.96),rgba(4,11,7,.99)) !important;
+  }
+}
+
+@media (min-width: 1500px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-strip: clamp(232px, 14.5vw, 286px) !important;
+    --sof-content-left: clamp(300px, 18.4vw, 365px) !important;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-strip: 160px !important;
+    --sof-content-left: 192px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-toolbar {
+    width: calc(100% - var(--sof-content-left) - 150px) !important;
+  }
+}
