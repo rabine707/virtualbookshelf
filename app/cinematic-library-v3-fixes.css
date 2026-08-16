@@ -1,0 +1,24 @@
+/* Small follow-up to the reference pass. Consolidate into v3 after visual approval. */
+@media (min-width: 901px) {
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    z-index: 6 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .cinematic-room__plate {
+    background:
+      linear-gradient(90deg, rgba(26,45,29,.48), rgba(12,25,16,.70) 54%, rgba(4,11,7,.87)),
+      linear-gradient(180deg, rgba(255,255,255,.018), transparent 34%),
+      url("https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/plastered_wall/plastered_wall_diff_2k.jpg") center 35% / 980px auto repeat !important;
+  }
+
+  /* Architecture lives between the wall/header and the cabinet so vines can cross
+     the furniture edge without ever blocking the actual interactive masthead. */
+  html[data-shelf-theme="botanical"] .botanical-real-room-props {
+    z-index: 5 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    z-index: 4 !important;
+  }
+}
