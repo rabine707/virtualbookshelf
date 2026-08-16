@@ -44,7 +44,6 @@ import "./cinematic-library-v4.css";
 import "./cinematic-library-v5.css";
 import "./cinematic-library-v6.css";
 import BotanicalAssetEnricher from "./BotanicalAssetEnricher";
-import BotanicalMaterialStyles from "./BotanicalMaterialStyles";
 import BotanicalPropStyles from "./BotanicalPropStyles";
 import BotanicalLampFixStyles from "./BotanicalLampFixStyles";
 import BotanicalLightingStyles from "./BotanicalLightingStyles";
@@ -60,7 +59,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <BotanicalMaterialStyles />
         <BotanicalPropStyles />
         <BotanicalLampFixStyles />
         <BotanicalLightingStyles />
