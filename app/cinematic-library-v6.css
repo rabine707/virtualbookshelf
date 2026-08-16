@@ -1,0 +1,94 @@
+/* Shelf of Fame — v6 composition cleanup after live preview review.
+   Remove the artificial empty cabinet, collapse the dead masthead wall, and let
+   real shelf rows provide the room depth when the full collection is loaded. */
+
+@media (min-width: 901px) {
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    height: 198px !important;
+    min-height: 198px !important;
+    max-height: 198px !important;
+    overflow: visible !important;
+  }
+
+  html[data-shelf-theme="botanical"] .cinematic-room__content {
+    padding-top: 8px !important;
+    padding-bottom: 0 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero {
+    min-height: 72px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero .eyebrow {
+    margin-bottom: 1px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero h1 {
+    font-size: clamp(48px, 3.8vw, 64px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero .subhead {
+    margin-top: 1px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-toolbar {
+    margin-top: 0 !important;
+  }
+
+  /* Stop drawing pretend empty shelf rows in the signed-out preview. The cabinet
+     height now comes only from real shelf rows, so the 293-book signed-in view
+     naturally becomes the tall built-in library we actually want. */
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    min-height: 0 !important;
+    height: auto !important;
+    margin-top: -6px !important;
+    background:
+      linear-gradient(90deg, rgba(0,0,0,.16), transparent 8%, transparent 91%, rgba(0,0,0,.30)),
+      linear-gradient(180deg,#0e1c13 0%,#07120c 100%) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row,
+  html[data-shelf-theme="botanical"] .shelf-row {
+    height: 250px !important;
+    min-height: 250px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .books,
+  html[data-shelf-theme="botanical"] .shelf-row > .books {
+    height: 223px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .shelf-footer {
+    min-height: 0 !important;
+    padding: 12px 0 16px !important;
+    border-top: 0 !important;
+    background: linear-gradient(180deg,#07110b 0%,#050b07 100%) !important;
+  }
+
+  /* Keep the architectural window bright enough to read as actual daylight,
+     while the bookcase remains the visual focus. */
+  html[data-shelf-theme="botanical"] main.shelf-page::before {
+    filter: saturate(.86) brightness(1.03) !important;
+  }
+
+  /* Give the cabinet crown more of the substantial built-in profile visible in
+     the target reference without making every shelf rail oversized. */
+  html[data-shelf-theme="botanical"] .bookcase::before {
+    height: 24px !important;
+    top: -20px !important;
+    box-shadow:
+      0 11px 22px rgba(0,0,0,.60),
+      0 5px 20px rgba(231,145,54,.12),
+      inset 0 2px rgba(255,222,177,.20),
+      inset 0 -5px rgba(4,2,1,.52) !important;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    height: 205px !important;
+    min-height: 205px !important;
+    max-height: 205px !important;
+  }
+}
