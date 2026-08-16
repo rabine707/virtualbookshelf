@@ -8,19 +8,19 @@ type BookshelfProps = {
   onSelect: (book: Book) => void;
 };
 
-type DecorKind = "plant" | "plant-small" | "warm-glow";
+type DecorKind = "plant" | "plant-small" | "warm-glow" | "globe" | "book-stack" | "candle-ivy";
 type DecorSpec = { left?: DecorKind; right?: DecorKind };
 type BookLayout = "center" | "left" | "right" | "split";
 
 const DECOR_VARIATIONS: DecorSpec[] = [
   { left: "plant", right: "warm-glow" },
-  { right: "plant-small" },
-  {},
-  { left: "warm-glow", right: "plant" },
+  { left: "book-stack", right: "plant-small" },
+  { left: "globe", right: "book-stack" },
+  { left: "candle-ivy", right: "plant" },
   { left: "plant-small" },
-  {},
-  { right: "warm-glow" },
-  {},
+  { right: "globe" },
+  { left: "book-stack", right: "warm-glow" },
+  { right: "candle-ivy" },
 ];
 
 const BOOK_LAYOUTS: BookLayout[] = [
@@ -33,6 +33,12 @@ const BOOK_LAYOUTS: BookLayout[] = [
   "right",
   "split",
 ];
+
+const DECOR_ASSETS: Partial<Record<DecorKind, string>> = {
+  globe: "/themes/dark-academia/cinematic-globe-candle.webp",
+  "book-stack": "/themes/dark-academia/stacked-books.webp",
+  "candle-ivy": "/themes/dark-academia/cinematic-candle-ivy.webp",
+};
 
 function getDeterministicDecor(rowNumber: number) {
   return DECOR_VARIATIONS[(rowNumber - 1) % DECOR_VARIATIONS.length];
@@ -52,11 +58,25 @@ function ShelfDecor({ kind, side, eager }: { kind: DecorKind; side: "left" | "ri
     );
   }
 
+  if (kind === "plant" || kind === "plant-small") {
+    return (
+      <div className={`botanical-row-decor botanical-row-decor-${side} botanical-row-decor-${kind}`} aria-hidden="true">
+        <img
+          className={`botanical-decor-plant ${kind === "plant" ? "botanical-decor-plant-large" : "botanical-decor-plant-small"}`}
+          src="/themes/botanical/v3/ceramic-pothos-planter.webp"
+          alt=""
+          loading={eager ? "eager" : "lazy"}
+          decoding="async"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={`botanical-row-decor botanical-row-decor-${side} botanical-row-decor-${kind}`} aria-hidden="true">
       <img
-        className={`botanical-decor-plant ${kind === "plant" ? "botanical-decor-plant-large" : "botanical-decor-plant-small"}`}
-        src="/themes/botanical/v3/ceramic-pothos-planter.webp"
+        className={`botanical-decor-object botanical-decor-object-${kind}`}
+        src={DECOR_ASSETS[kind]}
         alt=""
         loading={eager ? "eager" : "lazy"}
         decoding="async"
