@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
   const image = Buffer.from(parts.join(""), "base64");
 
-  return new Response(image, {
+  return new Response(new Uint8Array(image), {
     headers: {
       "Content-Type": "image/webp",
       "Content-Length": String(image.byteLength),
