@@ -46,6 +46,7 @@ import BotanicalDesignSystemStyles from "./BotanicalDesignSystemStyles";
 import BotanicalReferenceCompositionStyles from "./BotanicalReferenceCompositionStyles";
 import BotanicalScenePlateStyles from "./BotanicalScenePlateStyles";
 import BotanicalScenePlateImageFixStyles from "./BotanicalScenePlateImageFixStyles";
+import BotanicalScenePlatePolishStyles from "./BotanicalScenePlatePolishStyles";
 import ClientEnhancers from "./ClientEnhancers";
 import ThreeDPrototypeLauncher from "./ThreeDPrototypeLauncher";
 
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <BotanicalReferenceCompositionStyles />
         <BotanicalScenePlateStyles />
         <BotanicalScenePlateImageFixStyles />
+        <BotanicalScenePlatePolishStyles />
         {children}
         <ClientEnhancers />
         <BotanicalAssetEnricher />
