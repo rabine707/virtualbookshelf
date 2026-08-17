@@ -1,11 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 const ROOM_PROPS = {
-  plant: "https://cdn.polyhaven.com/asset_img/thumbs/potted_plant_02.png?format=png",
-  frame: "https://cdn.polyhaven.com/asset_img/thumbs/fancy_picture_frame_02.png?format=png",
   sconce: "https://cdn.polyhaven.com/asset_img/thumbs/industrial_wall_sconce.png?format=png",
 } as const;
 
@@ -45,16 +44,35 @@ export default function BotanicalAssetEnricher() {
 
   return createPortal(
     <div className="botanical-real-room-props" aria-hidden="true">
-      <div className="botanical-real-window">
-        <span className="botanical-real-window-glass" />
-        <span className="botanical-real-window-lace" />
-        <span className="botanical-real-window-mullion botanical-real-window-mullion-v" />
-        <span className="botanical-real-window-mullion botanical-real-window-mullion-h" />
-      </div>
-      <img className="botanical-real-room-plant" src={ROOM_PROPS.plant} alt="" decoding="async" />
-      <img className="botanical-real-room-frame" src={ROOM_PROPS.frame} alt="" decoding="async" />
+      <span className="botanical-scene-window" style={{ aspectRatio: "4 / 5" }}>
+        <Image
+          src="/themes/botanical/v6/windowpng.png"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 760px) 250px, (max-width: 1240px) 355px, 470px"
+          style={{ objectFit: "contain", objectPosition: "left top" }}
+        />
+      </span>
+
       <span className="botanical-real-sconce-glow" />
-      <img className="botanical-real-room-sconce" src={ROOM_PROPS.sconce} alt="" decoding="async" />
+      <img
+        className="botanical-real-room-sconce"
+        src={ROOM_PROPS.sconce}
+        alt=""
+        decoding="async"
+      />
+
+      <span className="botanical-scene-sofa" style={{ aspectRatio: "3 / 2" }}>
+        <Image
+          src="/themes/botanical/v6/sofapng.png"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1240px) 430px, 540px"
+          style={{ objectFit: "contain", objectPosition: "right bottom" }}
+        />
+      </span>
     </div>,
     room,
   );
