@@ -1,0 +1,56 @@
+/* Shelf of Fame — NO CSS SHAPES policy.
+   Botanical scenery must come from real image assets. CSS may position, size,
+   crop, filter, shadow, and layer those assets, but it may not fabricate room
+   geometry, furniture, windows, walls, floors, cabinet trim, or decor with
+   pseudo-elements, polygons, clip-paths, or shape-only nodes. */
+
+html[data-shelf-theme="botanical"] main.shelf-page::before,
+html[data-shelf-theme="botanical"] main.shelf-page::after,
+html[data-shelf-theme="botanical"] .botanical-real-room-props::before,
+html[data-shelf-theme="botanical"] .botanical-real-room-props::after,
+html[data-shelf-theme="botanical"] .cinematic-room::before,
+html[data-shelf-theme="botanical"] .cinematic-room::after,
+html[data-shelf-theme="botanical"] .bookcase::before,
+html[data-shelf-theme="botanical"] .bookcase::after,
+html[data-shelf-theme="botanical"] .bookcase.modular-bookcase::before,
+html[data-shelf-theme="botanical"] .bookcase.modular-bookcase::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  border: 0 !important;
+  clip-path: none !important;
+  -webkit-clip-path: none !important;
+  mask: none !important;
+  -webkit-mask: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Permanently retire the old shape-only scene nodes. */
+html[data-shelf-theme="botanical"] .botanical-architecture-window-glow,
+html[data-shelf-theme="botanical"] .botanical-architecture-vine,
+html[data-shelf-theme="botanical"] .botanical-architecture-vine-left,
+html[data-shelf-theme="botanical"] .botanical-architecture-vine-right,
+html[data-shelf-theme="botanical"] .botanical-real-window,
+html[data-shelf-theme="botanical"] .botanical-real-window-glass,
+html[data-shelf-theme="botanical"] .botanical-real-window-lace,
+html[data-shelf-theme="botanical"] .botanical-real-window-mullion,
+html[data-shelf-theme="botanical"] .botanical-real-window-mullion-v,
+html[data-shelf-theme="botanical"] .botanical-real-window-mullion-h,
+html[data-shelf-theme="botanical"] .botanical-real-sconce-glow {
+  display: none !important;
+}
+
+/* Real scene assets are allowed to use ordinary rectangular clipping from their
+   own image bounds, but never synthetic geometric clipping. */
+html[data-shelf-theme="botanical"] .botanical-window-scene,
+html[data-shelf-theme="botanical"] .botanical-reading-chair,
+html[data-shelf-theme="botanical"] .botanical-right-side-wall,
+html[data-shelf-theme="botanical"] .botanical-real-room-plant,
+html[data-shelf-theme="botanical"] .botanical-real-room-frame,
+html[data-shelf-theme="botanical"] .botanical-real-room-sconce {
+  clip-path: none !important;
+  -webkit-clip-path: none !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
