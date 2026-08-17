@@ -7,31 +7,27 @@ const ROOM_PLATE_PARTS = [
   "/themes/botanical/v7/room-plate-09-10.b64",
 ] as const;
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const origin = new URL(request.url).origin;
+  const parts: string[] = [];
 
-  const parts = await Promise.all(
-    ROOM_PLATE_PARTS.map(async (path) => {
-      const response = await fetch(new URL(path, origin), {
-        cache: "force-cache",
-      });
-
-      if (!response.ok) {
-        throw new Error(`Unable to load Botanical room fragment: ${path}`);
-      }
-
-      return (await response.text()).trim();
-    }),
-  );
+  for (const path of ROOM_PLATE_PARTS) {
+    const response = await fetch(new URL(path, origin), { cache: "force-cache" });
+    if (!response.ok) {
+      return new Response(`Missing room fragment: ${path}`, { status: 500 });
+    }
+    parts.push((await response.text()).trim());
+  }
 
   const image = Buffer.from(parts.join(""), "base64");
 
-  return new Response(image, {
+  return new Response(new Uint8Array(image), {
     headers: {
       "Content-Type": "image/webp",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Content-Length": String(image.byteLength),
+      "Cache-Control": "public, max-age=86400, s-maxage=31536000, immutable",
     },
   });
 }
