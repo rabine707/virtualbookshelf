@@ -1,0 +1,175 @@
+/* Shelf of Fame — perspective room return + real floor bridge.
+   Replaces the straight 'green sidebar' look from v13 with a tapered side-wall
+   return and a real perspective floor texture derived from the uploaded Vecteezy
+   room asset. The cabinet position stays recessed; only the transition geometry
+   is refined here. */
+
+@media (min-width: 1200px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-room-depth-gap: clamp(52px, 5.6vh, 70px) !important;
+    --sof-floor-depth: clamp(150px, 17vh, 190px) !important;
+  }
+
+  /* LEFT ROOM RETURN — narrow at the far-wall/header plane, broader near the
+     foreground/floor. This diagonal right edge is what makes the room turn away
+     from the window instead of reading like another UI column. */
+  html[data-shelf-theme="botanical"] main.shelf-page::before {
+    content: "" !important;
+    display: block !important;
+    position: fixed !important;
+    z-index: 6 !important;
+    left: calc(var(--sof-window-strip) - 10px) !important;
+    top: 0 !important;
+    width: calc(var(--sof-room-depth-gap) + 28px) !important;
+    height: 100vh !important;
+    pointer-events: none !important;
+    border: 0 !important;
+    clip-path: polygon(0 0, 66% 0, 100% 100%, 0 100%) !important;
+    background:
+      linear-gradient(to top,
+        rgba(30,16,9,.98) 0 18px,
+        rgba(92,57,34,.92) 19px 25px,
+        rgba(30,37,26,.96) 26px 31px,
+        transparent 32px),
+      linear-gradient(101deg,
+        rgba(95,80,50,.43) 0%,
+        rgba(43,51,35,.91) 34%,
+        rgba(20,33,23,.98) 66%,
+        rgba(8,17,12,1) 100%) !important;
+    box-shadow:
+      inset 13px 0 22px rgba(0,0,0,.24),
+      inset -22px 0 34px rgba(0,0,0,.58),
+      16px 0 32px rgba(0,0,0,.42) !important;
+  }
+
+  /* FLOOR BRIDGE — use the uploaded floor perspective instead of a synthetic
+     gradient. It extends underneath the cabinet (z-index 4) so only the useful
+     sliver between chair/window and built-in remains visible. */
+  html[data-shelf-theme="botanical"] main.shelf-page::after {
+    content: "" !important;
+    display: block !important;
+    position: fixed !important;
+    z-index: 4 !important;
+    left: calc(var(--sof-window-strip) - 38px) !important;
+    bottom: 0 !important;
+    width: calc(var(--sof-room-depth-gap) + 168px) !important;
+    height: var(--sof-floor-depth) !important;
+    pointer-events: none !important;
+    clip-path: polygon(0 42%, 31% 9%, 100% 24%, 100% 100%, 0 100%) !important;
+    background:
+      linear-gradient(90deg,
+        rgba(12,8,5,.14) 0%,
+        transparent 32%,
+        rgba(0,0,0,.08) 70%,
+        rgba(0,0,0,.30) 100%),
+      url("/themes/botanical/v6/floor-perspective.webp") center bottom / 100% 100% no-repeat !important;
+    box-shadow:
+      inset 0 14px 24px rgba(255,189,110,.035),
+      inset -26px 0 36px rgba(0,0,0,.28),
+      8px -6px 18px rgba(0,0,0,.18) !important;
+    filter: saturate(.92) brightness(.93) contrast(1.03) !important;
+  }
+
+  /* Keep the far wall and cabinet on the same plane while preserving the new,
+     slightly tighter room gap. */
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    width: calc(100% - var(--sof-window-strip) - var(--sof-room-depth-gap)) !important;
+    margin-left: calc(var(--sof-window-strip) + var(--sof-room-depth-gap)) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-strip) - var(--sof-room-depth-gap) - 8px) !important;
+    margin-left: calc(var(--sof-window-strip) + var(--sof-room-depth-gap)) !important;
+    box-shadow:
+      inset 10px 0 20px rgba(255,205,145,.04),
+      inset -10px 0 22px rgba(0,0,0,.48),
+      -30px 0 56px rgba(0,0,0,.62),
+      34px 0 70px rgba(0,0,0,.62),
+      0 38px 94px rgba(0,0,0,.64) !important;
+  }
+}
+
+/* Half-screen desktop keeps the same geometry, just compressed so the responsive
+   shelf can still show a useful number of books per row. */
+@media (min-width: 900px) and (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-room-depth-gap: clamp(28px, 3.7vh, 40px) !important;
+    --sof-floor-depth: clamp(118px, 14vh, 150px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] main.shelf-page::before {
+    content: "" !important;
+    display: block !important;
+    position: fixed !important;
+    z-index: 6 !important;
+    left: calc(var(--sof-window-strip) - 7px) !important;
+    top: 0 !important;
+    width: calc(var(--sof-room-depth-gap) + 18px) !important;
+    height: 100vh !important;
+    pointer-events: none !important;
+    border: 0 !important;
+    clip-path: polygon(0 0, 70% 0, 100% 100%, 0 100%) !important;
+    background:
+      linear-gradient(to top,
+        rgba(30,16,9,.98) 0 14px,
+        rgba(88,54,32,.90) 15px 20px,
+        rgba(28,35,24,.95) 21px 25px,
+        transparent 26px),
+      linear-gradient(101deg,
+        rgba(88,73,47,.40) 0%,
+        rgba(39,47,32,.92) 36%,
+        rgba(18,30,21,.98) 69%,
+        rgba(8,16,11,1) 100%) !important;
+    box-shadow:
+      inset 10px 0 18px rgba(0,0,0,.24),
+      inset -16px 0 24px rgba(0,0,0,.56),
+      12px 0 24px rgba(0,0,0,.40) !important;
+  }
+
+  html[data-shelf-theme="botanical"] main.shelf-page::after {
+    content: "" !important;
+    display: block !important;
+    position: fixed !important;
+    z-index: 4 !important;
+    left: calc(var(--sof-window-strip) - 28px) !important;
+    bottom: 0 !important;
+    width: calc(var(--sof-room-depth-gap) + 118px) !important;
+    height: var(--sof-floor-depth) !important;
+    pointer-events: none !important;
+    clip-path: polygon(0 43%, 32% 10%, 100% 25%, 100% 100%, 0 100%) !important;
+    background:
+      linear-gradient(90deg,
+        rgba(12,8,5,.12) 0%,
+        transparent 35%,
+        rgba(0,0,0,.07) 72%,
+        rgba(0,0,0,.28) 100%),
+      url("/themes/botanical/v6/floor-perspective.webp") center bottom / 100% 100% no-repeat !important;
+    box-shadow: inset -18px 0 28px rgba(0,0,0,.26) !important;
+    filter: saturate(.90) brightness(.92) contrast(1.02) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    width: calc(100% - var(--sof-window-strip) - var(--sof-room-depth-gap)) !important;
+    margin-left: calc(var(--sof-window-strip) + var(--sof-room-depth-gap)) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-strip) - var(--sof-room-depth-gap) - 6px) !important;
+    margin-left: calc(var(--sof-window-strip) + var(--sof-room-depth-gap)) !important;
+    box-shadow:
+      inset 8px 0 18px rgba(255,205,145,.035),
+      inset -9px 0 20px rgba(0,0,0,.46),
+      -24px 0 44px rgba(0,0,0,.58),
+      28px 0 58px rgba(0,0,0,.60) !important;
+  }
+}
+
+@media (max-width: 899px) {
+  html[data-shelf-theme="botanical"] main.shelf-page::before,
+  html[data-shelf-theme="botanical"] main.shelf-page::after {
+    content: none !important;
+    display: none !important;
+  }
+}
