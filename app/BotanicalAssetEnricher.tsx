@@ -1,79 +1,78 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect } from "react";
 
-const ROOM_PROPS = {
-  sconce: "https://cdn.polyhaven.com/asset_img/thumbs/industrial_wall_sconce.png?format=png",
-} as const;
+const ROOM_PLATE_PARTS = [
+  "/themes/botanical/v7/room-plate-01.b64",
+  "/themes/botanical/v7/room-plate-02.b64",
+  "/themes/botanical/v7/room-plate-03-04.b64",
+  "/themes/botanical/v7/room-plate-05-06.b64",
+  "/themes/botanical/v7/room-plate-07-08.b64",
+  "/themes/botanical/v7/room-plate-09-10.b64",
+] as const;
 
 function isBotanical() {
   return document.documentElement.dataset.shelfTheme === "botanical";
 }
 
-export default function BotanicalAssetEnricher() {
-  const [room, setRoom] = useState<Element | null>(null);
-  const [active, setActive] = useState(false);
+async function loadRoomPlate(signal: AbortSignal) {
+  const parts = await Promise.all(
+    ROOM_PLATE_PARTS.map(async (path) => {
+      const response = await fetch(path, { cache: "force-cache", signal });
+      if (!response.ok) throw new Error(`Unable to load ${path}`);
+      return (await response.text()).trim();
+    }),
+  );
 
+  return parts.join("");
+}
+
+/**
+ * Botanical V7 uses one coherent room plate instead of independently layered
+ * window, sofa, vine, frame and lamp props. The real UI and bookshelf remain
+ * live DOM above the scene; this component only supplies the photographic room.
+ */
+export default function BotanicalAssetEnricher() {
   useEffect(() => {
-    let frame = 0;
+    const root = document.documentElement;
+    let controller: AbortController | null = null;
+
     const sync = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        setActive(isBotanical());
-        setRoom(document.querySelector(".cinematic-room"));
-      });
+      if (!isBotanical()) return;
+      if (root.dataset.botanicalV7Ready === "true" || root.dataset.botanicalV7Ready === "loading") return;
+
+      controller?.abort();
+      controller = new AbortController();
+      root.dataset.botanicalV7Ready = "loading";
+
+      loadRoomPlate(controller.signal)
+        .then((payload) => {
+          if (controller?.signal.aborted) return;
+          root.style.setProperty(
+            "--botanical-v7-room",
+            `url("data:image/webp;base64,${payload}")`,
+          );
+          root.dataset.botanicalV7Ready = "true";
+        })
+        .catch((error) => {
+          if (controller?.signal.aborted) return;
+          delete root.dataset.botanicalV7Ready;
+          console.warn("Botanical V7 room plate failed to load", error);
+        });
     };
 
     sync();
     const observer = new MutationObserver(sync);
-    observer.observe(document.documentElement, {
+    observer.observe(root, {
       attributes: true,
       attributeFilter: ["data-shelf-theme"],
     });
-    observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
-      cancelAnimationFrame(frame);
+      controller?.abort();
       observer.disconnect();
     };
   }, []);
 
-  if (!active || !room) return null;
-
-  return createPortal(
-    <div className="botanical-real-room-props" aria-hidden="true">
-      <span className="botanical-scene-window" style={{ aspectRatio: "4 / 5" }}>
-        <Image
-          src="/themes/botanical/v6/windowpng.png"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 760px) 250px, (max-width: 1240px) 355px, 470px"
-          style={{ objectFit: "contain", objectPosition: "left top" }}
-        />
-      </span>
-
-      <span className="botanical-real-sconce-glow" />
-      <img
-        className="botanical-real-room-sconce"
-        src={ROOM_PROPS.sconce}
-        alt=""
-        decoding="async"
-      />
-
-      <span className="botanical-scene-sofa" style={{ aspectRatio: "3 / 2" }}>
-        <Image
-          src="/themes/botanical/v6/sofapng.png"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 1240px) 430px, 540px"
-          style={{ objectFit: "contain", objectPosition: "right bottom" }}
-        />
-      </span>
-    </div>,
-    room,
-  );
+  return null;
 }
