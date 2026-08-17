@@ -49,18 +49,8 @@ export default function BotanicalAssetEnricher() {
   return createPortal(
     <div className="botanical-real-room-props" aria-hidden="true">
       <img className="botanical-window-scene" src={ROOM_PROPS.windowScene} alt="" decoding="async" />
-      <span className="botanical-architecture-window-glow" />
-      <span className="botanical-architecture-vine botanical-architecture-vine-left" />
-      <span className="botanical-architecture-vine botanical-architecture-vine-right" />
-      <div className="botanical-real-window">
-        <span className="botanical-real-window-glass" />
-        <span className="botanical-real-window-lace" />
-        <span className="botanical-real-window-mullion botanical-real-window-mullion-v" />
-        <span className="botanical-real-window-mullion botanical-real-window-mullion-h" />
-      </div>
       <img className="botanical-real-room-plant" src={ROOM_PROPS.plant} alt="" decoding="async" />
       <img className="botanical-real-room-frame" src={ROOM_PROPS.frame} alt="" decoding="async" />
-      <span className="botanical-real-sconce-glow" />
       <img className="botanical-real-room-sconce" src={ROOM_PROPS.sconce} alt="" decoding="async" />
       <img className="botanical-reading-chair" src={ROOM_PROPS.chair} alt="" decoding="async" />
       <img className="botanical-right-side-wall" src={ROOM_PROPS.sideWall} alt="" decoding="async" />
