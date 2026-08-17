@@ -44,13 +44,14 @@ export default function BotanicalAssetEnricher() {
 
   return createPortal(
     <div className="botanical-real-room-props" aria-hidden="true">
-      <span className="botanical-scene-window">
+      <span className="botanical-scene-window" style={{ aspectRatio: "4 / 5" }}>
         <Image
           src="/themes/botanical/v6/windowpng.png"
           alt=""
           fill
           priority
           sizes="(max-width: 760px) 250px, (max-width: 1240px) 355px, 470px"
+          style={{ objectFit: "contain", objectPosition: "left top" }}
         />
       </span>
 
@@ -62,13 +63,14 @@ export default function BotanicalAssetEnricher() {
         decoding="async"
       />
 
-      <span className="botanical-scene-sofa">
+      <span className="botanical-scene-sofa" style={{ aspectRatio: "3 / 2" }}>
         <Image
           src="/themes/botanical/v6/sofapng.png"
           alt=""
           fill
           priority
           sizes="(max-width: 1240px) 430px, 540px"
+          style={{ objectFit: "contain", objectPosition: "right bottom" }}
         />
       </span>
     </div>,
