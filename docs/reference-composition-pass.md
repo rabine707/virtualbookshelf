@@ -1,0 +1,1 @@
+Reference composition pass prepared from the approved Shelf of Fame cozy reading nook target. This branch keeps the Botanical theme as a single continuous room: compact upper-wall UI, left-edge window, lower-left sofa foreground, and shelves beginning immediately below the controls.

@@ -1,0 +1,1 @@
+The reference screenshot is used as a compositional target rather than copied literally. Existing Shelf of Fame functionality and generated spine artwork remain authoritative.

@@ -1,0 +1,1 @@
+Acceptance focus: one continuous room; first shelf begins immediately under the compact controls; approved V6 window frames the left edge; approved V6 sofa frames the lower-left foreground; controls remain in two rows; books remain the dominant interaction surface; mobile removes scenery before sacrificing usability.
