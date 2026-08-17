@@ -1,7 +1,6 @@
-/* Shelf of Fame — generated-window DOM lock + reading-nook chair pass.
-   The generated window remains fixed architecture. The chair is intentionally
-   oversized and cropped into the lower-left foreground so the room feels like
-   a camera composition rather than furniture placed beside the shelf. */
+/* Shelf of Fame — high-resolution botanical room assets.
+   The v6 window is fixed room architecture and the v6 chair is oversized,
+   cropped foreground furniture. Shelf rows continue scrolling underneath. */
 
 @media (min-width: 1200px) {
   html[data-shelf-theme="botanical"] main.shelf-page::before {
@@ -22,23 +21,28 @@
     pointer-events: none !important;
   }
 
+  /* High-res v6 window: crop the transparent source from the left so the
+     architectural edge occupies the same narrow strip as the reference room. */
   html[data-shelf-theme="botanical"] .botanical-window-scene {
     display: block !important;
     position: fixed !important;
     z-index: 2 !important;
-    left: 0 !important;
+    left: -8px !important;
     top: 0 !important;
-    width: var(--sof-window-strip) !important;
+    width: clamp(286px, 20vw, 342px) !important;
     height: 100vh !important;
+    max-width: none !important;
     object-fit: cover !important;
-    object-position: center center !important;
+    object-position: left top !important;
     opacity: 1 !important;
-    filter: saturate(.94) contrast(1.04) brightness(.93) !important;
-    border-right: 8px solid #2b1a10 !important;
-    box-shadow: 20px 0 44px rgba(0,0,0,.46) !important;
+    filter: saturate(.92) contrast(1.03) brightness(.95) !important;
+    border: 0 !important;
+    box-shadow: 18px 0 38px rgba(0,0,0,.24) !important;
+    pointer-events: none !important;
   }
 
-  /* The generated scene already contains its own window, foliage and room trim. */
+  /* The v6 window artwork already contains its own vines, curtains, trim,
+     framed wall details, lamp and plants, so hide the older duplicate props. */
   html[data-shelf-theme="botanical"] .botanical-architecture-window-glow,
   html[data-shelf-theme="botanical"] .botanical-architecture-vine-left,
   html[data-shelf-theme="botanical"] .botanical-architecture-vine-right,
@@ -50,58 +54,58 @@
     display: none !important;
   }
 
-  /* Reference composition: a large foreground reading chair, turned slightly
-     toward the shelf and deliberately cut off by the left/bottom viewport edges. */
+  /* High-res v6 chair: large, low and intentionally clipped by the viewport.
+     This matches the reading-nook reference instead of showing a full chair. */
   html[data-shelf-theme="botanical"] .botanical-reading-chair {
     display: block !important;
     position: fixed !important;
     z-index: 18 !important;
-    left: clamp(-190px, -10.5vw, -132px) !important;
+    left: clamp(-300px, -17vw, -220px) !important;
     right: auto !important;
     top: auto !important;
-    bottom: clamp(-205px, -12vh, -132px) !important;
-    width: clamp(470px, 31vw, 590px) !important;
+    bottom: clamp(-112px, -7vh, -78px) !important;
+    width: clamp(620px, 40vw, 760px) !important;
     max-width: none !important;
     height: auto !important;
     object-fit: contain !important;
     object-position: center bottom !important;
-    transform: rotate(-2.25deg) scale(1.02) !important;
+    transform: rotate(-1.4deg) !important;
     transform-origin: 58% 92% !important;
     opacity: .99 !important;
     filter:
-      saturate(.68)
-      brightness(.57)
-      contrast(1.13)
-      drop-shadow(24px 30px 28px rgba(0,0,0,.72)) !important;
+      saturate(.82)
+      brightness(.72)
+      contrast(1.08)
+      drop-shadow(25px 31px 28px rgba(0,0,0,.68)) !important;
     pointer-events: none !important;
   }
 
-  /* A soft grounding shadow helps the oversized chair sit inside the room
-     instead of reading as a floating transparent cutout. */
   html[data-shelf-theme="botanical"] .botanical-real-room-props::after {
     content: "" !important;
     display: block !important;
     position: fixed !important;
     z-index: 17 !important;
-    left: -42px !important;
-    bottom: -68px !important;
-    width: clamp(300px, 25vw, 455px) !important;
+    left: -54px !important;
+    bottom: -78px !important;
+    width: clamp(350px, 29vw, 500px) !important;
     height: 185px !important;
     border-radius: 50% !important;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,.58) 0%, rgba(0,0,0,.24) 46%, transparent 72%) !important;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,.54) 0%, rgba(0,0,0,.22) 48%, transparent 73%) !important;
     filter: blur(18px) !important;
-    opacity: .86 !important;
+    opacity: .84 !important;
     pointer-events: none !important;
   }
 }
 
-/* On narrower desktop screens keep the cinematic crop without letting the chair
-   swallow the first shelf bay. */
 @media (min-width: 1200px) and (max-width: 1439px) {
+  html[data-shelf-theme="botanical"] .botanical-window-scene {
+    width: 286px !important;
+  }
+
   html[data-shelf-theme="botanical"] .botanical-reading-chair {
-    left: -148px !important;
-    bottom: -150px !important;
-    width: 455px !important;
+    left: -238px !important;
+    bottom: -82px !important;
+    width: 585px !important;
   }
 }
 
