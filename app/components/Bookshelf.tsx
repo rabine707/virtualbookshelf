@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Book } from "../../lib/books/client-library";
 import { BookSpine } from "./BookSpine";
 
@@ -39,6 +40,8 @@ const DECOR_ASSETS: Partial<Record<DecorKind, string>> = {
   "book-stack": "/themes/dark-academia/stacked-books.webp",
   "candle-ivy": "/themes/dark-academia/cinematic-candle-ivy.webp",
 };
+
+const CABINET_BACK_B64 = "/themes/botanical/v6/cabinet-back.b64";
 
 function getDeterministicDecor(rowNumber: number) {
   return DECOR_VARIATIONS[(rowNumber - 1) % DECOR_VARIATIONS.length];
@@ -86,60 +89,86 @@ function ShelfDecor({ kind, side, eager }: { kind: DecorKind; side: "left" | "ri
 }
 
 export function Bookshelf({ shelves, onSelect }: BookshelfProps) {
-  return (
-    <section className="bookcase modular-bookcase" aria-label="Shelf of Fame bookshelf">
-      {shelves.length ? shelves.map((shelf, shelfIndex) => {
-        const rowNumber = shelfIndex + 1;
-        const decor = getDeterministicDecor(rowNumber);
-        const layout = getBookLayout(rowNumber, shelf.length);
-        const decorClass = decor.left && decor.right
-          ? "botanical-decor-both"
-          : decor.left
-            ? "botanical-decor-left"
-            : decor.right
-              ? "botanical-decor-right"
-              : "";
+  const [cabinetBack, setCabinetBack] = useState("");
 
-        const renderBook = (book: Book, index: number) => (
-          <BookSpine
-            key={book.id}
-            book={book}
-            bookNumber={shelfIndex * 14 + index}
-            onSelect={onSelect}
-          />
-        );
+  useEffect(() => {
+    let cancelled = false;
 
-        const splitAt = Math.ceil(shelf.length / 2);
-        const firstCluster = layout === "split" ? shelf.slice(0, splitAt) : shelf;
-        const secondCluster = layout === "split" ? shelf.slice(splitAt) : [];
+    fetch(CABINET_BACK_B64)
+      .then((response) => response.ok ? response.text() : Promise.reject(new Error("cabinet asset unavailable")))
+      .then((base64) => {
+        if (!cancelled) setCabinetBack(`data:image/webp;base64,${base64.trim()}`);
+      })
+      .catch(() => {
+        if (!cancelled) setCabinetBack("");
+      });
 
-        return (
-          <div
-            className={`shelf-row modular-shelf-row ${decorClass}`.trim()}
-            key={shelfIndex}
-            data-shelf-row={rowNumber}
-            data-book-layout={layout}
-          >
-            <div className="books book-placement-layer shelf-occupant-flow">
-              {decor.left && <ShelfDecor kind={decor.left} side="left" eager={shelfIndex < 2} />}
-              <div className={`book-flow book-layout-${layout}`}>
-                <div className="book-cluster book-cluster-a">
-                  {firstCluster.map((book, index) => renderBook(book, index))}
-                </div>
-                {secondCluster.length ? (
-                  <div className="book-cluster book-cluster-b">
-                    {secondCluster.map((book, index) => renderBook(book, splitAt + index))}
-                  </div>
-                ) : null}
-              </div>
-              {decor.right && <ShelfDecor kind={decor.right} side="right" eager={shelfIndex < 2} />}
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const rows = shelves.length ? shelves.map((shelf, shelfIndex) => {
+    const rowNumber = shelfIndex + 1;
+    const decor = getDeterministicDecor(rowNumber);
+    const layout = getBookLayout(rowNumber, shelf.length);
+    const decorClass = decor.left && decor.right
+      ? "botanical-decor-both"
+      : decor.left
+        ? "botanical-decor-left"
+        : decor.right
+          ? "botanical-decor-right"
+          : "";
+
+    const renderBook = (book: Book, index: number) => (
+      <BookSpine
+        key={book.id}
+        book={book}
+        bookNumber={shelfIndex * 14 + index}
+        onSelect={onSelect}
+      />
+    );
+
+    const splitAt = Math.ceil(shelf.length / 2);
+    const firstCluster = layout === "split" ? shelf.slice(0, splitAt) : shelf;
+    const secondCluster = layout === "split" ? shelf.slice(splitAt) : [];
+
+    return (
+      <div
+        className={`shelf-row modular-shelf-row ${decorClass}`.trim()}
+        key={shelfIndex}
+        data-shelf-row={rowNumber}
+        data-book-layout={layout}
+      >
+        <div className="books book-placement-layer shelf-occupant-flow">
+          {decor.left && <ShelfDecor kind={decor.left} side="left" eager={shelfIndex < 2} />}
+          <div className={`book-flow book-layout-${layout}`}>
+            <div className="book-cluster book-cluster-a">
+              {firstCluster.map((book, index) => renderBook(book, index))}
             </div>
-            <div className="wood-shelf" aria-hidden="true" />
+            {secondCluster.length ? (
+              <div className="book-cluster book-cluster-b">
+                {secondCluster.map((book, index) => renderBook(book, splitAt + index))}
+              </div>
+            ) : null}
           </div>
-        );
-      }) : (
-        <div className="empty">No books match that search.</div>
-      )}
+          {decor.right && <ShelfDecor kind={decor.right} side="right" eager={shelfIndex < 2} />}
+        </div>
+        <div className="wood-shelf" aria-hidden="true" />
+      </div>
+    );
+  }) : (
+    <div className="empty">No books match that search.</div>
+  );
+
+  return (
+    <section className="bookcase modular-bookcase botanical-cabinet-shell" aria-label="Shelf of Fame bookshelf">
+      {cabinetBack ? (
+        <img className="botanical-cabinet-back" src={cabinetBack} alt="" aria-hidden="true" decoding="async" />
+      ) : null}
+      <div className="botanical-cabinet-book-scroll">
+        {rows}
+      </div>
     </section>
   );
 }
