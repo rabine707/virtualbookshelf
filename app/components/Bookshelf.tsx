@@ -66,11 +66,18 @@ function ShelfDecor({ kind, side, eager }: { kind: DecorKind; side: "left" | "ri
 }
 
 export function Bookshelf({ shelves, onSelect }: BookshelfProps) {
+  const displayedShelves = shelves.length
+    ? shelves.length >= 3
+      ? shelves
+      : [...shelves, ...Array.from({ length: 3 - shelves.length }, () => [] as Book[])]
+    : [];
+
   return (
     <section className="bookcase modular-bookcase" aria-label="Shelf of Fame bookshelf">
-      {shelves.length ? shelves.map((shelf, shelfIndex) => {
+      {displayedShelves.length ? displayedShelves.map((shelf, shelfIndex) => {
         const rowNumber = shelfIndex + 1;
-        const decor = getDeterministicDecor(rowNumber);
+        const isPlaceholderRow = shelf.length === 0 && shelfIndex >= shelves.length;
+        const decor = isPlaceholderRow ? {} : getDeterministicDecor(rowNumber);
         const layout = getBookLayout(rowNumber, shelf.length);
         const decorClass = decor.left && decor.right
           ? "botanical-decor-both"
@@ -95,7 +102,7 @@ export function Bookshelf({ shelves, onSelect }: BookshelfProps) {
 
         return (
           <div
-            className={`shelf-row modular-shelf-row ${decorClass}`.trim()}
+            className={`shelf-row modular-shelf-row ${decorClass} ${isPlaceholderRow ? "shelf-row-placeholder" : ""}`.trim()}
             key={shelfIndex}
             data-shelf-row={rowNumber}
             data-book-layout={layout}
