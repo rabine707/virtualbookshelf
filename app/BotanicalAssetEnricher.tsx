@@ -7,8 +7,8 @@ const ROOM_PROPS = {
   plant: "https://cdn.polyhaven.com/asset_img/thumbs/potted_plant_02.png?format=png",
   frame: "https://cdn.polyhaven.com/asset_img/thumbs/fancy_picture_frame_02.png?format=png",
   sconce: "https://cdn.polyhaven.com/asset_img/thumbs/industrial_wall_sconce.png?format=png",
-  chair: "/themes/botanical/v5/reading-chair.webp",
-  windowScene: "/themes/botanical/v5/window-scene.webp",
+  chair: "/themes/botanical/v6/sofapng.png",
+  windowScene: "/themes/botanical/v6/windowpng.png",
 } as const;
 
 function isBotanical() {
