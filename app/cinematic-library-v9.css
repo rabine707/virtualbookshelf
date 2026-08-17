@@ -1,8 +1,13 @@
-/* Shelf of Fame — high-resolution botanical room assets.
-   The v6 window is fixed room architecture and the v6 chair is oversized,
-   cropped foreground furniture. Shelf rows continue scrolling underneath. */
+/* Shelf of Fame — fixed foreground room / responsive back-wall shelf.
+   Window, chair and right-side architecture scale from viewport HEIGHT so
+   changing browser width reveals more/fewer books instead of zooming the room. */
 
 @media (min-width: 1200px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-strip: clamp(286px, 30vh, 330px) !important;
+    --sof-right-strip: clamp(150px, 18vh, 190px) !important;
+  }
+
   html[data-shelf-theme="botanical"] main.shelf-page::before {
     content: none !important;
     display: none !important;
@@ -21,15 +26,14 @@
     pointer-events: none !important;
   }
 
-  /* High-res v6 window: crop the transparent source from the left so the
-     architectural edge occupies the same narrow strip as the reference room. */
+  /* LEFT FOREGROUND — size comes from screen height, not browser width. */
   html[data-shelf-theme="botanical"] .botanical-window-scene {
     display: block !important;
     position: fixed !important;
     z-index: 2 !important;
     left: -8px !important;
     top: 0 !important;
-    width: clamp(286px, 20vw, 342px) !important;
+    width: var(--sof-window-strip) !important;
     height: 100vh !important;
     max-width: none !important;
     object-fit: cover !important;
@@ -37,12 +41,11 @@
     opacity: 1 !important;
     filter: saturate(.92) contrast(1.03) brightness(.95) !important;
     border: 0 !important;
-    box-shadow: 18px 0 38px rgba(0,0,0,.24) !important;
+    box-shadow: 22px 0 46px rgba(0,0,0,.34) !important;
     pointer-events: none !important;
   }
 
-  /* The v6 window artwork already contains its own vines, curtains, trim,
-     framed wall details, lamp and plants, so hide the older duplicate props. */
+  /* The v6 window artwork contains its own vines, curtains, trim and plants. */
   html[data-shelf-theme="botanical"] .botanical-architecture-window-glow,
   html[data-shelf-theme="botanical"] .botanical-architecture-vine-left,
   html[data-shelf-theme="botanical"] .botanical-architecture-vine-right,
@@ -54,17 +57,15 @@
     display: none !important;
   }
 
-  /* High-res v6 chair: large, low and intentionally clipped by the viewport.
-     This matches the reading-nook reference instead of showing a full chair. */
   html[data-shelf-theme="botanical"] .botanical-reading-chair {
     display: block !important;
     position: fixed !important;
     z-index: 18 !important;
-    left: clamp(-300px, -17vw, -220px) !important;
+    left: clamp(-300px, -26vh, -220px) !important;
     right: auto !important;
     top: auto !important;
-    bottom: clamp(-112px, -7vh, -78px) !important;
-    width: clamp(620px, 40vw, 760px) !important;
+    bottom: clamp(-112px, -8vh, -78px) !important;
+    width: clamp(620px, 68vh, 760px) !important;
     max-width: none !important;
     height: auto !important;
     object-fit: contain !important;
@@ -87,7 +88,7 @@
     z-index: 17 !important;
     left: -54px !important;
     bottom: -78px !important;
-    width: clamp(350px, 29vw, 500px) !important;
+    width: clamp(350px, 45vh, 500px) !important;
     height: 185px !important;
     border-radius: 50% !important;
     background: radial-gradient(ellipse at center, rgba(0,0,0,.54) 0%, rgba(0,0,0,.22) 48%, transparent 73%) !important;
@@ -95,23 +96,49 @@
     opacity: .84 !important;
     pointer-events: none !important;
   }
-}
 
-@media (min-width: 1200px) and (max-width: 1439px) {
-  html[data-shelf-theme="botanical"] .botanical-window-scene {
-    width: 286px !important;
+  /* RIGHT FOREGROUND — a dark perpendicular book wall. It overlaps the back
+     wall slightly, which makes the interactive shelf read as farther away. */
+  html[data-shelf-theme="botanical"] .botanical-right-side-wall {
+    display: block !important;
+    position: fixed !important;
+    z-index: 16 !important;
+    right: 0 !important;
+    top: 0 !important;
+    width: var(--sof-right-strip) !important;
+    height: 100vh !important;
+    max-width: none !important;
+    object-fit: cover !important;
+    object-position: center right !important;
+    opacity: .96 !important;
+    filter: saturate(.62) brightness(.48) contrast(1.16) blur(.25px) !important;
+    box-shadow:
+      -34px 0 54px rgba(0,0,0,.72),
+      inset 18px 0 28px rgba(0,0,0,.42) !important;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 185px, rgba(0,0,0,.35) 225px, #000 285px, #000 100%) !important;
+    mask-image: linear-gradient(to bottom, transparent 0, transparent 185px, rgba(0,0,0,.35) 225px, #000 285px, #000 100%) !important;
+    pointer-events: none !important;
   }
 
-  html[data-shelf-theme="botanical"] .botanical-reading-chair {
-    left: -238px !important;
-    bottom: -82px !important;
-    width: 585px !important;
+  /* BACK WALL — reserve fixed left/right architecture. The center shelf alone
+     gains or loses width, so its normal wrapping can show more/fewer books. */
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-strip) - var(--sof-right-strip) - 16px) !important;
+    margin: 0 calc(var(--sof-right-strip) + 8px) 0 var(--sof-window-strip) !important;
+    border-left-width: 12px !important;
+    border-right-width: 14px !important;
+    box-shadow:
+      -24px 0 46px rgba(0,0,0,.46),
+      28px 0 58px rgba(0,0,0,.58),
+      0 34px 86px rgba(0,0,0,.58) !important;
   }
 }
 
 @media (max-width: 1199px) {
   html[data-shelf-theme="botanical"] .botanical-window-scene,
-  html[data-shelf-theme="botanical"] .botanical-reading-chair {
+  html[data-shelf-theme="botanical"] .botanical-reading-chair,
+  html[data-shelf-theme="botanical"] .botanical-right-side-wall {
     display: none !important;
   }
 
