@@ -1,0 +1,65 @@
+/* Shelf of Fame — generated-window DOM lock.
+   v8 proved the asset path was correct, but the pseudo-element was not reliably
+   visible in Chromium. v9 renders the generated window as a real fixed IMG. */
+
+@media (min-width: 1200px) {
+  html[data-shelf-theme="botanical"] main.shelf-page::before {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-room-props {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 8 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-window-scene {
+    display: block !important;
+    position: fixed !important;
+    z-index: 2 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: var(--sof-window-strip) !important;
+    height: 100vh !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+    opacity: 1 !important;
+    filter: saturate(.94) contrast(1.04) brightness(.93) !important;
+    border-right: 8px solid #2b1a10 !important;
+    box-shadow: 20px 0 44px rgba(0,0,0,.46) !important;
+  }
+
+  /* The generated scene already contains its own window, foliage and room trim. */
+  html[data-shelf-theme="botanical"] .botanical-architecture-window-glow,
+  html[data-shelf-theme="botanical"] .botanical-architecture-vine-left,
+  html[data-shelf-theme="botanical"] .botanical-architecture-vine-right,
+  html[data-shelf-theme="botanical"] .botanical-real-window,
+  html[data-shelf-theme="botanical"] .botanical-real-room-plant,
+  html[data-shelf-theme="botanical"] .botanical-real-room-frame,
+  html[data-shelf-theme="botanical"] .botanical-real-room-sconce,
+  html[data-shelf-theme="botanical"] .botanical-real-sconce-glow {
+    display: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-reading-chair {
+    z-index: 4 !important;
+    left: clamp(-22px, -1vw, -6px) !important;
+    bottom: clamp(-42px, -3vh, -18px) !important;
+    width: clamp(286px, 19vw, 330px) !important;
+  }
+}
+
+@media (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] .botanical-window-scene,
+  html[data-shelf-theme="botanical"] .botanical-reading-chair {
+    display: none !important;
+  }
+}
