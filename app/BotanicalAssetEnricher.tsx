@@ -9,7 +9,6 @@ const ROOM_PROPS = {
   sconce: "https://cdn.polyhaven.com/asset_img/thumbs/industrial_wall_sconce.png?format=png",
   chair: "/themes/botanical/v6/sofapng.png",
   windowScene: "/themes/botanical/v6/windowpng.png",
-  floor: "/themes/botanical/v6/floor-perspective.webp",
   sideWall: "/themes/botanical/v6/side-wall.webp",
 } as const;
 
@@ -48,17 +47,14 @@ export default function BotanicalAssetEnricher() {
   if (!active || !scene) return null;
 
   return createPortal(
-    <>
-      <img className="botanical-floor-extension" src={ROOM_PROPS.floor} alt="" decoding="async" />
-      <div className="botanical-real-room-props" aria-hidden="true">
-        <img className="botanical-window-scene" src={ROOM_PROPS.windowScene} alt="" decoding="async" />
-        <img className="botanical-real-room-plant" src={ROOM_PROPS.plant} alt="" decoding="async" />
-        <img className="botanical-real-room-frame" src={ROOM_PROPS.frame} alt="" decoding="async" />
-        <img className="botanical-real-room-sconce" src={ROOM_PROPS.sconce} alt="" decoding="async" />
-        <img className="botanical-reading-chair" src={ROOM_PROPS.chair} alt="" decoding="async" />
-        <img className="botanical-right-side-wall" src={ROOM_PROPS.sideWall} alt="" decoding="async" />
-      </div>
-    </>,
+    <div className="botanical-real-room-props" aria-hidden="true">
+      <img className="botanical-window-scene" src={ROOM_PROPS.windowScene} alt="" decoding="async" />
+      <img className="botanical-real-room-plant" src={ROOM_PROPS.plant} alt="" decoding="async" />
+      <img className="botanical-real-room-frame" src={ROOM_PROPS.frame} alt="" decoding="async" />
+      <img className="botanical-real-room-sconce" src={ROOM_PROPS.sconce} alt="" decoding="async" />
+      <img className="botanical-reading-chair" src={ROOM_PROPS.chair} alt="" decoding="async" />
+      <img className="botanical-right-side-wall" src={ROOM_PROPS.sideWall} alt="" decoding="async" />
+    </div>,
     scene,
   );
 }
