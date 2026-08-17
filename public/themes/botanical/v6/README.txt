@@ -1,0 +1,1 @@
+Botanical v6 high-resolution room assets.
