@@ -1,0 +1,91 @@
+/* Shelf of Fame — real-asset floor bridge.
+   No CSS scenery shapes. This pass uses the existing v6 floor artwork as an
+   actual image layer behind the chair/window and beneath the interactive cabinet. */
+
+html[data-shelf-theme="botanical"] .botanical-floor-extension {
+  display: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (min-width: 1200px) {
+  html[data-shelf-theme="botanical"] .botanical-floor-extension {
+    display: block !important;
+    position: fixed !important;
+    z-index: 4 !important;
+    left: clamp(128px, 14vh, 170px) !important;
+    bottom: 0 !important;
+    width: clamp(620px, 70vh, 780px) !important;
+    height: clamp(110px, 13vh, 145px) !important;
+    max-width: none !important;
+    object-fit: fill !important;
+    object-position: center bottom !important;
+    opacity: .90 !important;
+    filter: saturate(.78) brightness(.62) contrast(1.08) !important;
+    transform: none !important;
+    clip-path: none !important;
+    -webkit-clip-path: none !important;
+    mask: none !important;
+    -webkit-mask: none !important;
+  }
+
+  /* Keep the far-wall shelf behind the real room artwork, but leave enough of
+     the floor exposed beside the chair for the eye to read the walk-back depth. */
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-room-edge: clamp(304px, 33vh, 350px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    width: calc(100% - var(--sof-window-room-edge)) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-room-edge) - 8px) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] .botanical-floor-extension {
+    display: block !important;
+    position: fixed !important;
+    z-index: 4 !important;
+    left: clamp(102px, 12vh, 132px) !important;
+    bottom: 0 !important;
+    width: clamp(470px, 56vh, 560px) !important;
+    height: clamp(86px, 10.5vh, 112px) !important;
+    max-width: none !important;
+    object-fit: fill !important;
+    object-position: center bottom !important;
+    opacity: .88 !important;
+    filter: saturate(.76) brightness(.60) contrast(1.07) !important;
+    transform: none !important;
+    clip-path: none !important;
+    -webkit-clip-path: none !important;
+    mask: none !important;
+    -webkit-mask: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-room-edge: clamp(226px, 25.5vh, 260px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    width: calc(100% - var(--sof-window-room-edge)) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-room-edge) - 6px) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+  }
+}
+
+@media (max-width: 899px) {
+  html[data-shelf-theme="botanical"] .botanical-floor-extension {
+    display: none !important;
+  }
+}
