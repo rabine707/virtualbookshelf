@@ -44,6 +44,7 @@ import "./cinematic-library-v4.css";
 import "./cinematic-library-v5.css";
 import "./cinematic-library-v6.css";
 import "./cinematic-library-v7.css";
+import "./cinematic-library-v8.css";
 import BotanicalAssetEnricher from "./BotanicalAssetEnricher";
 import BotanicalPropStyles from "./BotanicalPropStyles";
 import BotanicalLampFixStyles from "./BotanicalLampFixStyles";
