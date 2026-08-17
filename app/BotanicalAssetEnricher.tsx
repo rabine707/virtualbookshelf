@@ -9,6 +9,7 @@ const ROOM_PROPS = {
   sconce: "https://cdn.polyhaven.com/asset_img/thumbs/industrial_wall_sconce.png?format=png",
   chair: "/themes/botanical/v6/sofapng.png",
   windowScene: "/themes/botanical/v6/windowpng.png",
+  sideWall: "/themes/botanical/v6/side-wall.webp",
 } as const;
 
 function isBotanical() {
@@ -62,6 +63,7 @@ export default function BotanicalAssetEnricher() {
       <span className="botanical-real-sconce-glow" />
       <img className="botanical-real-room-sconce" src={ROOM_PROPS.sconce} alt="" decoding="async" />
       <img className="botanical-reading-chair" src={ROOM_PROPS.chair} alt="" decoding="async" />
+      <img className="botanical-right-side-wall" src={ROOM_PROPS.sideWall} alt="" decoding="async" />
     </div>,
     scene,
   );
