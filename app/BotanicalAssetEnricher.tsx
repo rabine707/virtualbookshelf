@@ -8,52 +8,46 @@ function isBotanical() {
 }
 
 /**
- * Botanical V7 uses one coherent room plate instead of independently layered
- * window, sofa, vine, frame and lamp props. The room is a real DOM image so it
- * cannot be lost behind competing pseudo-elements or legacy background rules.
+ * Botanical V7 keeps the photographic room outside the app layout as a fixed
+ * viewport layer. The shelf and controls remain normal interactive DOM above it.
  */
 export default function BotanicalAssetEnricher() {
-  const [host, setHost] = useState<Element | null>(null);
+  const [active, setActive] = useState(false);
 
   useEffect(() => {
     let frame = 0;
 
     const sync = () => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        setHost(isBotanical() ? document.querySelector("main.shelf-page") : null);
-      });
+      frame = requestAnimationFrame(() => setActive(isBotanical()));
     };
 
     sync();
 
-    const rootObserver = new MutationObserver(sync);
-    rootObserver.observe(document.documentElement, {
+    const observer = new MutationObserver(sync);
+    observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ["data-shelf-theme"],
     });
 
-    const bodyObserver = new MutationObserver(sync);
-    bodyObserver.observe(document.body, { childList: true, subtree: true });
-
     return () => {
       cancelAnimationFrame(frame);
-      rootObserver.disconnect();
-      bodyObserver.disconnect();
+      observer.disconnect();
     };
   }, []);
 
-  if (!host) return null;
+  if (!active || typeof document === "undefined") return null;
 
   return createPortal(
-    <img
-      className="botanical-v7-room-plate"
-      src="/themes/botanical/v7/room.webp"
-      alt=""
-      aria-hidden="true"
-      decoding="async"
-      fetchPriority="high"
-    />,
-    host,
+    <div className="botanical-v7-room-layer" aria-hidden="true">
+      <img
+        className="botanical-v7-room-plate"
+        src="/themes/botanical/v7/room.webp"
+        alt=""
+        decoding="async"
+        fetchPriority="high"
+      />
+    </div>,
+    document.body,
   );
 }
