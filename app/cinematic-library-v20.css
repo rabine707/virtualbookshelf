@@ -1,0 +1,130 @@
+/* Shelf of Fame — real cabinet shell prototype.
+   No CSS-drawn scenery: cabinet depth comes from real image assets only. */
+
+.botanical-cabinet-back,
+.botanical-cabinet-front {
+  display: none;
+}
+
+.botanical-cabinet-book-scroll {
+  display: contents;
+}
+
+@media (min-width: 900px) {
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    position: relative !important;
+    height: clamp(660px, calc(100vh - 205px), 850px) !important;
+    min-height: 660px !important;
+    max-height: 850px !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    isolation: isolate !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase::before,
+  html[data-shelf-theme="botanical"] .bookcase::after,
+  html[data-shelf-theme="botanical"] .shelf-row::before,
+  html[data-shelf-theme="botanical"] .shelf-row::after,
+  html[data-shelf-theme="botanical"] .modular-shelf-row::before,
+  html[data-shelf-theme="botanical"] .modular-shelf-row::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-cabinet-back,
+  html[data-shelf-theme="botanical"] .botanical-cabinet-front {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+    pointer-events: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-cabinet-back {
+    z-index: 1 !important;
+    filter: saturate(.82) brightness(.72) contrast(1.08) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-cabinet-front {
+    z-index: 4 !important;
+    filter: saturate(.86) brightness(.82) contrast(1.08) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-cabinet-book-scroll {
+    display: block !important;
+    position: absolute !important;
+    z-index: 2 !important;
+    inset: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scroll-snap-type: y mandatory !important;
+    scrollbar-width: none !important;
+    overscroll-behavior: contain !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-cabinet-book-scroll::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-cabinet-book-scroll > .shelf-row,
+  html[data-shelf-theme="botanical"] .botanical-cabinet-book-scroll > .modular-shelf-row {
+    position: relative !important;
+    z-index: 2 !important;
+    box-sizing: border-box !important;
+    height: 25% !important;
+    min-height: 25% !important;
+    max-height: 25% !important;
+    padding: 0 5.4% !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: always !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-cabinet-book-scroll > .shelf-row > .books,
+  html[data-shelf-theme="botanical"] .botanical-cabinet-book-scroll > .modular-shelf-row > .books {
+    position: absolute !important;
+    left: 6.8% !important;
+    right: 6.8% !important;
+    top: 7% !important;
+    bottom: 2.8% !important;
+    height: auto !important;
+    display: flex !important;
+    align-items: flex-end !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-cabinet-book-scroll .wood-shelf {
+    display: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-cabinet-book-scroll .book {
+    height: min(92%, 205px) !important;
+    width: clamp(44px, 4.1vw, 68px) !important;
+    max-height: 205px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-cabinet-book-scroll .shelf-occupant-flow > .botanical-row-decor {
+    height: 92% !important;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    height: clamp(620px, calc(100vh - 180px), 760px) !important;
+    min-height: 620px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-cabinet-book-scroll .book {
+    width: clamp(38px, 4vw, 54px) !important;
+    max-height: 178px !important;
+  }
+}
