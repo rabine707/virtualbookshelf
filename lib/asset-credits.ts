@@ -46,4 +46,13 @@ export const assetCredits: AssetCredit[] = [
     attribution: "Tree PNGs by Vecteezy",
     usage: "Botanical theme exterior window foliage layer",
   },
+  {
+    id: "vecteezy-perspective-wood-floor",
+    name: "Empty Room Space With Wooden Floor Vector",
+    source: "Vecteezy",
+    sourceUrl: "https://www.vecteezy.com/",
+    license: "Vecteezy asset — attribution included for Free License use",
+    attribution: "Wood floor vector by Vecteezy",
+    usage: "Botanical theme perspective floor transition between the reading nook and recessed bookcase",
+  },
 ];
