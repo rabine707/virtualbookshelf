@@ -7,6 +7,9 @@ const ROOM_PROPS = {
   plant: "https://cdn.polyhaven.com/asset_img/thumbs/potted_plant_02.png?format=png",
   frame: "https://cdn.polyhaven.com/asset_img/thumbs/fancy_picture_frame_02.png?format=png",
   sconce: "https://cdn.polyhaven.com/asset_img/thumbs/industrial_wall_sconce.png?format=png",
+  chair: "/themes/botanical/v6/sofapng.png",
+  windowScene: "/themes/botanical/v6/windowpng.png",
+  sideWall: "/themes/botanical/v6/side-wall.webp",
 } as const;
 
 function isBotanical() {
@@ -14,7 +17,7 @@ function isBotanical() {
 }
 
 export default function BotanicalAssetEnricher() {
-  const [room, setRoom] = useState<Element | null>(null);
+  const [scene, setScene] = useState<Element | null>(null);
   const [active, setActive] = useState(false);
 
   useEffect(() => {
@@ -23,7 +26,7 @@ export default function BotanicalAssetEnricher() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         setActive(isBotanical());
-        setRoom(document.querySelector(".cinematic-room"));
+        setScene(document.querySelector("main.shelf-page"));
       });
     };
 
@@ -41,21 +44,17 @@ export default function BotanicalAssetEnricher() {
     };
   }, []);
 
-  if (!active || !room) return null;
+  if (!active || !scene) return null;
 
   return createPortal(
     <div className="botanical-real-room-props" aria-hidden="true">
-      <div className="botanical-real-window">
-        <span className="botanical-real-window-glass" />
-        <span className="botanical-real-window-lace" />
-        <span className="botanical-real-window-mullion botanical-real-window-mullion-v" />
-        <span className="botanical-real-window-mullion botanical-real-window-mullion-h" />
-      </div>
+      <img className="botanical-window-scene" src={ROOM_PROPS.windowScene} alt="" decoding="async" />
       <img className="botanical-real-room-plant" src={ROOM_PROPS.plant} alt="" decoding="async" />
       <img className="botanical-real-room-frame" src={ROOM_PROPS.frame} alt="" decoding="async" />
-      <span className="botanical-real-sconce-glow" />
       <img className="botanical-real-room-sconce" src={ROOM_PROPS.sconce} alt="" decoding="async" />
+      <img className="botanical-reading-chair" src={ROOM_PROPS.chair} alt="" decoding="async" />
+      <img className="botanical-right-side-wall" src={ROOM_PROPS.sideWall} alt="" decoding="async" />
     </div>,
-    room,
+    scene,
   );
 }

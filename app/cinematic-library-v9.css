@@ -1,0 +1,181 @@
+/* Shelf of Fame — fixed foreground room / responsive recessed back-wall shelf.
+   Window, chair and right-side architecture scale from viewport HEIGHT so
+   changing browser width reveals more/fewer books instead of zooming the room. */
+
+@media (min-width: 1200px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-strip: clamp(286px, 30vh, 330px) !important;
+    --sof-right-strip: clamp(132px, 15vh, 162px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] main.shelf-page::before {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-room-props {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 8 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* LEFT FOREGROUND — size comes from screen height, not browser width. */
+  html[data-shelf-theme="botanical"] .botanical-window-scene {
+    display: block !important;
+    position: fixed !important;
+    z-index: 2 !important;
+    left: -8px !important;
+    top: 0 !important;
+    width: var(--sof-window-strip) !important;
+    height: 100vh !important;
+    max-width: none !important;
+    object-fit: cover !important;
+    object-position: left top !important;
+    opacity: 1 !important;
+    filter: saturate(.92) contrast(1.03) brightness(.95) !important;
+    border: 0 !important;
+    box-shadow: 24px 0 52px rgba(0,0,0,.40) !important;
+    pointer-events: none !important;
+  }
+
+  /* The v6 window artwork contains its own vines, curtains, trim and plants. */
+  html[data-shelf-theme="botanical"] .botanical-architecture-window-glow,
+  html[data-shelf-theme="botanical"] .botanical-architecture-vine-left,
+  html[data-shelf-theme="botanical"] .botanical-architecture-vine-right,
+  html[data-shelf-theme="botanical"] .botanical-real-window,
+  html[data-shelf-theme="botanical"] .botanical-real-room-plant,
+  html[data-shelf-theme="botanical"] .botanical-real-room-frame,
+  html[data-shelf-theme="botanical"] .botanical-real-room-sconce,
+  html[data-shelf-theme="botanical"] .botanical-real-sconce-glow {
+    display: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-reading-chair {
+    display: block !important;
+    position: fixed !important;
+    z-index: 18 !important;
+    left: clamp(-300px, -26vh, -220px) !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: clamp(-112px, -8vh, -78px) !important;
+    width: clamp(620px, 68vh, 760px) !important;
+    max-width: none !important;
+    height: auto !important;
+    object-fit: contain !important;
+    object-position: center bottom !important;
+    transform: rotate(-1.4deg) !important;
+    transform-origin: 58% 92% !important;
+    opacity: .99 !important;
+    filter:
+      saturate(.82)
+      brightness(.72)
+      contrast(1.08)
+      drop-shadow(25px 31px 28px rgba(0,0,0,.68)) !important;
+    pointer-events: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-room-props::after {
+    content: "" !important;
+    display: block !important;
+    position: fixed !important;
+    z-index: 17 !important;
+    left: -54px !important;
+    bottom: -78px !important;
+    width: clamp(350px, 45vh, 500px) !important;
+    height: 185px !important;
+    border-radius: 50% !important;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,.54) 0%, rgba(0,0,0,.22) 48%, transparent 73%) !important;
+    filter: blur(18px) !important;
+    opacity: .84 !important;
+    pointer-events: none !important;
+  }
+
+  /* Darken the real shelf underneath the foreground right wall so the overlap
+     reads as room depth instead of two panels meeting at a hard seam. */
+  html[data-shelf-theme="botanical"] .botanical-real-room-props::before {
+    content: "" !important;
+    display: block !important;
+    position: fixed !important;
+    z-index: 15 !important;
+    right: 0 !important;
+    top: 0 !important;
+    width: calc(var(--sof-right-strip) + 92px) !important;
+    height: 100vh !important;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(4,7,5,.06) 22%,
+      rgba(3,6,4,.30) 52%,
+      rgba(2,4,3,.70) 100%) !important;
+    filter: blur(2px) !important;
+    pointer-events: none !important;
+  }
+
+  /* RIGHT FOREGROUND — this is a perpendicular side wall, not layout space.
+     The interactive shelf continues behind it to create a real overlap. */
+  html[data-shelf-theme="botanical"] .botanical-right-side-wall {
+    display: block !important;
+    position: fixed !important;
+    z-index: 16 !important;
+    right: 0 !important;
+    top: 0 !important;
+    width: var(--sof-right-strip) !important;
+    height: 100vh !important;
+    max-width: none !important;
+    object-fit: cover !important;
+    object-position: center right !important;
+    opacity: .94 !important;
+    filter: saturate(.58) brightness(.43) contrast(1.18) blur(.25px) !important;
+    box-shadow: -38px 0 62px rgba(0,0,0,.74) !important;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 180px, rgba(0,0,0,.35) 220px, #000 278px, #000 100%) !important;
+    mask-image: linear-gradient(to bottom, transparent 0, transparent 180px, rgba(0,0,0,.35) 220px, #000 278px, #000 100%) !important;
+    pointer-events: none !important;
+  }
+
+  /* BACK WALL — the main shelf now extends BEHIND the right foreground wall.
+     Only the left architecture reserves real layout width. This keeps more book
+     capacity while making the shelf feel several feet farther away. */
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-strip) - 14px) !important;
+    margin: 0 6px 0 var(--sof-window-strip) !important;
+    border-left-width: 14px !important;
+    border-right-width: 14px !important;
+    box-shadow:
+      inset 30px 0 46px rgba(0,0,0,.44),
+      inset -42px 0 58px rgba(0,0,0,.58),
+      -28px 0 54px rgba(0,0,0,.54),
+      34px 0 70px rgba(0,0,0,.62),
+      0 36px 92px rgba(0,0,0,.62) !important;
+  }
+
+  /* Stronger edge falloff inside each bay makes the bookcase read as a deep
+     built-in on the opposite wall instead of a flat grid pasted to the screen. */
+  html[data-shelf-theme="botanical"] .modular-shelf-row,
+  html[data-shelf-theme="botanical"] .shelf-row {
+    box-shadow:
+      inset 38px 0 50px rgba(0,0,0,.56),
+      inset -48px 0 62px rgba(0,0,0,.67),
+      inset 0 18px 28px rgba(0,0,0,.33),
+      inset 0 -18px 30px rgba(0,0,0,.34) !important;
+  }
+}
+
+@media (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] .botanical-window-scene,
+  html[data-shelf-theme="botanical"] .botanical-reading-chair,
+  html[data-shelf-theme="botanical"] .botanical-right-side-wall {
+    display: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-room-props::before,
+  html[data-shelf-theme="botanical"] .botanical-real-room-props::after {
+    display: none !important;
+  }
+}

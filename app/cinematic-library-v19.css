@@ -1,0 +1,42 @@
+/* Shelf of Fame — real-asset depth cleanup.
+   The full v6 window scene already contains the floor/rug and room perspective.
+   Do not extend it with a separate rectangular floor image. Keep the far-wall
+   header and bookcase aligned to the architectural edge visible in that source art. */
+
+html[data-shelf-theme="botanical"] .botanical-floor-extension {
+  display: none !important;
+}
+
+@media (min-width: 1200px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-room-edge: clamp(304px, 33vh, 350px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    width: calc(100% - var(--sof-window-room-edge)) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-room-edge) - 8px) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-room-edge: clamp(226px, 25.5vh, 260px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    width: calc(100% - var(--sof-window-room-edge)) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-room-edge) - 6px) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+  }
+}

@@ -1,0 +1,307 @@
+/* Shelf of Fame — composition correction after live screenshot review.
+   Make the room read as one architectural scene: visible top-to-bottom window,
+   shorter masthead, stronger built-in cabinet, and a useful signed-out preview. */
+
+@media (min-width: 901px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-strip: clamp(214px, 13.9vw, 268px) !important;
+    --sof-content-left: clamp(286px, 18vw, 350px) !important;
+    background:
+      radial-gradient(ellipse at 12% 6%, rgba(219,232,181,.11), transparent 26%),
+      radial-gradient(ellipse at 86% 11%, rgba(219,147,64,.055), transparent 24%),
+      linear-gradient(90deg,#19251a 0%,#101b12 34%,#081009 74%,#050906 100%) !important;
+  }
+
+  /* The architectural window must be visible from the first pixel of the page.
+     Keep it above the wall layers but below interactive masthead content. */
+  html[data-shelf-theme="botanical"] main.shelf-page::before {
+    z-index: 7 !important;
+    width: var(--sof-window-strip) !important;
+    height: min(1260px, calc(100vh + 430px)) !important;
+    border-right: 14px solid #2b1a11 !important;
+    box-shadow:
+      18px 0 42px rgba(0,0,0,.42),
+      inset -28px 0 44px rgba(33,55,31,.18) !important;
+    background:
+      linear-gradient(90deg,
+        transparent 0 47.5%,
+        #52331f 47.5% calc(47.5% + 9px),
+        transparent calc(47.5% + 9px)),
+      linear-gradient(180deg,
+        transparent 0 24%,
+        #4d301d 24% calc(24% + 8px),
+        transparent calc(24% + 8px) 49%,
+        #4d301d 49% calc(49% + 8px),
+        transparent calc(49% + 8px) 74%,
+        #4d301d 74% calc(74% + 8px),
+        transparent calc(74% + 8px)),
+      radial-gradient(circle at 18% 8%,rgba(255,255,235,.98),transparent 17%),
+      radial-gradient(circle at 72% 19%,rgba(244,248,210,.78),transparent 19%),
+      radial-gradient(circle at 30% 40%,rgba(180,204,135,.42),transparent 18%),
+      radial-gradient(circle at 78% 63%,rgba(92,133,72,.31),transparent 18%),
+      linear-gradient(132deg,#f3f1ca 0%,#dce4b3 28%,#a9bd8c 54%,#5f795a 100%) !important;
+  }
+
+  html[data-shelf-theme="botanical"] main.shelf-page::after {
+    z-index: 3 !important;
+    top: 22px !important;
+    right: 0 !important;
+    width: 470px !important;
+    height: 410px !important;
+    background: radial-gradient(circle,
+      rgba(255,207,118,.19) 0%,
+      rgba(232,151,60,.085) 30%,
+      rgba(185,102,31,.028) 55%,
+      transparent 73%) !important;
+    filter: blur(20px) !important;
+  }
+
+  /* Masthead now belongs to the cabinet instead of floating over a large wall. */
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    z-index: 6 !important;
+    min-height: 214px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .cinematic-room__content {
+    position: relative !important;
+    z-index: 9 !important;
+    padding-top: 12px !important;
+    padding-bottom: 0 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero {
+    min-height: 82px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero .hero-copy {
+    margin-left: var(--sof-content-left) !important;
+    width: min(660px, calc(100% - var(--sof-content-left) - 430px)) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero .eyebrow {
+    margin-bottom: 2px !important;
+    font-size: 9px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero h1 {
+    font-size: clamp(50px, 4vw, 67px) !important;
+    line-height: .90 !important;
+    color: #f0dba7 !important;
+    text-shadow:
+      0 2px 0 rgba(91,54,22,.38),
+      0 3px 14px rgba(230,171,79,.11),
+      0 8px 28px rgba(0,0,0,.72) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero .subhead {
+    margin-top: 2px !important;
+    font-size: 13px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero-actions {
+    top: 18px !important;
+    right: 12.5vw !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-add-books-trigger {
+    min-height: 40px !important;
+    padding: 8px 22px !important;
+    font-size: 15px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .sof-account {
+    top: 14px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-toolbar {
+    margin-top: 2px !important;
+    width: min(1010px, calc(100% - var(--sof-content-left) - 250px)) !important;
+    grid-template-rows: 38px 36px !important;
+    gap: 6px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-toolbar .search-wrap,
+  html[data-shelf-theme="botanical"] .reader-toolbar select,
+  html[data-shelf-theme="botanical"] .reader-toolbar .page-refresh-button,
+  html[data-shelf-theme="botanical"] .reader-toolbar .count-pill {
+    min-height: 38px !important;
+    height: 38px !important;
+    border-radius: 15px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-toolbar > .spine-review-launch,
+  html[data-shelf-theme="botanical"] .reader-toolbar > .theme-picker-trigger,
+  html[data-shelf-theme="botanical"] .reader-toolbar > .spine-label-toggle,
+  html[data-shelf-theme="botanical"] .reader-toolbar > .qol-toolbar .qol-fix-button {
+    min-height: 36px !important;
+    height: 36px !important;
+    border-radius: 14px !important;
+  }
+
+  /* The modest right-side props were hidden behind the old header stacking.
+     Bring them into the room while keeping the UI above them. */
+  html[data-shelf-theme="botanical"] .botanical-real-room-props {
+    z-index: 8 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-room-frame {
+    display: block !important;
+    top: 34px !important;
+    right: 34px !important;
+    width: 126px !important;
+    opacity: .74 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-room-sconce {
+    display: block !important;
+    top: 82px !important;
+    right: 176px !important;
+    width: 62px !important;
+    opacity: .88 !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-sconce-glow {
+    display: block !important;
+    top: 34px !important;
+    right: 122px !important;
+    width: 174px !important;
+    height: 174px !important;
+    opacity: .82 !important;
+  }
+
+  /* Built-in cabinet begins immediately under the controls. */
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    z-index: 5 !important;
+    margin-top: -9px !important;
+    margin-left: var(--sof-window-strip) !important;
+    width: calc(100% - var(--sof-window-strip) - 12px) !important;
+    min-height: 720px !important;
+    border-left: 13px solid #2a180e !important;
+    border-right: 13px solid #170c07 !important;
+    background:
+      repeating-linear-gradient(180deg,
+        #0a1710 0 246px,
+        #2b180e 246px 260px,
+        #0a1710 260px 506px,
+        #2b180e 506px 520px),
+      repeating-linear-gradient(90deg,
+        rgba(255,255,255,.012) 0 1px,
+        transparent 1px 124px,
+        rgba(0,0,0,.10) 124px 126px),
+      linear-gradient(180deg,#112019,#08130d 60%,#050b07 100%) !important;
+    box-shadow:
+      0 40px 92px rgba(0,0,0,.54),
+      -18px 0 36px rgba(0,0,0,.30),
+      inset 0 0 0 1px rgba(255,255,255,.018) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase::before {
+    top: -18px !important;
+    height: 22px !important;
+    left: -19px !important;
+    right: -13px !important;
+    background:
+      linear-gradient(180deg,rgba(255,228,187,.20),transparent 15%,rgba(7,3,2,.50) 82%),
+      url("/themes/botanical/v4/walnut-shelf-front.webp") center / cover repeat-x !important;
+    box-shadow:
+      0 10px 20px rgba(0,0,0,.58),
+      0 5px 18px rgba(231,145,54,.11),
+      inset 0 2px rgba(255,222,177,.20),
+      inset 0 -4px rgba(4,2,1,.50) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row,
+  html[data-shelf-theme="botanical"] .shelf-row {
+    height: 252px !important;
+    min-height: 252px !important;
+    border-left-width: 8px !important;
+    border-right-width: 8px !important;
+    background:
+      linear-gradient(180deg,rgba(255,193,97,.16),rgba(224,139,50,.04) 11%,transparent 29%),
+      repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0 1px,transparent 1px 120px,rgba(0,0,0,.11) 120px 122px),
+      linear-gradient(90deg,rgba(0,0,0,.21),transparent 8%,transparent 91%,rgba(0,0,0,.41)),
+      linear-gradient(180deg,#17281d 0%,#0d1e14 48%,#07110b 100%) !important;
+    box-shadow:
+      inset 22px 0 34px rgba(0,0,0,.44),
+      inset -30px 0 42px rgba(0,0,0,.58),
+      inset 0 16px 25px rgba(0,0,0,.34),
+      inset 0 -17px 30px rgba(0,0,0,.29) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row::before,
+  html[data-shelf-theme="botanical"] .shelf-row::before {
+    left: -8px !important;
+    right: -8px !important;
+    height: 13px !important;
+    box-shadow:
+      0 4px 7px rgba(0,0,0,.45),
+      0 10px 25px rgba(240,158,65,.17),
+      inset 0 1px rgba(255,224,181,.18),
+      inset 0 -2px rgba(0,0,0,.38) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row::after,
+  html[data-shelf-theme="botanical"] .shelf-row::after {
+    inset: 13px 0 21px !important;
+    background:
+      linear-gradient(180deg,rgba(255,204,115,.24),rgba(249,169,71,.11) 7px,rgba(205,117,37,.03) 30px,transparent 63px),
+      radial-gradient(ellipse at 18% 7%,rgba(255,239,190,.075),transparent 31%),
+      linear-gradient(90deg,rgba(0,0,0,.17),transparent 9%,transparent 90%,rgba(0,0,0,.31)) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .books,
+  html[data-shelf-theme="botanical"] .shelf-row > .books {
+    left: 2.8% !important;
+    right: 2.8% !important;
+    bottom: 21px !important;
+    height: 225px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .modular-shelf-row > .wood-shelf,
+  html[data-shelf-theme="botanical"] .shelf-row > .wood-shelf {
+    height: 21px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .book {
+    height: clamp(202px,calc(var(--book-height) * 1.08),228px) !important;
+    width: clamp(52px,calc(var(--book-width) * .79),74px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .shelf-occupant-flow > .botanical-row-decor {
+    height: 216px !important;
+  }
+
+  /* In the signed-out preview the footer used to appear immediately after one row,
+     making the cabinet look broken. Push it beneath the architectural cabinet. */
+  html[data-shelf-theme="botanical"] .shelf-footer {
+    position: relative !important;
+    z-index: 5 !important;
+    margin-top: 0 !important;
+    min-height: 70px !important;
+    padding-top: 18px !important;
+    background: linear-gradient(180deg,#07100a,#040a06) !important;
+  }
+}
+
+@media (min-width: 1500px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-strip: clamp(226px, 13.7vw, 274px) !important;
+    --sof-content-left: clamp(292px, 17.8vw, 352px) !important;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-strip: 150px !important;
+    --sof-content-left: 180px !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-toolbar {
+    width: calc(100% - var(--sof-content-left) - 145px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero-actions {
+    right: 130px !important;
+  }
+}

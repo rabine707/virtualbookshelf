@@ -1,0 +1,160 @@
+/* Shelf of Fame — header integration polish.
+   Preserve the v10 architecture, let both foreground sides flow continuously
+   past the masthead, and decorate/light the center as one believable far wall. */
+
+@media (min-width: 1200px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-header-inset-extra: clamp(18px, 2.6vh, 28px);
+  }
+
+  /* Foreground architecture must sit ABOVE the sticky far wall. This is what
+     makes the window/chair/right book wall feel close to the camera while the
+     masthead remains several feet behind them. */
+  html[data-shelf-theme="botanical"] .botanical-real-room-props {
+    z-index: 20 !important;
+  }
+
+  /* RIGHT FOREGROUND: run from ceiling to floor. The old fade/mask made this
+     look like a webpage sidebar that started after the header. */
+  html[data-shelf-theme="botanical"] .botanical-right-side-wall {
+    top: 0 !important;
+    bottom: auto !important;
+    height: 100vh !important;
+    opacity: .92 !important;
+    filter: saturate(.56) brightness(.40) contrast(1.16) blur(.28px) !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    box-shadow:
+      -44px 0 72px rgba(0,0,0,.76),
+      -15px 0 26px rgba(0,0,0,.48) !important;
+  }
+
+  /* Soften the foreground/right-wall transition instead of drawing a vertical
+     UI seam. This shadow now continues through the masthead as real room depth. */
+  html[data-shelf-theme="botanical"] .botanical-real-room-props::before {
+    top: 0 !important;
+    height: 100vh !important;
+    width: calc(var(--sof-right-strip) + 118px) !important;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(4,7,5,.035) 18%,
+      rgba(3,6,4,.18) 46%,
+      rgba(2,4,3,.54) 72%,
+      rgba(1,3,2,.82) 100%) !important;
+    filter: blur(3px) !important;
+  }
+
+  /* FAR WALL: keep green visible across the full masthead instead of collapsing
+     into a digital-looking black void on the right. */
+  html[data-shelf-theme="botanical"] .cinematic-room__plate {
+    background:
+      radial-gradient(ellipse at 9% 10%, rgba(239,241,190,.17), transparent 30%),
+      radial-gradient(ellipse at 70% 20%, rgba(177,130,62,.065), transparent 26%),
+      linear-gradient(90deg,
+        #213527 0%,
+        #182d20 38%,
+        #102219 68%,
+        #0b1a12 100%) !important;
+    box-shadow:
+      inset 34px 0 52px rgba(0,0,0,.28),
+      inset -38px 0 58px rgba(0,0,0,.40),
+      inset 0 -31px 44px rgba(0,0,0,.30),
+      inset 0 1px rgba(222,229,190,.045) !important;
+  }
+
+  /* Shift the working masthead slightly inward so it feels centered inside the
+     cabinet opening instead of attached to the left jamb/window. */
+  html[data-shelf-theme="botanical"] .cinematic-room__content {
+    padding-left: calc(var(--sof-cabinet-jamb) + var(--sof-backwall-gutter) + var(--sof-header-inset-extra)) !important;
+    padding-right: calc(var(--sof-right-strip) + var(--sof-backwall-gutter) + 12px) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero .hero-copy {
+    width: min(650px, 58%) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .reader-hero-actions {
+    right: calc(var(--sof-right-strip) + 42px) !important;
+  }
+
+  /* A more architectural crown/contact shadow joins the stationary far wall to
+     the recessed moving cabinet underneath. */
+  html[data-shelf-theme="botanical"] .bookcase::before {
+    height: 34px !important;
+    box-shadow:
+      0 15px 28px rgba(0,0,0,.72),
+      0 7px 26px rgba(238,153,58,.16),
+      inset 0 2px rgba(255,224,181,.25),
+      inset 0 -7px rgba(4,2,1,.66) !important;
+  }
+}
+
+/* Restrained far-wall decor. We reuse existing lightweight room assets, but only
+   where desktop width leaves a genuine architectural gap between title/actions. */
+@media (min-width: 1500px) {
+  html[data-shelf-theme="botanical"] .botanical-real-room-frame {
+    display: block !important;
+    position: fixed !important;
+    z-index: 22 !important;
+    top: 18px !important;
+    right: calc(var(--sof-right-strip) + 430px) !important;
+    width: 92px !important;
+    height: 106px !important;
+    max-width: none !important;
+    object-fit: contain !important;
+    opacity: .72 !important;
+    filter:
+      sepia(.30)
+      saturate(.72)
+      brightness(.66)
+      contrast(1.12)
+      drop-shadow(0 8px 9px rgba(0,0,0,.52)) !important;
+    pointer-events: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-room-sconce {
+    display: block !important;
+    position: fixed !important;
+    z-index: 23 !important;
+    top: 118px !important;
+    right: calc(var(--sof-right-strip) + 452px) !important;
+    width: 46px !important;
+    height: 66px !important;
+    max-width: none !important;
+    object-fit: contain !important;
+    opacity: .82 !important;
+    filter:
+      sepia(.48)
+      saturate(1.15)
+      brightness(.78)
+      drop-shadow(0 7px 9px rgba(0,0,0,.56)) !important;
+    pointer-events: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-real-sconce-glow {
+    display: block !important;
+    position: fixed !important;
+    z-index: 21 !important;
+    top: 101px !important;
+    right: calc(var(--sof-right-strip) + 426px) !important;
+    width: 102px !important;
+    height: 102px !important;
+    border-radius: 50% !important;
+    background: radial-gradient(circle,
+      rgba(255,188,82,.30) 0%,
+      rgba(232,142,50,.13) 34%,
+      rgba(199,112,36,.045) 58%,
+      transparent 74%) !important;
+    filter: blur(11px) !important;
+    opacity: .86 !important;
+    pointer-events: none !important;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1499px) {
+  html[data-shelf-theme="botanical"] .botanical-real-room-frame,
+  html[data-shelf-theme="botanical"] .botanical-real-room-sconce,
+  html[data-shelf-theme="botanical"] .botanical-real-sconce-glow {
+    display: none !important;
+  }
+}

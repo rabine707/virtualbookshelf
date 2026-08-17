@@ -1,0 +1,124 @@
+/* Shelf of Fame — real-image room transition.
+   Stop drawing perspective with CSS polygons. The v6 window asset already contains
+   the believable wall/floor perspective we want, so this pass shows more of that
+   source art and lets the recessed cabinet begin behind it. */
+
+@media (min-width: 1200px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-room-edge: clamp(286px, 31vh, 332px);
+  }
+
+  /* Remove the synthetic wall/floor shapes from v13-v15 entirely. */
+  html[data-shelf-theme="botanical"] main.shelf-page::before,
+  html[data-shelf-theme="botanical"] main.shelf-page::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    clip-path: none !important;
+    filter: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Show the full height-driven window scene instead of cropping it into a narrow
+     strip. The source image itself supplies the real side wall, floor and room turn. */
+  html[data-shelf-theme="botanical"] .botanical-window-scene {
+    display: block !important;
+    position: fixed !important;
+    z-index: 8 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: auto !important;
+    height: 100vh !important;
+    max-width: none !important;
+    object-fit: contain !important;
+    object-position: left top !important;
+    opacity: 1 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    filter: saturate(.94) contrast(1.03) brightness(.95) !important;
+  }
+
+  /* Restore the chair as the large foreground anchor; v15 had pushed it so far
+     left that the scene lost its reading-nook composition. */
+  html[data-shelf-theme="botanical"] .botanical-reading-chair {
+    left: clamp(-228px, -21vh, -176px) !important;
+    bottom: clamp(-112px, -8vh, -78px) !important;
+    width: clamp(540px, 59vh, 640px) !important;
+    transform: rotate(-1.5deg) !important;
+  }
+
+  /* The far-wall header and interactive cabinet begin at the architectural edge
+     visible in the real window image. No fake intermediary panel is needed. */
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    width: calc(100% - var(--sof-window-room-edge)) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-room-edge) - 8px) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+    box-shadow:
+      inset 15px 0 26px rgba(0,0,0,.48),
+      inset -10px 0 22px rgba(0,0,0,.48),
+      -24px 0 48px rgba(0,0,0,.58),
+      34px 0 70px rgba(0,0,0,.62),
+      0 38px 94px rgba(0,0,0,.64) !important;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-room-edge: clamp(214px, 24vh, 248px);
+  }
+
+  html[data-shelf-theme="botanical"] main.shelf-page::before,
+  html[data-shelf-theme="botanical"] main.shelf-page::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    clip-path: none !important;
+    filter: none !important;
+    box-shadow: none !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-window-scene {
+    display: block !important;
+    position: fixed !important;
+    z-index: 8 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: auto !important;
+    height: 100vh !important;
+    max-width: none !important;
+    object-fit: contain !important;
+    object-position: left top !important;
+    opacity: 1 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    filter: saturate(.93) contrast(1.03) brightness(.95) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .botanical-reading-chair {
+    left: clamp(-220px, -21vh, -178px) !important;
+    bottom: clamp(-92px, -7vh, -68px) !important;
+    width: clamp(455px, 49vh, 525px) !important;
+    transform: rotate(-1.25deg) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    width: calc(100% - var(--sof-window-room-edge)) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-room-edge) - 6px) !important;
+    margin-left: var(--sof-window-room-edge) !important;
+    box-shadow:
+      inset 12px 0 22px rgba(0,0,0,.46),
+      inset -9px 0 20px rgba(0,0,0,.46),
+      -20px 0 40px rgba(0,0,0,.54),
+      28px 0 58px rgba(0,0,0,.60) !important;
+  }
+}

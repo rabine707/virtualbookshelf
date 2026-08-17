@@ -1,0 +1,195 @@
+/* Shelf of Fame — room-depth bridge.
+   Create a visible strip of real room between the foreground window/chair and
+   the recessed far-wall cabinet. The center shelf moves back slightly while
+   the room framing remains fixed and height-driven. */
+
+@media (min-width: 1200px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-room-depth-gap: clamp(64px, 7vh, 86px);
+    --sof-floor-depth: clamp(132px, 15vh, 172px);
+  }
+
+  /* SIDE-WALL RETURN — a narrow piece of the room between the window and the
+     built-in. It is deliberately darker than the window but lighter than the
+     cabinet interior, so the eye reads a few feet of wall before the far wall. */
+  html[data-shelf-theme="botanical"] main.shelf-page::before {
+    content: "" !important;
+    display: block !important;
+    position: fixed !important;
+    z-index: 7 !important;
+    left: calc(var(--sof-window-strip) - 8px) !important;
+    top: 0 !important;
+    width: calc(var(--sof-room-depth-gap) + 16px) !important;
+    height: 100vh !important;
+    pointer-events: none !important;
+    border: 0 !important;
+    border-right: 5px solid rgba(37, 21, 12, .92) !important;
+    background:
+      linear-gradient(to top,
+        rgba(35,20,11,.98) 0 17px,
+        rgba(83,55,33,.92) 18px 24px,
+        transparent 25px),
+      linear-gradient(100deg,
+        rgba(92,78,49,.48) 0%,
+        rgba(39,48,33,.91) 30%,
+        rgba(20,34,24,.98) 63%,
+        rgba(10,20,14,1) 100%) !important;
+    box-shadow:
+      inset 13px 0 24px rgba(0,0,0,.28),
+      inset -18px 0 28px rgba(0,0,0,.58),
+      18px 0 34px rgba(0,0,0,.48) !important;
+  }
+
+  /* FLOOR WEDGE — a small continuation of the warm wood floor already visible
+     in the window art. Perspective lines converge toward the cabinet/baseboard;
+     the chair sits above this layer, so it only peeks out where useful. */
+  html[data-shelf-theme="botanical"] main.shelf-page::after {
+    content: "" !important;
+    display: block !important;
+    position: fixed !important;
+    z-index: 8 !important;
+    left: calc(var(--sof-window-strip) - 22px) !important;
+    bottom: 0 !important;
+    width: calc(var(--sof-room-depth-gap) + 58px) !important;
+    height: var(--sof-floor-depth) !important;
+    pointer-events: none !important;
+    clip-path: polygon(0 30%, 47% 0, 100% 13%, 100% 100%, 0 100%) !important;
+    background:
+      linear-gradient(103deg,
+        transparent 0 29%,
+        rgba(255,215,148,.18) 30% 33%,
+        transparent 34% 57%,
+        rgba(255,205,130,.10) 58% 60%,
+        transparent 61%),
+      repeating-linear-gradient(101deg,
+        rgba(74,39,20,.18) 0 2px,
+        transparent 2px 31px),
+      linear-gradient(180deg,
+        rgba(154,93,46,.72) 0%,
+        rgba(103,57,29,.88) 42%,
+        rgba(52,28,16,.98) 100%) !important;
+    box-shadow:
+      inset 0 18px 28px rgba(255,188,105,.08),
+      inset -18px 0 28px rgba(0,0,0,.34),
+      8px -8px 24px rgba(0,0,0,.28) !important;
+  }
+
+  /* Move BOTH the static far-wall masthead and the moving built-in back by the
+     same amount. This is the critical depth cue: the chair no longer touches
+     the cabinet plane. */
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    width: calc(100% - var(--sof-window-strip) - var(--sof-room-depth-gap)) !important;
+    margin-left: calc(var(--sof-window-strip) + var(--sof-room-depth-gap)) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-strip) - var(--sof-room-depth-gap) - 8px) !important;
+    margin-left: calc(var(--sof-window-strip) + var(--sof-room-depth-gap)) !important;
+    box-shadow:
+      inset 10px 0 20px rgba(255,205,145,.04),
+      inset -10px 0 22px rgba(0,0,0,.48),
+      -38px 0 66px rgba(0,0,0,.64),
+      34px 0 70px rgba(0,0,0,.62),
+      0 38px 94px rgba(0,0,0,.64) !important;
+  }
+
+  /* Strong base/contact shadow where the returned room meets the far-wall
+     cabinet. This works like a baseboard shadow without adding another asset. */
+  html[data-shelf-theme="botanical"] .bookcase::before {
+    box-shadow:
+      -22px 8px 36px rgba(0,0,0,.50),
+      0 15px 28px rgba(0,0,0,.72),
+      0 7px 26px rgba(238,153,58,.14),
+      inset 0 2px rgba(255,224,181,.24),
+      inset 0 -7px rgba(4,2,1,.66) !important;
+  }
+}
+
+/* Half-screen desktop keeps the exact same spatial idea, just with a smaller
+   transition so book capacity stays useful. */
+@media (min-width: 900px) and (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-room-depth-gap: clamp(34px, 4.6vh, 48px);
+    --sof-floor-depth: clamp(108px, 13vh, 136px);
+  }
+
+  html[data-shelf-theme="botanical"] main.shelf-page::before {
+    content: "" !important;
+    display: block !important;
+    position: fixed !important;
+    z-index: 7 !important;
+    left: calc(var(--sof-window-strip) - 6px) !important;
+    top: 0 !important;
+    width: calc(var(--sof-room-depth-gap) + 12px) !important;
+    height: 100vh !important;
+    pointer-events: none !important;
+    border-right: 4px solid rgba(37,21,12,.92) !important;
+    background:
+      linear-gradient(to top,
+        rgba(35,20,11,.98) 0 14px,
+        rgba(83,55,33,.90) 15px 20px,
+        transparent 21px),
+      linear-gradient(100deg,
+        rgba(83,71,45,.44) 0%,
+        rgba(35,45,30,.92) 32%,
+        rgba(18,31,22,.98) 66%,
+        rgba(9,18,13,1) 100%) !important;
+    box-shadow:
+      inset 10px 0 18px rgba(0,0,0,.27),
+      inset -14px 0 22px rgba(0,0,0,.56),
+      13px 0 26px rgba(0,0,0,.46) !important;
+  }
+
+  html[data-shelf-theme="botanical"] main.shelf-page::after {
+    content: "" !important;
+    display: block !important;
+    position: fixed !important;
+    z-index: 8 !important;
+    left: calc(var(--sof-window-strip) - 17px) !important;
+    bottom: 0 !important;
+    width: calc(var(--sof-room-depth-gap) + 45px) !important;
+    height: var(--sof-floor-depth) !important;
+    pointer-events: none !important;
+    clip-path: polygon(0 31%, 47% 0, 100% 14%, 100% 100%, 0 100%) !important;
+    background:
+      linear-gradient(103deg,
+        transparent 0 31%,
+        rgba(255,215,148,.15) 32% 34%,
+        transparent 35% 59%,
+        rgba(255,205,130,.08) 60% 62%,
+        transparent 63%),
+      repeating-linear-gradient(101deg,
+        rgba(74,39,20,.17) 0 2px,
+        transparent 2px 27px),
+      linear-gradient(180deg,
+        rgba(145,86,43,.70) 0%,
+        rgba(94,51,27,.88) 44%,
+        rgba(49,26,15,.98) 100%) !important;
+    box-shadow: inset -14px 0 22px rgba(0,0,0,.30) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .cinematic-room {
+    width: calc(100% - var(--sof-window-strip) - var(--sof-room-depth-gap)) !important;
+    margin-left: calc(var(--sof-window-strip) + var(--sof-room-depth-gap)) !important;
+  }
+
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-strip) - var(--sof-room-depth-gap) - 6px) !important;
+    margin-left: calc(var(--sof-window-strip) + var(--sof-room-depth-gap)) !important;
+    box-shadow:
+      inset 8px 0 18px rgba(255,205,145,.035),
+      inset -9px 0 20px rgba(0,0,0,.46),
+      -28px 0 50px rgba(0,0,0,.60),
+      28px 0 58px rgba(0,0,0,.60) !important;
+  }
+}
+
+@media (max-width: 899px) {
+  html[data-shelf-theme="botanical"] main.shelf-page::before,
+  html[data-shelf-theme="botanical"] main.shelf-page::after {
+    content: none !important;
+    display: none !important;
+  }
+}

@@ -37,8 +37,23 @@ import "./botanical-production.css";
 import "./botanical-walnut-material.css";
 import "./bookshelf-3d-prototype.css";
 import "./prototype-page.css";
+import "./cinematic-library-v2.css";
+import "./cinematic-library-v3.css";
+import "./cinematic-library-v3-fixes.css";
+import "./cinematic-library-v4.css";
+import "./cinematic-library-v5.css";
+import "./cinematic-library-v6.css";
+import "./cinematic-library-v7.css";
+import "./cinematic-library-v8.css";
+import "./cinematic-library-v9.css";
+import "./cinematic-library-v10.css";
+import "./cinematic-library-v11.css";
+import "./cinematic-library-v12.css";
+import "./cinematic-library-v16.css";
+import "./cinematic-library-v17.css";
+import "./cinematic-library-v19.css";
+import "./cinematic-library-v20.css";
 import BotanicalAssetEnricher from "./BotanicalAssetEnricher";
-import BotanicalMaterialStyles from "./BotanicalMaterialStyles";
 import BotanicalPropStyles from "./BotanicalPropStyles";
 import BotanicalLampFixStyles from "./BotanicalLampFixStyles";
 import BotanicalLightingStyles from "./BotanicalLightingStyles";
@@ -54,7 +69,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <BotanicalMaterialStyles />
         <BotanicalPropStyles />
         <BotanicalLampFixStyles />
         <BotanicalLightingStyles />
