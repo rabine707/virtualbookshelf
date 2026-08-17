@@ -2,12 +2,12 @@
 
 /**
  * V7 scene-plate stacking rules.
- * The photographic room is a real image node at z=10, the live bookshelf is
- * z=30, and the live header/controls are z=40.
+ * The room is fixed to the viewport at z=0. The app scene sits above it, with
+ * the dynamic bookshelf and live controls retaining their existing z layers.
  */
 export default function BotanicalScenePlateImageFixStyles() {
   return <style>{`
-    .botanical-v7-room-plate {
+    .botanical-v7-room-layer {
       display: none;
     }
 
@@ -19,11 +19,21 @@ export default function BotanicalScenePlateImageFixStyles() {
         opacity: 0 !important;
       }
 
-      html[data-shelf-theme="botanical"] main.shelf-page > .botanical-v7-room-plate {
+      html[data-shelf-theme="botanical"] body > .botanical-v7-room-layer {
         display: block !important;
-        position: absolute !important;
-        z-index: 10 !important;
+        position: fixed !important;
         inset: 0 !important;
+        z-index: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+        user-select: none !important;
+        background: #080d09 !important;
+      }
+
+      html[data-shelf-theme="botanical"] .botanical-v7-room-plate {
+        display: block !important;
         width: 100% !important;
         height: 100% !important;
         max-width: none !important;
@@ -33,8 +43,11 @@ export default function BotanicalScenePlateImageFixStyles() {
         border: 0 !important;
         object-fit: cover !important;
         object-position: center center !important;
-        pointer-events: none !important;
-        user-select: none !important;
+      }
+
+      html[data-shelf-theme="botanical"] main.shelf-page {
+        z-index: 1 !important;
+        background: transparent !important;
       }
     }
   `}</style>;
