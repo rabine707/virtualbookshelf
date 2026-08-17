@@ -1,0 +1,92 @@
+/* Shelf of Fame — generated window asset lock.
+   The left room rail now uses the actual generated angled window render.
+   The room stays fixed while the real shelf rows continue in normal page flow. */
+
+@media (min-width: 1200px) {
+  html[data-shelf-theme="botanical"] main.shelf-page {
+    --sof-window-strip: clamp(292px, 18.4vw, 330px) !important;
+    --sof-ui-left: clamp(390px, 24.8vw, 440px) !important;
+    --sof-title-left: clamp(420px, 27vw, 470px) !important;
+  }
+
+  /* ACTUAL generated angled window scene created for this redesign. */
+  html[data-shelf-theme="botanical"] main.shelf-page::before {
+    content: "" !important;
+    position: fixed !important;
+    z-index: 4 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: var(--sof-window-strip) !important;
+    height: 100vh !important;
+    pointer-events: none !important;
+    border-right: 8px solid #2b1a10 !important;
+    background:
+      linear-gradient(90deg,
+        rgba(255,244,202,.025) 0%,
+        rgba(10,19,12,.025) 66%,
+        rgba(4,9,6,.34) 100%),
+      url("/themes/botanical/v5/window-scene.webp") left center / cover no-repeat !important;
+    box-shadow:
+      20px 0 44px rgba(0,0,0,.46),
+      inset -18px 0 28px rgba(8,15,9,.24) !important;
+    filter: saturate(.94) contrast(1.03) brightness(.93) !important;
+  }
+
+  /* The generated window already contains foliage, molding, art and a sconce.
+     Do not stack the older prop sprites on top of it. */
+  html[data-shelf-theme="botanical"] .botanical-architecture-vine-left,
+  html[data-shelf-theme="botanical"] .botanical-architecture-vine-right,
+  html[data-shelf-theme="botanical"] .botanical-real-room-plant,
+  html[data-shelf-theme="botanical"] .botanical-real-room-frame,
+  html[data-shelf-theme="botanical"] .botanical-real-room-sconce,
+  html[data-shelf-theme="botanical"] .botanical-real-sconce-glow,
+  html[data-shelf-theme="botanical"] .botanical-real-window,
+  html[data-shelf-theme="botanical"] .botanical-architecture-window-glow {
+    display: none !important;
+  }
+
+  /* Seat the chair in the lower-left reading nook instead of floating mid-window. */
+  html[data-shelf-theme="botanical"] .botanical-reading-chair {
+    display: block !important;
+    position: fixed !important;
+    z-index: 18 !important;
+    left: clamp(-26px, -1vw, -8px) !important;
+    top: auto !important;
+    bottom: clamp(-56px, -4vh, -28px) !important;
+    width: clamp(278px, 18.7vw, 326px) !important;
+    height: auto !important;
+    transform: rotate(-1deg) !important;
+    transform-origin: center bottom !important;
+    filter:
+      saturate(.78)
+      brightness(.72)
+      contrast(1.06)
+      drop-shadow(18px 23px 20px rgba(0,0,0,.64)) !important;
+    opacity: .98 !important;
+  }
+
+  /* Keep the continuously scrolling built-in aligned with the wider room rail. */
+  html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
+  html[data-shelf-theme="botanical"] .bookcase {
+    width: calc(100% - var(--sof-window-strip) - 16px) !important;
+    margin-left: var(--sof-window-strip) !important;
+    margin-right: 8px !important;
+  }
+
+  /* Make the generated daylight feel like it spills into the shelf area. */
+  html[data-shelf-theme="botanical"] main.shelf-page::after {
+    left: calc(var(--sof-window-strip) - 58px) !important;
+    width: 520px !important;
+    background: linear-gradient(105deg,
+      rgba(247,231,174,.16) 0%,
+      rgba(221,210,153,.07) 30%,
+      rgba(187,191,135,.025) 50%,
+      transparent 72%) !important;
+  }
+}
+
+@media (max-width: 1199px) {
+  html[data-shelf-theme="botanical"] .botanical-reading-chair {
+    display: none !important;
+  }
+}
