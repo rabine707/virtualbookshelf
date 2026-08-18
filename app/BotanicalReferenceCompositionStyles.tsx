@@ -13,8 +13,8 @@ export default function BotanicalReferenceCompositionStyles() {
   return <style>{`
     /* ---------- ONE CONTINUOUS ROOM ---------- */
     html[data-shelf-theme="botanical"] .cinematic-room {
-      min-height: 252px !important;
-      height: 252px !important;
+      min-height: 204px !important;
+      height: 204px !important;
       overflow: visible !important;
       z-index: 20 !important;
       box-shadow: none !important;
@@ -92,14 +92,14 @@ export default function BotanicalReferenceCompositionStyles() {
     /* Keep the warm practical light small and architectural. */
     html[data-shelf-theme="botanical"] .botanical-real-room-sconce {
       right: 82px !important;
-      top: 70px !important;
+      top: 54px !important;
       width: 68px !important;
       opacity: .72 !important;
     }
 
     html[data-shelf-theme="botanical"] .botanical-real-sconce-glow {
       right: 31px !important;
-      top: 42px !important;
+      top: 26px !important;
       width: 170px !important;
       height: 170px !important;
       opacity: .58 !important;
@@ -111,51 +111,44 @@ export default function BotanicalReferenceCompositionStyles() {
       min-width: 0 !important;
       max-width: 1040px !important;
       margin: 0 235px 0 clamp(300px, 22vw, 410px) !important;
-      padding: 15px 0 8px !important;
+      padding: 13px 0 8px !important;
     }
 
     html[data-shelf-theme="botanical"] .reader-hero {
-      min-height: 92px !important;
+      min-height: 74px !important;
       gap: 18px !important;
-      padding: 0 0 8px !important;
-      align-items: flex-start !important;
+      padding: 0 0 7px !important;
+      align-items: center !important;
     }
 
     html[data-shelf-theme="botanical"] .reader-hero .eyebrow {
       margin-bottom: 3px !important;
-      font-size: 9px !important;
+      font-size: 8px !important;
       letter-spacing: .22em !important;
     }
 
     html[data-shelf-theme="botanical"] .reader-hero h1 {
-      font-size: clamp(44px, 4.15vw, 61px) !important;
+      font-size: clamp(42px, 3.65vw, 56px) !important;
       line-height: .90 !important;
       letter-spacing: -.036em !important;
     }
 
-    html[data-shelf-theme="botanical"] .reader-hero .subhead {
-      margin-top: 7px !important;
-      font-size: 13px !important;
-      line-height: 1.3 !important;
-    }
-
     html[data-shelf-theme="botanical"] .reader-hero-actions {
-      padding-top: 2px !important;
+      padding-top: 0 !important;
       flex: 0 0 auto !important;
     }
 
     html[data-shelf-theme="botanical"] .reader-add-books-trigger {
-      min-height: 39px !important;
-      padding: 8px 18px !important;
-      font-size: 13px !important;
+      min-height: 38px !important;
+      padding: 8px 17px !important;
+      font-size: 12px !important;
     }
 
-    /* Two deliberate rows, matching the reference instead of a dashboard stack. */
+    /* Search and Add Books stay visible. Everything administrative lives in •••. */
     html[data-shelf-theme="botanical"] .reader-toolbar {
       display: grid !important;
-      grid-template-columns: minmax(280px, 1fr) 138px 132px 76px !important;
-      grid-template-rows: 40px 40px !important;
-      grid-auto-flow: row !important;
+      grid-template-columns: minmax(280px, 1fr) 126px auto 42px !important;
+      grid-template-rows: 40px !important;
       gap: 6px !important;
       align-items: stretch !important;
       width: 100% !important;
@@ -163,94 +156,96 @@ export default function BotanicalReferenceCompositionStyles() {
 
     html[data-shelf-theme="botanical"] .reader-toolbar > .search-wrap {
       grid-column: 1 !important;
-      grid-row: 1 !important;
       min-width: 0 !important;
     }
 
     html[data-shelf-theme="botanical"] .reader-toolbar > select {
       grid-column: 2 !important;
-      grid-row: 1 !important;
       width: 100% !important;
     }
 
-    html[data-shelf-theme="botanical"] .reader-toolbar > .toolbar-actions {
-      grid-column: 3 / 5 !important;
-      grid-row: 1 !important;
-      display: grid !important;
-      grid-template-columns: minmax(0,1fr) 76px !important;
-      gap: 6px !important;
-      min-width: 0 !important;
-    }
-
-    html[data-shelf-theme="botanical"] .reader-toolbar > .spine-review-launch {
-      grid-column: 1 !important;
-      grid-row: 2 !important;
-      width: 100% !important;
-      min-width: 0 !important;
-    }
-
-    html[data-shelf-theme="botanical"] .reader-toolbar > .qol-toolbar {
-      grid-column: 2 !important;
-      grid-row: 2 !important;
-      width: 100% !important;
-      min-width: 0 !important;
-    }
-
-    html[data-shelf-theme="botanical"] .reader-toolbar > .theme-picker-trigger {
+    html[data-shelf-theme="botanical"] .reader-toolbar > .shelf-book-count {
       grid-column: 3 !important;
-      grid-row: 2 !important;
-      width: 100% !important;
+      align-self: center !important;
+      min-width: 72px !important;
+      padding: 0 5px !important;
+      color: rgba(238,233,220,.58) !important;
     }
 
-    html[data-shelf-theme="botanical"] .reader-toolbar > .spine-label-toggle {
+    html[data-shelf-theme="botanical"] .reader-toolbar > .shelf-book-count strong {
+      color: rgba(238,233,220,.90) !important;
+    }
+
+    html[data-shelf-theme="botanical"] .reader-toolbar > .shelf-utility-menu {
       grid-column: 4 !important;
-      grid-row: 2 !important;
-      width: 100% !important;
-      min-width: 0 !important;
-      font-size: 10px !important;
-      line-height: 1.05 !important;
-      padding: 5px !important;
+      width: 42px !important;
     }
 
-    html[data-shelf-theme="botanical"] .reader-toolbar .qol-fix-button {
-      width: 100% !important;
-      height: 100% !important;
-      min-height: 40px !important;
-      padding: 5px 9px !important;
+    html[data-shelf-theme="botanical"] .reader-toolbar > .spine-review-launch,
+    html[data-shelf-theme="botanical"] .reader-toolbar > .qol-toolbar,
+    html[data-shelf-theme="botanical"] .reader-toolbar > .theme-picker-trigger,
+    html[data-shelf-theme="botanical"] .reader-toolbar > .spine-label-toggle {
+      display: none !important;
     }
 
-    html[data-shelf-theme="botanical"] .reader-toolbar .search,
+    html[data-shelf-theme="botanical"] .reader-toolbar .search-wrap,
     html[data-shelf-theme="botanical"] .reader-toolbar select,
-    html[data-shelf-theme="botanical"] .reader-toolbar .page-refresh-button,
-    html[data-shelf-theme="botanical"] .reader-toolbar .count-pill {
+    html[data-shelf-theme="botanical"] .shelf-utility-menu > summary {
       min-height: 40px !important;
       height: 40px !important;
+      color: var(--cream) !important;
+      background: linear-gradient(180deg, rgba(13, 28, 18, .72), rgba(6, 16, 10, .67)) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 12px !important;
+      box-shadow: inset 0 1px rgba(255,255,255,.035), 0 8px 25px rgba(0,0,0,.15) !important;
+      backdrop-filter: blur(9px) saturate(.9) !important;
     }
 
-    html[data-shelf-theme="botanical"] .reader-toolbar .page-refresh-button {
-      padding: 0 10px !important;
-      font-size: 12px !important;
+    html[data-shelf-theme="botanical"] .reader-toolbar .search {
+      min-height: 40px !important;
+      height: 40px !important;
+      color: var(--cream) !important;
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      padding-left: 40px !important;
     }
 
-    html[data-shelf-theme="botanical"] .reader-toolbar .count-pill {
-      min-width: 0 !important;
-      width: 76px !important;
+    html[data-shelf-theme="botanical"] .reader-toolbar .search::placeholder {
+      color: rgba(238,233,220,.52) !important;
     }
 
-    html[data-shelf-theme="botanical"] .reader-toolbar .count-pill strong {
-      font-size: 14px !important;
+    html[data-shelf-theme="botanical"] .reader-toolbar .search-wrap > span {
+      color: rgba(183,201,143,.78) !important;
     }
 
-    html[data-shelf-theme="botanical"] .reader-toolbar .count-pill span {
-      font-size: 8px !important;
+    html[data-shelf-theme="botanical"] .reader-toolbar select {
+      padding: 0 12px !important;
+      font-size: 11px !important;
     }
 
-    /* The duplicated floating launcher is useful on long shelves, but not in the
-       first viewport where the in-toolbar community control already exists. */
+    html[data-shelf-theme="botanical"] .shelf-utility-menu__panel {
+      width: 278px !important;
+      border-color: rgba(183,201,143,.24) !important;
+      background: linear-gradient(180deg, rgba(10,22,14,.98), rgba(6,14,9,.98)) !important;
+      box-shadow: 0 20px 54px rgba(0,0,0,.50) !important;
+    }
+
+    html[data-shelf-theme="botanical"] .shelf-utility-menu__heading span,
+    html[data-shelf-theme="botanical"] .shelf-utility-menu__item > span {
+      color: rgba(183,201,143,.58) !important;
+    }
+
+    html[data-shelf-theme="botanical"] .shelf-utility-menu__item:hover,
+    html[data-shelf-theme="botanical"] .shelf-utility-menu__item:focus-visible {
+      background: rgba(183,201,143,.08) !important;
+    }
+
+    /* The floating launcher remains available on long shelves, but recedes. */
     html[data-shelf-theme="botanical"] .help-shelf-launcher {
       bottom: 18px !important;
-      opacity: .72 !important;
-      transform: scale(.88) !important;
+      opacity: .54 !important;
+      transform: scale(.82) !important;
       transform-origin: left bottom !important;
     }
 
@@ -296,8 +291,8 @@ export default function BotanicalReferenceCompositionStyles() {
     /* ---------- LARGE-DESKTOP REFERENCE PROPORTIONS ---------- */
     @media (min-width: 1450px) {
       html[data-shelf-theme="botanical"] .cinematic-room {
-        min-height: 250px !important;
-        height: 250px !important;
+        min-height: 198px !important;
+        height: 198px !important;
       }
 
       html[data-shelf-theme="botanical"] .cinematic-room__content {
@@ -319,14 +314,14 @@ export default function BotanicalReferenceCompositionStyles() {
     /* ---------- TABLET: scenery yields before books ---------- */
     @media (max-width: 1180px) {
       html[data-shelf-theme="botanical"] .cinematic-room {
-        min-height: 278px !important;
-        height: 278px !important;
+        min-height: 216px !important;
+        height: 216px !important;
       }
 
       html[data-shelf-theme="botanical"] .cinematic-room__content {
         margin-left: 215px !important;
         margin-right: 28px !important;
-        padding-top: 17px !important;
+        padding-top: 14px !important;
       }
 
       html[data-shelf-theme="botanical"] .botanical-scene-window {
@@ -347,29 +342,21 @@ export default function BotanicalReferenceCompositionStyles() {
       }
 
       html[data-shelf-theme="botanical"] .reader-toolbar {
-        grid-template-columns: minmax(230px,1fr) 112px 112px 68px !important;
-      }
-
-      html[data-shelf-theme="botanical"] .reader-toolbar > .toolbar-actions {
-        grid-template-columns: minmax(0,1fr) 68px !important;
-      }
-
-      html[data-shelf-theme="botanical"] .reader-toolbar .count-pill {
-        width: 68px !important;
+        grid-template-columns: minmax(220px,1fr) 108px auto 42px !important;
       }
     }
 
     /* ---------- MOBILE: keep the room idea but protect usability ---------- */
     @media (max-width: 760px) {
       html[data-shelf-theme="botanical"] .cinematic-room {
-        min-height: 274px !important;
-        height: auto !important;
+        min-height: 178px !important;
+        height: 178px !important;
         overflow: hidden !important;
       }
 
       html[data-shelf-theme="botanical"] .cinematic-room__content {
         margin: 0 !important;
-        padding: 18px 16px 12px !important;
+        padding: 13px 14px 10px !important;
       }
 
       html[data-shelf-theme="botanical"] .botanical-scene-window {
@@ -384,32 +371,31 @@ export default function BotanicalReferenceCompositionStyles() {
       }
 
       html[data-shelf-theme="botanical"] .reader-hero {
-        min-height: 82px !important;
+        min-height: 70px !important;
         padding-left: 70px !important;
+        padding-bottom: 6px !important;
       }
 
       html[data-shelf-theme="botanical"] .reader-hero h1 {
-        font-size: clamp(38px, 11vw, 52px) !important;
+        font-size: clamp(35px, 10vw, 46px) !important;
       }
 
-      html[data-shelf-theme="botanical"] .reader-hero .subhead {
-        font-size: 12px !important;
+      /* Add is permanently available in the mobile bottom nav. */
+      html[data-shelf-theme="botanical"] .reader-hero-actions {
+        display: none !important;
       }
 
       html[data-shelf-theme="botanical"] .reader-toolbar {
         display: grid !important;
-        grid-template-columns: minmax(0,1fr) 94px !important;
-        grid-template-rows: 42px 38px 38px !important;
-        gap: 6px !important;
+        grid-template-columns: minmax(0,1fr) 92px 42px !important;
+        grid-template-rows: 40px !important;
+        gap: 5px !important;
       }
 
-      html[data-shelf-theme="botanical"] .reader-toolbar > .search-wrap { grid-column: 1; grid-row: 1; }
-      html[data-shelf-theme="botanical"] .reader-toolbar > select { grid-column: 2; grid-row: 1; }
-      html[data-shelf-theme="botanical"] .reader-toolbar > .toolbar-actions { display: none !important; }
-      html[data-shelf-theme="botanical"] .reader-toolbar > .spine-review-launch { grid-column: 1; grid-row: 2; }
-      html[data-shelf-theme="botanical"] .reader-toolbar > .qol-toolbar { grid-column: 2; grid-row: 2; }
-      html[data-shelf-theme="botanical"] .reader-toolbar > .theme-picker-trigger { grid-column: 1; grid-row: 3; }
-      html[data-shelf-theme="botanical"] .reader-toolbar > .spine-label-toggle { grid-column: 2; grid-row: 3; }
+      html[data-shelf-theme="botanical"] .reader-toolbar > .search-wrap { grid-column: 1 !important; }
+      html[data-shelf-theme="botanical"] .reader-toolbar > select { grid-column: 2 !important; }
+      html[data-shelf-theme="botanical"] .reader-toolbar > .shelf-book-count { display: none !important; }
+      html[data-shelf-theme="botanical"] .reader-toolbar > .shelf-utility-menu { grid-column: 3 !important; }
 
       html[data-shelf-theme="botanical"] .help-shelf-launcher {
         display: none !important;
