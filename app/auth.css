@@ -1,4 +1,4 @@
-.sof-account{position:fixed;top:18px;right:20px;z-index:160;display:flex;align-items:center;gap:8px;padding:6px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(16,12,10,.76);backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .16s ease,transform .16s ease}
+.sof-account{position:absolute;top:18px;right:20px;z-index:160;display:flex;align-items:center;gap:8px;padding:6px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(16,12,10,.76);backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .16s ease,transform .16s ease}
 .sof-account button{border:0;border-radius:999px;padding:8px 13px;background:rgba(255,255,255,.12);color:#fff;font:inherit;cursor:pointer}.sof-account button:hover{background:rgba(255,255,255,.19)}
 .sof-account-email{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#eee;font-size:12px;padding-left:7px}
 .book-modal-open .sof-account{opacity:0;pointer-events:none;transform:translateY(-8px);z-index:10}
