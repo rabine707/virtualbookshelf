@@ -6,7 +6,7 @@ export default function BotanicalPropStyles() {
       position: absolute;
       z-index: 2;
       inset: 0;
-      overflow: hidden;
+      overflow: visible;
       pointer-events: none;
     }
 
