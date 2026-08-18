@@ -32,14 +32,11 @@ import "./mobile-shelf-compression.css";
 import "./theme-ui-polish.css";
 import "./shelf-art-polish.css";
 import "./botanical-production.css";
-import "./botanical-walnut-material.css";
 import "./bookshelf-3d-prototype.css";
 import "./prototype-page.css";
 import BotanicalAssetEnricher from "./BotanicalAssetEnricher";
 import BotanicalMaterialStyles from "./BotanicalMaterialStyles";
-import BotanicalPropStyles from "./BotanicalPropStyles";
-import BotanicalLampFixStyles from "./BotanicalLampFixStyles";
-import BotanicalLightingStyles from "./BotanicalLightingStyles";
+import BotanicalShelfDecorStyles from "./BotanicalShelfDecorStyles";
 import BotanicalDesignSystemStyles from "./BotanicalDesignSystemStyles";
 import BotanicalReferenceCompositionStyles from "./BotanicalReferenceCompositionStyles";
 import ClientEnhancers from "./ClientEnhancers";
@@ -54,10 +51,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
+        {/* Botanical cascade: material foundation -> shelf decor -> canonical
+            design system -> final reference composition. Keep this order deliberate;
+            superseded material/lighting patch layers have been removed. */}
         <BotanicalMaterialStyles />
-        <BotanicalPropStyles />
-        <BotanicalLampFixStyles />
-        <BotanicalLightingStyles />
+        <BotanicalShelfDecorStyles />
         <BotanicalDesignSystemStyles />
         <BotanicalReferenceCompositionStyles />
         {children}
