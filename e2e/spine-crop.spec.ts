@@ -78,6 +78,6 @@ test("cover crop saves a spine and updates the live shelf without reloading", as
     }
   }, COVER_URL);
 
-  expect(saved.image).toContain("/api/spine?v=3&position=right");
+  expect(saved.image).toContain("/api/spine?v=4&position=right");
   expect(saved.mode).toBe("overlay");
 });

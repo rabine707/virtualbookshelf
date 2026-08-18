@@ -94,7 +94,7 @@ export async function saveGeneratedSpine(coverUrl: string, image: string, render
 }
 
 export function generatedSpineUrl(coverUrl: string, position: SpinePosition = "center") {
-  return `/api/spine?v=3&position=${position}&cover=${encodeURIComponent(coverUrl)}`;
+  return `/api/spine?v=4&position=${position}&cover=${encodeURIComponent(coverUrl)}`;
 }
 
 export function storedSpinePosition(image?: string): SpinePosition | null {
