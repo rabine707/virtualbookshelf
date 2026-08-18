@@ -39,14 +39,14 @@ describe("shared spine client helpers", () => {
     expect(spineTitleScale("A deliberately very long spine title")).toBe("compact");
   });
 
-  it("builds encoded cover-crop URLs", () => {
+  it("builds encoded cover-derived spine URLs", () => {
     expect(generatedSpineUrl("https://example.com/a cover.jpg?x=1", "right"))
-      .toBe("/api/spine?v=3&position=right&cover=https%3A%2F%2Fexample.com%2Fa%20cover.jpg%3Fx%3D1");
+      .toBe("/api/spine?v=4&position=right&cover=https%3A%2F%2Fexample.com%2Fa%20cover.jpg%3Fx%3D1");
   });
 
   it("recognizes saved crop positions without needing window.location", () => {
     expect(storedSpinePosition("/api/spine?v=3&position=left&cover=x")).toBe("left");
-    expect(storedSpinePosition("/api/spine?v=3&position=center&cover=x")).toBe("center");
+    expect(storedSpinePosition("/api/spine?v=4&position=center&cover=x")).toBe("center");
     expect(storedSpinePosition("https://cdn.example.com/custom-spine.png")).toBeNull();
   });
 
