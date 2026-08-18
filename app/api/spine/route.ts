@@ -79,42 +79,57 @@ export async function GET(request: Request) {
     const safeDataUrl = xmlEscape(dataUrl);
     const alignment = preserveAspectRatio(position);
 
-    // A book spine is a narrow 1:4 detail crop of the approved front-cover artwork.
-    // We intentionally keep the source sharp and only choose which horizontal
-    // part of the cover is visible: left detail, center detail, or right detail.
-    // Title and author are rendered separately in the browser for cover crops.
+    // Cover-derived spines should borrow a cover's palette and imagery without
+    // reading like a random sliver of the front cover. The softened base turns
+    // oversized cover lettering / faces into material texture, while the faint
+    // sharp layer keeps recognizable art cues. Shelf title + author typography
+    // remains separate in the browser, so it stays consistently legible.
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${SPINE_WIDTH}" height="${SPINE_HEIGHT}" viewBox="0 0 ${SPINE_WIDTH} ${SPINE_HEIGHT}">
   <defs>
-    <linearGradient id="edgeShade" x1="0" x2="1">
-      <stop offset="0" stop-color="#000" stop-opacity=".34"/>
-      <stop offset=".055" stop-color="#fff" stop-opacity=".08"/>
-      <stop offset=".16" stop-color="#000" stop-opacity="0"/>
-      <stop offset=".84" stop-color="#000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000" stop-opacity=".38"/>
+    <filter id="coverTexture" x="-12%" y="-4%" width="124%" height="108%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5.2 1.6"/>
+      <feColorMatrix type="saturate" values=".88"/>
+    </filter>
+    <linearGradient id="artMute" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#120d0a" stop-opacity=".28"/>
+      <stop offset=".12" stop-color="#120d0a" stop-opacity=".10"/>
+      <stop offset=".48" stop-color="#fff6e5" stop-opacity=".025"/>
+      <stop offset=".82" stop-color="#120d0a" stop-opacity=".09"/>
+      <stop offset="1" stop-color="#090604" stop-opacity=".31"/>
     </linearGradient>
     <linearGradient id="topBottom" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#000" stop-opacity=".16"/>
-      <stop offset=".08" stop-color="#000" stop-opacity="0"/>
-      <stop offset=".91" stop-color="#000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000" stop-opacity=".24"/>
+      <stop offset="0" stop-color="#000" stop-opacity=".24"/>
+      <stop offset=".10" stop-color="#000" stop-opacity=".05"/>
+      <stop offset=".44" stop-color="#000" stop-opacity="0"/>
+      <stop offset=".78" stop-color="#000" stop-opacity=".03"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".30"/>
     </linearGradient>
     <linearGradient id="paperSheen" x1="0" x2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity=".02"/>
-      <stop offset=".44" stop-color="#fff" stop-opacity=".055"/>
-      <stop offset=".62" stop-color="#fff" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000" stop-opacity=".045"/>
+      <stop offset="0" stop-color="#fff" stop-opacity=".025"/>
+      <stop offset=".38" stop-color="#fff" stop-opacity=".07"/>
+      <stop offset=".57" stop-color="#fff" stop-opacity=".018"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".055"/>
     </linearGradient>
+    <radialGradient id="softLight" cx="42%" cy="40%" r="72%">
+      <stop offset="0" stop-color="#fff1cf" stop-opacity=".055"/>
+      <stop offset=".52" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".13"/>
+    </radialGradient>
   </defs>
 
   <rect width="${SPINE_WIDTH}" height="${SPINE_HEIGHT}" fill="#17120f"/>
+  <image href="${safeDataUrl}" x="-8" y="-5" width="316" height="1210"
+    preserveAspectRatio="${alignment}" filter="url(#coverTexture)" opacity=".96"/>
   <image href="${safeDataUrl}" x="0" y="0" width="${SPINE_WIDTH}" height="${SPINE_HEIGHT}"
-    preserveAspectRatio="${alignment}"/>
+    preserveAspectRatio="${alignment}" opacity=".22"/>
+  <rect width="${SPINE_WIDTH}" height="${SPINE_HEIGHT}" fill="#120e0b" opacity=".10"/>
+  <rect width="${SPINE_WIDTH}" height="${SPINE_HEIGHT}" fill="url(#artMute)"/>
+  <rect width="${SPINE_WIDTH}" height="${SPINE_HEIGHT}" fill="url(#softLight)"/>
   <rect width="${SPINE_WIDTH}" height="${SPINE_HEIGHT}" fill="url(#paperSheen)"/>
-  <rect width="${SPINE_WIDTH}" height="${SPINE_HEIGHT}" fill="url(#edgeShade)"/>
   <rect width="${SPINE_WIDTH}" height="${SPINE_HEIGHT}" fill="url(#topBottom)"/>
   <rect x="3" y="2" width="294" height="1196" rx="12" fill="none"
-    stroke="#fff" stroke-opacity=".09" stroke-width="3"/>
+    stroke="#fff" stroke-opacity=".085" stroke-width="3"/>
 </svg>`;
 
     return new Response(svg, {
@@ -122,6 +137,7 @@ export async function GET(request: Request) {
         "Content-Type": "image/svg+xml; charset=utf-8",
         "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
         "X-Shelf-Spine-Position": position,
+        "X-Shelf-Spine-Render": "art-directed-cover",
       },
     });
   } catch {
