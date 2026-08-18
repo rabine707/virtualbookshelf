@@ -22,6 +22,13 @@ export default function BotanicalReferenceCompositionStyles() {
       background: #0b1710 !important;
     }
 
+    /* Older Botanical layers clipped these props to the header. The approved
+       window and sofa are room framing, so they must be allowed to cross the
+       header/shelf boundary and visually stitch both areas together. */
+    html[data-shelf-theme="botanical"] .botanical-real-room-props {
+      overflow: visible !important;
+    }
+
     html[data-shelf-theme="botanical"] .cinematic-room__plate {
       background:
         linear-gradient(90deg,
@@ -57,12 +64,12 @@ export default function BotanicalReferenceCompositionStyles() {
 
     /* ---------- WINDOW OWNS THE LEFT EDGE ---------- */
     html[data-shelf-theme="botanical"] .botanical-scene-window {
-      left: -86px !important;
-      top: -82px !important;
-      width: clamp(300px, 23vw, 410px) !important;
+      left: -130px !important;
+      top: -105px !important;
+      width: clamp(500px, 37vw, 650px) !important;
       max-width: none !important;
       z-index: 24 !important;
-      opacity: .96 !important;
+      opacity: .98 !important;
       filter:
         brightness(.98)
         saturate(.92)
@@ -71,15 +78,16 @@ export default function BotanicalReferenceCompositionStyles() {
       transform: rotate(-.2deg) !important;
     }
 
-    /* The approved sofa becomes foreground framing, not header decoration. */
+    /* The approved sofa is lower-left foreground framing. It deliberately crosses
+       the second/third shelf region without taking any interaction space. */
     html[data-shelf-theme="botanical"] .botanical-scene-sofa {
-      left: -118px !important;
+      left: -165px !important;
       right: auto !important;
-      bottom: -690px !important;
-      width: clamp(430px, 35vw, 610px) !important;
+      bottom: -680px !important;
+      width: clamp(500px, 38vw, 660px) !important;
       max-width: none !important;
       z-index: 42 !important;
-      opacity: .96 !important;
+      opacity: .95 !important;
       filter:
         brightness(.74)
         saturate(.80)
@@ -110,7 +118,7 @@ export default function BotanicalReferenceCompositionStyles() {
       width: auto !important;
       min-width: 0 !important;
       max-width: 1040px !important;
-      margin: 0 235px 0 clamp(300px, 22vw, 410px) !important;
+      margin: 0 235px 0 clamp(360px, 28vw, 500px) !important;
       padding: 13px 0 8px !important;
     }
 
@@ -241,14 +249,6 @@ export default function BotanicalReferenceCompositionStyles() {
       background: rgba(183,201,143,.08) !important;
     }
 
-    /* The floating launcher remains available on long shelves, but recedes. */
-    html[data-shelf-theme="botanical"] .help-shelf-launcher {
-      bottom: 18px !important;
-      opacity: .54 !important;
-      transform: scale(.82) !important;
-      transform-origin: left bottom !important;
-    }
-
     /* ---------- SHELF STARTS IMMEDIATELY ---------- */
     html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
     html[data-shelf-theme="botanical"] .bookcase {
@@ -256,7 +256,7 @@ export default function BotanicalReferenceCompositionStyles() {
       z-index: 8 !important;
       width: calc(100% - 34px) !important;
       max-width: 1580px !important;
-      margin: 0 auto !important;
+      margin: -7px auto 0 !important;
       border-top: 0 !important;
       filter: drop-shadow(0 26px 38px rgba(0,0,0,.24)) !important;
     }
@@ -288,6 +288,24 @@ export default function BotanicalReferenceCompositionStyles() {
         linear-gradient(90deg, rgba(0,0,0,.14), transparent 8%, transparent 91%, rgba(0,0,0,.22)) !important;
     }
 
+    /* Staged rows for a small library are scenery, not giant empty placeholders.
+       Keep one quiet prop anchored to a side so the eye reads a furnished room. */
+    html[data-shelf-theme="botanical"] .shelf-row-empty > .shelf-occupant-flow {
+      left: 9% !important;
+      right: 9% !important;
+      justify-content: space-between !important;
+    }
+
+    html[data-shelf-theme="botanical"] .shelf-row-empty > .shelf-occupant-flow > .book-flow {
+      flex: 0 0 1px !important;
+      width: 1px !important;
+      min-width: 1px !important;
+    }
+
+    html[data-shelf-theme="botanical"] .shelf-row-empty .botanical-row-decor {
+      opacity: .82 !important;
+    }
+
     /* ---------- LARGE-DESKTOP REFERENCE PROPORTIONS ---------- */
     @media (min-width: 1450px) {
       html[data-shelf-theme="botanical"] .cinematic-room {
@@ -296,18 +314,20 @@ export default function BotanicalReferenceCompositionStyles() {
       }
 
       html[data-shelf-theme="botanical"] .cinematic-room__content {
-        margin-left: clamp(350px, 24vw, 455px) !important;
+        margin-left: clamp(440px, 29vw, 530px) !important;
         margin-right: 235px !important;
         max-width: none !important;
       }
 
       html[data-shelf-theme="botanical"] .botanical-scene-window {
-        width: clamp(340px, 23vw, 430px) !important;
+        left: -145px !important;
+        width: clamp(560px, 38vw, 680px) !important;
       }
 
       html[data-shelf-theme="botanical"] .botanical-scene-sofa {
-        bottom: -700px !important;
-        width: clamp(500px, 34vw, 620px) !important;
+        left: -175px !important;
+        bottom: -670px !important;
+        width: clamp(570px, 39vw, 690px) !important;
       }
     }
 
@@ -319,21 +339,21 @@ export default function BotanicalReferenceCompositionStyles() {
       }
 
       html[data-shelf-theme="botanical"] .cinematic-room__content {
-        margin-left: 215px !important;
+        margin-left: 245px !important;
         margin-right: 28px !important;
         padding-top: 14px !important;
       }
 
       html[data-shelf-theme="botanical"] .botanical-scene-window {
-        left: -78px !important;
-        width: 290px !important;
+        left: -105px !important;
+        width: 370px !important;
       }
 
       html[data-shelf-theme="botanical"] .botanical-scene-sofa {
         left: -150px !important;
         bottom: -620px !important;
-        width: 455px !important;
-        opacity: .82 !important;
+        width: 500px !important;
+        opacity: .84 !important;
       }
 
       html[data-shelf-theme="botanical"] .botanical-real-room-sconce,
@@ -354,16 +374,20 @@ export default function BotanicalReferenceCompositionStyles() {
         overflow: hidden !important;
       }
 
+      html[data-shelf-theme="botanical"] .botanical-real-room-props {
+        overflow: hidden !important;
+      }
+
       html[data-shelf-theme="botanical"] .cinematic-room__content {
         margin: 0 !important;
         padding: 13px 14px 10px !important;
       }
 
       html[data-shelf-theme="botanical"] .botanical-scene-window {
-        left: -102px !important;
-        top: -64px !important;
-        width: 220px !important;
-        opacity: .40 !important;
+        left: -112px !important;
+        top: -74px !important;
+        width: 270px !important;
+        opacity: .48 !important;
       }
 
       html[data-shelf-theme="botanical"] .botanical-scene-sofa {
@@ -404,6 +428,7 @@ export default function BotanicalReferenceCompositionStyles() {
       html[data-shelf-theme="botanical"] .bookcase.modular-bookcase,
       html[data-shelf-theme="botanical"] .bookcase {
         width: calc(100% - 12px) !important;
+        margin-top: -4px !important;
       }
     }
   `}</style>;
