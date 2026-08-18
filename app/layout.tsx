@@ -17,7 +17,6 @@ import "./web-cover-search.css";
 import "./saved-cover-choices.css";
 import "./generated-spines.css";
 import "./spine-physical-cleanup.css";
-import "./page-refresh.css";
 import "./spine-generator.css";
 import "./spine-author-correction.css";
 import "./spine-community.css";
@@ -31,7 +30,6 @@ import "./help-shelf-launcher.css";
 import "./reader-ui-cleanup.css";
 import "./mobile-shelf-compression.css";
 import "./theme-ui-polish.css";
-import "./desktop-toolbar-refine.css";
 import "./shelf-art-polish.css";
 import "./botanical-production.css";
 import "./botanical-walnut-material.css";
@@ -48,8 +46,8 @@ import ClientEnhancers from "./ClientEnhancers";
 import ThreeDPrototypeLauncher from "./ThreeDPrototypeLauncher";
 
 export const metadata: Metadata = {
-  title: "Virtual Bookshelf",
-  description: "A cozy visual bookshelf with Goodreads CSV import.",
+  title: "Shelf of Fame — Your Reading Life, On Display",
+  description: "Turn the books you've read into a shelf worth showing off.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

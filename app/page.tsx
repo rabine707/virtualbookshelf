@@ -61,8 +61,16 @@ export default function Home() {
   const shelves = useMemo(() => {
     const result: Book[][] = [];
     for (let i = 0; i < visibleBooks.length; i += 14) result.push(visibleBooks.slice(i, i + 14));
+
+    // Give a brand-new/small library one furnished room row beneath its books,
+    // without stretching a dozen books across several obviously empty shelves.
+    // Search results remain literal and do not add scenery rows.
+    if (!query.trim() && visibleBooks.length > 0) {
+      while (result.length < 2) result.push([]);
+    }
+
     return result;
-  }, [visibleBooks]);
+  }, [visibleBooks, query]);
 
   return (
     <main className="shelf-page">
@@ -76,12 +84,8 @@ export default function Home() {
             <div className="hero-copy">
               <p className="eyebrow">YOUR READING LIFE, ON DISPLAY</p>
               <h1>Shelf of Fame</h1>
-              <p className="subhead">Turn the books you’ve read into a shelf worth showing off.</p>
             </div>
             <div className="reader-hero-actions">
-              <button className="primary reader-original-import" onClick={() => goodreadsInput.current?.click()}>
-                Import Goodreads
-              </button>
               <div className="reader-add-books">
                 <button type="button" className="primary reader-add-books-trigger" aria-haspopup="dialog" onClick={() => window.dispatchEvent(new Event("shelf-open-book-search"))}>
                   ＋ Add books
@@ -91,7 +95,14 @@ export default function Home() {
             <input ref={goodreadsInput} type="file" accept=".csv,text/csv" hidden onChange={importGoodreadsCsv} />
           </header>
 
-          <ShelfToolbar query={query} sort={sort} count={visibleBooks.length} onQueryChange={setQuery} onSortChange={setSort} />
+          <ShelfToolbar
+            query={query}
+            sort={sort}
+            count={visibleBooks.length}
+            onQueryChange={setQuery}
+            onSortChange={setSort}
+            onImportGoodreads={() => goodreadsInput.current?.click()}
+          />
         </div>
       </section>
 
