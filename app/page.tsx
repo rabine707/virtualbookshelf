@@ -62,11 +62,11 @@ export default function Home() {
     const result: Book[][] = [];
     for (let i = 0; i < visibleBooks.length; i += 14) result.push(visibleBooks.slice(i, i + 14));
 
-    // A small personal library should still feel like a room-sized bookcase rather
-    // than a single shelf floating above an empty web page. Empty display rows are
-    // only staged for the unfiltered shelf; search results stay compact and literal.
+    // Give a brand-new/small library one furnished room row beneath its books,
+    // without stretching a dozen books across several obviously empty shelves.
+    // Search results remain literal and do not add scenery rows.
     if (!query.trim() && visibleBooks.length > 0) {
-      while (result.length < 3) result.push([]);
+      while (result.length < 2) result.push([]);
     }
 
     return result;
