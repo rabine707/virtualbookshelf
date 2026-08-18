@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import AuthEnricher from "./AuthEnricher";
 import CloudAccountSettings from "./CloudAccountSettings";
-import HelpShelfLauncher from "./HelpShelfLauncher";
 import MobileTapFix from "./MobileTapFix";
 import QoLEnricher from "./QoLEnricher";
 import ShelfScanner from "./ShelfScanner";
@@ -35,7 +34,6 @@ function MobileBottomNav() {
       .safe-mobile-nav { display: none; }
       @media (max-width: 760px) {
         body { padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important; }
-        .help-shelf-launcher { display: none !important; }
         .safe-mobile-nav {
           position: fixed;
           z-index: 120;
@@ -107,7 +105,6 @@ export default function ClientEnhancers() {
     <AuthEnricher />
     <ShelfScanner />
     <CloudAccountSettings />
-    <HelpShelfLauncher />
     <SpineArtEnricher />
     <SharedSpineEnricher />
     <SpineGallery />
