@@ -15,7 +15,7 @@ type BookLayout = "center" | "left" | "right" | "split";
 const DECOR_VARIATIONS: DecorSpec[] = [
   { left: "plant", right: "warm-glow" },
   { right: "plant-small" },
-  {},
+  { left: "warm-glow" },
   { left: "warm-glow", right: "plant" },
   { left: "plant-small" },
   {},
@@ -79,6 +79,7 @@ export function Bookshelf({ shelves, onSelect }: BookshelfProps) {
             : decor.right
               ? "botanical-decor-right"
               : "";
+        const emptyClass = shelf.length === 0 ? "shelf-row-empty" : "";
 
         const renderBook = (book: Book, index: number) => (
           <BookSpine
@@ -95,7 +96,7 @@ export function Bookshelf({ shelves, onSelect }: BookshelfProps) {
 
         return (
           <div
-            className={`shelf-row modular-shelf-row ${decorClass}`.trim()}
+            className={`shelf-row modular-shelf-row ${decorClass} ${emptyClass}`.trim()}
             key={shelfIndex}
             data-shelf-row={rowNumber}
             data-book-layout={layout}
