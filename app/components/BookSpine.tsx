@@ -96,11 +96,14 @@ export function BookSpine({ book, bookNumber, onSelect }: BookSpineProps) {
     return () => controller.abort();
   }, [book, key, preferred, shouldLoad]);
 
+  // Keep variation in believable book thickness instead of random height/lean.
+  // The flagship Botanical theme uses this shared width token for generated,
+  // cover-derived, and fallback spines so all three systems read as one shelf.
   const style = {
     "--book-color": book.color,
     "--lean": `${((bookNumber % 7) - 3) * 0.42}deg`,
-    "--book-height": `${180 + ((bookNumber * 17) % 38)}px`,
-    "--book-width": `${66 + ((bookNumber * 11) % 34)}px`,
+    "--book-height": "204px",
+    "--book-width": `${52 + ((bookNumber * 7) % 19)}px`,
     "--band-offset": `${25 + ((bookNumber * 13) % 42)}%`,
   } as CSSProperties;
 
