@@ -78,22 +78,22 @@ export default function BotanicalReferenceCompositionStyles() {
       transform: rotate(-.2deg) !important;
     }
 
-    /* The approved sofa is lower-left foreground framing. It deliberately crosses
-       the second/third shelf region without taking any interaction space. */
+    /* The approved sofa is foreground framing, not the subject. It settles into
+       the second shelf row so books remain the dominant thing in the viewport. */
     html[data-shelf-theme="botanical"] .botanical-scene-sofa {
-      left: -165px !important;
+      left: -135px !important;
       right: auto !important;
-      bottom: -680px !important;
-      width: clamp(500px, 38vw, 660px) !important;
+      bottom: -575px !important;
+      width: clamp(430px, 31vw, 540px) !important;
       max-width: none !important;
       z-index: 42 !important;
-      opacity: .95 !important;
+      opacity: .93 !important;
       filter:
         brightness(.74)
         saturate(.80)
         contrast(1.05)
         drop-shadow(18px 26px 34px rgba(0,0,0,.42)) !important;
-      transform: rotate(-.4deg) !important;
+      transform: rotate(-.35deg) !important;
       transform-origin: left bottom !important;
     }
 
@@ -303,7 +303,7 @@ export default function BotanicalReferenceCompositionStyles() {
     }
 
     html[data-shelf-theme="botanical"] .shelf-row-empty .botanical-row-decor {
-      opacity: .82 !important;
+      opacity: .78 !important;
     }
 
     /* ---------- LARGE-DESKTOP REFERENCE PROPORTIONS ---------- */
@@ -325,9 +325,9 @@ export default function BotanicalReferenceCompositionStyles() {
       }
 
       html[data-shelf-theme="botanical"] .botanical-scene-sofa {
-        left: -175px !important;
-        bottom: -670px !important;
-        width: clamp(570px, 39vw, 690px) !important;
+        left: -145px !important;
+        bottom: -585px !important;
+        width: clamp(470px, 32vw, 560px) !important;
       }
     }
 
@@ -350,10 +350,10 @@ export default function BotanicalReferenceCompositionStyles() {
       }
 
       html[data-shelf-theme="botanical"] .botanical-scene-sofa {
-        left: -150px !important;
-        bottom: -620px !important;
-        width: 500px !important;
-        opacity: .84 !important;
+        left: -125px !important;
+        bottom: -535px !important;
+        width: 430px !important;
+        opacity: .82 !important;
       }
 
       html[data-shelf-theme="botanical"] .botanical-real-room-sconce,
