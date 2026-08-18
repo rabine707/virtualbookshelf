@@ -36,8 +36,7 @@ import "./bookshelf-3d-prototype.css";
 import "./prototype-page.css";
 import BotanicalAssetEnricher from "./BotanicalAssetEnricher";
 import BotanicalMaterialStyles from "./BotanicalMaterialStyles";
-import BotanicalPropStyles from "./BotanicalPropStyles";
-import BotanicalLampFixStyles from "./BotanicalLampFixStyles";
+import BotanicalShelfDecorStyles from "./BotanicalShelfDecorStyles";
 import BotanicalDesignSystemStyles from "./BotanicalDesignSystemStyles";
 import BotanicalReferenceCompositionStyles from "./BotanicalReferenceCompositionStyles";
 import ClientEnhancers from "./ClientEnhancers";
@@ -52,12 +51,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        {/* Botanical cascade: material foundation -> shelf props -> lamp detail ->
-            canonical design system -> final reference composition. Keep this order
-            deliberate; superseded material/lighting patch layers have been removed. */}
+        {/* Botanical cascade: material foundation -> shelf decor -> canonical
+            design system -> final reference composition. Keep this order deliberate;
+            superseded material/lighting patch layers have been removed. */}
         <BotanicalMaterialStyles />
-        <BotanicalPropStyles />
-        <BotanicalLampFixStyles />
+        <BotanicalShelfDecorStyles />
         <BotanicalDesignSystemStyles />
         <BotanicalReferenceCompositionStyles />
         {children}
