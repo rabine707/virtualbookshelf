@@ -10,10 +10,6 @@
   max-width: 720px;
 }
 
-.reader-hero .hero-copy .subhead {
-  max-width: 580px;
-}
-
 .reader-original-import {
   display: none !important;
 }
@@ -117,12 +113,142 @@
   text-transform: uppercase;
 }
 
+/* The visible toolbar now owns only primary actions. Legacy enhancer controls
+   stay mounted as implementation bridges, but live behind the explicit menu. */
 .reader-toolbar {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(118px, 150px) auto 44px;
   align-items: center;
+  gap: 8px;
 }
 
 .reader-toolbar .search-wrap {
-  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.reader-toolbar > .spine-review-launch,
+.reader-toolbar > .theme-picker-trigger,
+.reader-toolbar > .spine-label-toggle,
+.reader-toolbar > .qol-toolbar {
+  display: none !important;
+}
+
+.shelf-book-count {
+  min-width: 74px;
+  color: rgba(255,255,255,.62);
+  font-size: 11px;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.shelf-book-count strong {
+  color: rgba(255,255,255,.92);
+  font-size: 13px;
+}
+
+.shelf-utility-menu {
+  position: relative;
+  z-index: 85;
+}
+
+.shelf-utility-menu > summary {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  list-style: none;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 13px;
+  background: rgba(20,18,16,.72);
+  color: inherit;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(10px);
+}
+
+.shelf-utility-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.shelf-utility-menu > summary:hover,
+.shelf-utility-menu > summary:focus-visible,
+.shelf-utility-menu[open] > summary {
+  background: rgba(255,255,255,.1);
+}
+
+.shelf-utility-menu > summary span {
+  transform: translateY(-2px);
+  font-size: 17px;
+  letter-spacing: .08em;
+}
+
+.shelf-utility-menu__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(290px, calc(100vw - 28px));
+  padding: 9px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 15px;
+  background: rgba(15,14,13,.97);
+  box-shadow: 0 18px 50px rgba(0,0,0,.44);
+  backdrop-filter: blur(18px);
+}
+
+.shelf-utility-menu__heading {
+  display: grid;
+  gap: 2px;
+  padding: 7px 9px 9px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  margin-bottom: 5px;
+}
+
+.shelf-utility-menu__heading strong {
+  font-size: 13px;
+}
+
+.shelf-utility-menu__heading span {
+  color: rgba(255,255,255,.5);
+  font-size: 10px;
+}
+
+.shelf-utility-menu__item {
+  width: 100%;
+  min-height: 43px;
+  display: grid;
+  grid-template-columns: 80px minmax(0,1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.shelf-utility-menu__item:hover,
+.shelf-utility-menu__item:focus-visible {
+  background: rgba(255,255,255,.07);
+}
+
+.shelf-utility-menu__item > span {
+  color: rgba(255,255,255,.42);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.shelf-utility-menu__item > strong {
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 750;
 }
 
 .reader-modal .details > .eyebrow {
@@ -276,11 +402,25 @@
   }
 
   .reader-toolbar {
-    gap: 8px;
+    grid-template-columns: minmax(0,1fr) 94px 44px;
+    gap: 6px;
   }
 
   .reader-toolbar .search-wrap {
-    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .shelf-book-count {
+    display: none;
+  }
+
+  .shelf-utility-menu__panel {
+    position: fixed;
+    top: auto;
+    right: 14px;
+    bottom: calc(94px + env(safe-area-inset-bottom));
+    left: 14px;
+    width: auto;
   }
 
   .reader-modal .details {
