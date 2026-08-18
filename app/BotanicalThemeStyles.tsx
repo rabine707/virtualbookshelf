@@ -35,7 +35,7 @@ export default function BotanicalThemeStyles() {
         position: relative !important;
         background:
           radial-gradient(ellipse at 4% 36%, rgba(226, 206, 155, .07) 0%, rgba(116, 111, 75, .025) 24%, transparent 43%),
-          linear-gradient(90deg, rgba(25, 36, 25, .58) 0%, rgba(11, 18, 12, .24) 32%, rgba(5, 9, 6, .56) 100%) !important;
+          linear-gradient(90deg, rgba(34, 38, 29, .56) 0%, rgba(13, 19, 13, .26) 34%, rgba(6, 10, 7, .52) 100%) !important;
       }
 
       html[data-shelf-theme="botanical"] .cinematic-room {
@@ -136,10 +136,10 @@ export default function BotanicalThemeStyles() {
         height: 710px;
         pointer-events: none;
         background:
-          radial-gradient(ellipse at 90% 24%, rgba(36, 23, 13, .14), transparent 42%),
-          linear-gradient(90deg, transparent 0%, rgba(0,0,0,.06) 38%, rgba(0,0,0,.24) 78%, rgba(0,0,0,.38) 100%);
+          radial-gradient(ellipse at 90% 24%, rgba(36, 23, 13, .11), transparent 42%),
+          linear-gradient(90deg, transparent 0%, rgba(0,0,0,.045) 38%, rgba(0,0,0,.16) 78%, rgba(0,0,0,.27) 100%);
         filter: blur(10px);
-        opacity: .62;
+        opacity: .58;
         mix-blend-mode: multiply;
       }
 
@@ -151,6 +151,18 @@ export default function BotanicalThemeStyles() {
           saturate(.91)
           contrast(1.015)
           drop-shadow(18px 28px 34px rgba(0,0,0,.26)) !important;
+      }
+
+      html[data-shelf-theme="botanical"] .botanical-scene-sofa {
+        left: -122px !important;
+        bottom: -542px !important;
+        width: clamp(405px, 28vw, 500px) !important;
+        opacity: .91 !important;
+        filter:
+          brightness(.78)
+          saturate(.82)
+          contrast(1.045)
+          drop-shadow(18px 25px 32px rgba(0,0,0,.39)) !important;
       }
 
       html[data-shelf-theme="botanical"] .botanical-real-sconce-glow {
@@ -190,9 +202,9 @@ export default function BotanicalThemeStyles() {
         inset: 0;
         pointer-events: none;
         box-shadow:
-          inset 34px 0 48px rgba(9, 8, 5, .18),
-          inset -54px 0 66px rgba(0,0,0,.38),
-          inset 0 -24px 36px rgba(0,0,0,.08);
+          inset 30px 0 44px rgba(9, 8, 5, .16),
+          inset -44px 0 58px rgba(0,0,0,.28),
+          inset 0 -22px 32px rgba(0,0,0,.07);
       }
 
       html[data-shelf-theme="botanical"] .bookcase.modular-bookcase::after,
@@ -204,12 +216,12 @@ export default function BotanicalThemeStyles() {
         pointer-events: none;
         background:
           linear-gradient(108deg,
-            rgba(255, 236, 193, .050) 0%,
-            rgba(255, 225, 177, .018) 28%,
+            rgba(255, 236, 193, .055) 0%,
+            rgba(255, 225, 177, .020) 28%,
             transparent 47%,
-            rgba(7, 5, 3, .055) 72%,
-            rgba(0, 0, 0, .14) 100%),
-          radial-gradient(ellipse at 16% 0%, rgba(255, 226, 178, .035), transparent 33%);
+            rgba(7, 5, 3, .040) 72%,
+            rgba(0, 0, 0, .09) 100%),
+          radial-gradient(ellipse at 16% 0%, rgba(255, 226, 178, .040), transparent 33%);
         mix-blend-mode: soft-light;
       }
 
@@ -219,12 +231,12 @@ export default function BotanicalThemeStyles() {
         border-right-color: #1b100a !important;
         background:
           radial-gradient(ellipse at 12% 5%, rgba(255, 230, 180, .090) 0%, rgba(246, 217, 166, .025) 29%, transparent 46%),
-          linear-gradient(108deg, rgba(236, 221, 178, .075) 0%, rgba(118, 101, 75, .018) 27%, transparent 49%, rgba(0,0,0,.15) 79%, rgba(0,0,0,.27) 100%),
+          linear-gradient(108deg, rgba(236, 221, 178, .075) 0%, rgba(118, 101, 75, .018) 27%, transparent 49%, rgba(0,0,0,.105) 79%, rgba(0,0,0,.20) 100%),
           linear-gradient(to bottom, rgba(19,12,8,.22) 0%, transparent 28%, rgba(7,4,3,.26) 100%),
           url("/themes/botanical/v4/shelf-back-clean.webp") center / 100% 100% no-repeat !important;
         box-shadow:
           inset 20px 0 32px rgba(0,0,0,.29),
-          inset -34px 0 48px rgba(0,0,0,.48),
+          inset -30px 0 44px rgba(0,0,0,.39),
           inset 0 20px 24px rgba(0,0,0,.29),
           inset 0 -12px 24px rgba(10,5,3,.18) !important;
       }
@@ -242,23 +254,51 @@ export default function BotanicalThemeStyles() {
             rgba(255, 238, 199, .085) 0%,
             rgba(255, 225, 177, .032) 24%,
             transparent 47%,
-            rgba(2,2,1,.035) 72%,
-            rgba(0,0,0,.10) 100%),
+            rgba(2,2,1,.025) 72%,
+            rgba(0,0,0,.075) 100%),
           radial-gradient(ellipse at 12% 16%, rgba(255, 231, 185, .075), transparent 34%),
           linear-gradient(to bottom, rgba(255,255,255,.018), transparent 32%, rgba(0,0,0,.045) 100%) !important;
         mix-blend-mode: soft-light !important;
       }
 
+      /* A faint window-frame shadow and warm wash make the daylight feel cast by
+         the visible window instead of looking like a generic green gradient. */
+      html[data-shelf-theme="botanical"] .modular-shelf-row:first-child > .books::before,
+      html[data-shelf-theme="botanical"] .shelf-row:first-child > .books::before {
+        content: "";
+        position: absolute;
+        z-index: 15;
+        inset: -4px 0 0;
+        pointer-events: none;
+        background:
+          linear-gradient(108deg,
+            transparent 0 13%,
+            rgba(53, 38, 23, .075) 14% 16%,
+            transparent 18% 29%,
+            rgba(45, 32, 20, .050) 30% 32%,
+            transparent 34% 100%),
+          linear-gradient(108deg,
+            rgba(255, 241, 204, .105) 0%,
+            rgba(255, 229, 184, .043) 22%,
+            transparent 49%);
+        mix-blend-mode: soft-light;
+      }
+
+      html[data-shelf-theme="botanical"] .modular-shelf-row:first-child .book-cluster-a > .book:nth-child(-n+4),
+      html[data-shelf-theme="botanical"] .shelf-row:first-child .book-cluster-a > .book:nth-child(-n+4) {
+        filter: brightness(1.035) saturate(.985);
+      }
+
       html[data-shelf-theme="botanical"] .modular-shelf-row:nth-child(2)::after,
       html[data-shelf-theme="botanical"] .shelf-row:nth-child(2)::after {
-        opacity: .68 !important;
+        opacity: .64 !important;
         background:
           linear-gradient(110deg,
             rgba(255, 231, 188, .070) 0%,
             rgba(239, 210, 162, .022) 25%,
             transparent 48%,
-            rgba(0,0,0,.055) 76%,
-            rgba(0,0,0,.13) 100%),
+            rgba(0,0,0,.038) 76%,
+            rgba(0,0,0,.09) 100%),
           radial-gradient(ellipse at 16% 62%, rgba(222, 193, 147, .055), transparent 31%) !important;
       }
 
@@ -295,30 +335,38 @@ export default function BotanicalThemeStyles() {
         mix-blend-mode: soft-light;
       }
 
-      /* Small libraries get a reading-nook row, not a giant vacant display box. */
+      /* Small libraries get a compact reading nook: the sofa owns the left side
+         and a warm practical lamp balances it on the right. */
       html[data-shelf-theme="botanical"] .shelf-row-empty {
-        min-height: 264px !important;
-        height: 264px !important;
+        min-height: 226px !important;
+        height: 226px !important;
         background:
-          radial-gradient(ellipse at 15% 72%, rgba(222, 195, 148, .080) 0%, rgba(122, 104, 78, .020) 27%, transparent 44%),
-          radial-gradient(ellipse at 86% 63%, rgba(184, 142, 86, .040), transparent 28%),
-          linear-gradient(106deg, rgba(198, 184, 145, .035) 0%, transparent 38%, rgba(0,0,0,.17) 100%),
-          linear-gradient(to bottom, rgba(15,9,6,.20), transparent 31%, rgba(7,4,3,.30) 100%),
+          radial-gradient(ellipse at 14% 66%, rgba(222, 195, 148, .095) 0%, rgba(122, 104, 78, .023) 28%, transparent 45%),
+          radial-gradient(ellipse at 84% 55%, rgba(213, 157, 91, .065), transparent 29%),
+          linear-gradient(106deg, rgba(198, 184, 145, .040) 0%, transparent 40%, rgba(0,0,0,.12) 100%),
+          linear-gradient(to bottom, rgba(15,9,6,.18), transparent 32%, rgba(7,4,3,.26) 100%),
           url("/themes/botanical/v4/shelf-back-clean.webp") center / 100% 100% no-repeat !important;
       }
 
       html[data-shelf-theme="botanical"] .shelf-row-empty > .shelf-occupant-flow {
-        height: 212px !important;
+        height: 178px !important;
+        bottom: 27px !important;
       }
 
       html[data-shelf-theme="botanical"] .shelf-row-empty .botanical-row-decor {
-        opacity: .84 !important;
-        filter: saturate(.88) brightness(.90) !important;
+        opacity: .90 !important;
+      }
+
+      html[data-shelf-theme="botanical"] .shelf-row-empty .botanical-row-decor-warm-glow {
+        filter: saturate(.94) brightness(1.02) !important;
       }
 
       html[data-shelf-theme="botanical"] main.shelf-page > footer {
         position: relative !important;
+        z-index: 45 !important;
         margin-top: 0 !important;
+        padding-left: clamp(330px, 25vw, 460px) !important;
+        box-sizing: border-box !important;
         border-top: 1px solid rgba(110, 77, 49, .14) !important;
         background: linear-gradient(90deg, rgba(20,27,19,.20), rgba(7,10,7,.06) 48%, rgba(0,0,0,.12)) !important;
       }
@@ -350,11 +398,21 @@ export default function BotanicalThemeStyles() {
           height: 650px;
         }
 
+        html[data-shelf-theme="botanical"] .botanical-scene-sofa {
+          left: -112px !important;
+          bottom: -510px !important;
+          width: 405px !important;
+        }
+
         html[data-shelf-theme="botanical"] .bookcase.modular-bookcase::before,
         html[data-shelf-theme="botanical"] .bookcase::before {
           box-shadow:
             inset 20px 0 34px rgba(9,8,5,.16),
-            inset -34px 0 46px rgba(0,0,0,.31);
+            inset -34px 0 46px rgba(0,0,0,.27);
+        }
+
+        html[data-shelf-theme="botanical"] main.shelf-page > footer {
+          padding-left: 300px !important;
         }
       }
 
@@ -388,6 +446,11 @@ export default function BotanicalThemeStyles() {
           opacity: .52;
         }
 
+        html[data-shelf-theme="botanical"] .modular-shelf-row:first-child > .books::before,
+        html[data-shelf-theme="botanical"] .shelf-row:first-child > .books::before {
+          display: none !important;
+        }
+
         html[data-shelf-theme="botanical"] .modular-shelf-row::after,
         html[data-shelf-theme="botanical"] .shelf-row::after {
           z-index: 9 !important;
@@ -395,12 +458,16 @@ export default function BotanicalThemeStyles() {
         }
 
         html[data-shelf-theme="botanical"] .shelf-row-empty {
-          min-height: 230px !important;
-          height: 230px !important;
+          min-height: 214px !important;
+          height: 214px !important;
         }
 
         html[data-shelf-theme="botanical"] .shelf-row-empty > .shelf-occupant-flow {
-          height: 184px !important;
+          height: 168px !important;
+        }
+
+        html[data-shelf-theme="botanical"] main.shelf-page > footer {
+          padding-left: 4px !important;
         }
       }
     `}</style>
