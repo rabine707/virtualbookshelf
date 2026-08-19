@@ -101,7 +101,7 @@ export default function MobileShelfScene({
         <img src="/themes/botanical/v3/ceramic-pothos-planter.webp" alt="" />
       </div>
 
-      <main className={styles.shelfStage}>
+      <div className={styles.shelfStage} role="main">
         <div className={styles.cabinetCap} aria-hidden="true" />
 
         <div className={styles.shelfViewport}>
@@ -154,7 +154,7 @@ export default function MobileShelfScene({
             )}
           </div>
         </div>
-      </main>
+      </div>
 
       <div className={styles.statusPill} aria-live="polite">
         <span>{books.length} {books.length === 1 ? "book" : "books"}</span>
