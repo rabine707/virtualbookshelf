@@ -13,7 +13,7 @@ type MobileShelfSceneProps = {
   onAddBook: () => void;
 };
 
-const BOOKS_PER_ROW = 8;
+const BOOKS_PER_ROW = 7;
 
 function SearchIcon() {
   return (
@@ -87,9 +87,6 @@ export default function MobileShelfScene({
           <i>of</i>
           <span>FAME</span>
         </div>
-        <Link href="/account" className={styles.profileButton} aria-label="Open your profile">
-          <UserIcon />
-        </Link>
       </header>
 
       <div className={styles.quoteFrame} aria-hidden="true">
