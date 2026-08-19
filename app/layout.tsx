@@ -1,43 +1,18 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "./spine-fix.css";
-import "./theme-dark-academia.css";
-import "./theme-dark-academia-v2.css";
-import "./theme-cinematic-dark.css";
-import "./theme-organic-dark.css";
-import "./theme-mobile-hotfix.css";
-import "./theme-asset-dark.css";
-import "./theme-mega-upgrade.css";
-import "./theme-packs.css";
-import "./theme-environment-pack.css";
-import "./theme-gallery.css";
 import "./modal-cover-hotfix.css";
 import "./modal-scroll-lock.css";
 import "./web-cover-search.css";
 import "./saved-cover-choices.css";
 import "./generated-spines.css";
-import "./spine-physical-cleanup.css";
 import "./spine-generator.css";
 import "./spine-author-correction.css";
 import "./spine-community.css";
 import "./identifier-editor.css";
 import "./book-hub.css";
-import "./decor-store.css";
-import "./qol.css";
 import "./auth.css";
 import "./account/account.css";
 import "./help-shelf-launcher.css";
-import "./reader-ui-cleanup.css";
-import "./mobile-shelf-compression.css";
-import "./theme-ui-polish.css";
-import "./shelf-art-polish.css";
-import "./botanical-production.css";
-import "./bookshelf-3d-prototype.css";
-import "./prototype-page.css";
-import BotanicalAssetEnricher from "./BotanicalAssetEnricher";
-import BotanicalThemeStyles from "./BotanicalThemeStyles";
-import ClientEnhancers from "./ClientEnhancers";
-import ThreeDPrototypeLauncher from "./ThreeDPrototypeLauncher";
 
 export const metadata: Metadata = {
   title: "Shelf of Fame — Your Reading Life, On Display",
@@ -47,13 +22,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>
-        <BotanicalThemeStyles />
-        {children}
-        <ClientEnhancers />
-        <BotanicalAssetEnricher />
-        <ThreeDPrototypeLauncher />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
