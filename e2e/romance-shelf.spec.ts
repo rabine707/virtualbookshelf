@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { shelfCover } from "./mobile-shelf-helpers";
 
 const ROMANCE_COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23964'/%3E%3C/svg%3E";
 
@@ -29,9 +30,7 @@ test("fills a missing shelf cover from Romance.io without DOM injection", async 
   });
 
   await page.goto("/");
-  const fourthWing = page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]');
-  await expect(fourthWing).toBeVisible();
-  await expect(fourthWing.locator(".book-cover-art")).toHaveAttribute("src", ROMANCE_COVER_URL, { timeout: 8000 });
+  await expect(shelfCover(page, "Fourth Wing", "Rebecca Yarros")).toHaveAttribute("src", ROMANCE_COVER_URL, { timeout: 8000 });
 
   await expect.poll(async () => page.evaluate(() => {
     const books = JSON.parse(window.localStorage.getItem("shelf-of-fame-library-v1") || "[]") as Array<{
