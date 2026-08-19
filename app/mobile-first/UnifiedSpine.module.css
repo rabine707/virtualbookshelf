@@ -83,6 +83,27 @@
   pointer-events: none;
 }
 
+/*
+ * Readability guardrail for narrow mobile spines.
+ * fitSpineTitle still chooses the word breaks and horizontal scale, but the actual
+ * glyphs are never allowed to collapse into micro-type. Long lines condense before
+ * the letters become unreadable, matching how a real spine designer works.
+ */
+.printedDesign > span:has(> [data-print-role="title-line"]) {
+  left: 5px !important;
+  right: 5px !important;
+  width: auto !important;
+  overflow: hidden !important;
+}
+
+.printedDesign [data-print-role="title-line"] {
+  font-size: max(1em, 7.1px) !important;
+}
+
+.printedDesign [data-print-role="author"] {
+  font-size: max(1em, 4.8px) !important;
+}
+
 /* Matte printed ink is the default. It sits into the cloth instead of floating above it. */
 .ink [data-print-role="title-line"] {
   color: var(--spine-ink, rgba(255, 241, 216, .96));
