@@ -19,6 +19,12 @@ import {
   type SpineGeneratedEventDetail,
   type SpineRenderMode,
 } from "../../lib/spines/client";
+import {
+  fitSpineTitle,
+  pickSpineTemplate,
+  type FittedSpineTitle,
+  type SpineTemplateDefinition,
+} from "./spineTemplates";
 import styles from "./MobileShelfScene.module.css";
 
 type MobileBookSpineProps = {
@@ -27,43 +33,83 @@ type MobileBookSpineProps = {
   onSelect: (book: Book) => void;
 };
 
-function cleanDisplayTitle(title: string) {
-  let cleaned = title.trim();
-  while (/\s*\([^()]*\)\s*$/.test(cleaned)) {
-    cleaned = cleaned.replace(/\s*\([^()]*\)\s*$/, "").trim();
-  }
-  return cleaned || title.trim();
-}
-
-function shortTitle(title: string) {
-  const cleaned = cleanDisplayTitle(title);
-  if (cleaned.length <= 42) return cleaned;
-  return `${cleaned.slice(0, 39).trim()}…`;
-}
-
-function uprightTitleStyle(title: string): CSSProperties {
-  const compactLength = title.replace(/\s+/g, "").length;
-  const fontSize = compactLength > 30 ? "7.5px" : compactLength > 22 ? "8.5px" : compactLength > 14 ? "9.5px" : "10.5px";
-
+function titleAreaStyle(fit: FittedSpineTitle, template: SpineTemplateDefinition): CSSProperties {
   return {
-    top: "12px",
-    left: "4px",
-    right: "4px",
+    top: "22px",
+    left: "5px",
+    right: "5px",
     width: "auto",
-    height: "108px",
-    maxHeight: "108px",
+    height: "88px",
+    maxHeight: "88px",
     transform: "none",
     writingMode: "horizontal-tb",
     display: "flex",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
+    gap: template.id === "modern-minimal" ? "2px" : "1px",
+    overflow: "visible",
     textAlign: "center",
     whiteSpace: "normal",
-    overflowWrap: "break-word",
-    wordBreak: "normal",
-    fontSize,
-    lineHeight: 1.08,
-    letterSpacing: ".012em",
+    fontFamily: template.titleFont,
+    fontSize: `${fit.fontSize}px`,
+    fontWeight: template.titleWeight,
+    lineHeight: template.id === "romantic-accent" ? 1.02 : 1.08,
+    letterSpacing: template.letterSpacing,
+    textTransform: template.textTransform,
+    fontVariantCaps: template.id === "dark-luxe" ? "small-caps" : undefined,
+  };
+}
+
+function titleLineStyle(
+  fit: FittedSpineTitle,
+  template: SpineTemplateDefinition,
+  lineIndex: number,
+): CSSProperties {
+  const accent = lineIndex === fit.accentLine && Boolean(template.accentFont);
+  return {
+    display: "block",
+    maxWidth: "100%",
+    whiteSpace: "nowrap",
+    fontFamily: accent ? template.accentFont : undefined,
+    fontSize: accent ? `${Math.min(template.maxTitleSize + .4, fit.fontSize * 1.08)}px` : undefined,
+    fontWeight: accent ? 500 : undefined,
+    fontStyle: accent ? "italic" : undefined,
+    letterSpacing: accent ? "0" : undefined,
+    textTransform: accent ? "none" : undefined,
+    transform: accent ? "scaleX(.9)" : undefined,
+    transformOrigin: "center",
+  };
+}
+
+function ornamentStyle(template: SpineTemplateDefinition): CSSProperties {
+  const color = template.id === "dark-luxe"
+    ? "rgba(235, 196, 126, .82)"
+    : template.id === "romantic-accent"
+      ? "rgba(255, 226, 215, .8)"
+      : "rgba(247, 230, 198, .7)";
+
+  return {
+    position: "absolute",
+    zIndex: 4,
+    top: template.id === "modern-minimal" ? "12px" : "10px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    color,
+    textShadow: "0 1px 2px rgba(0, 0, 0, .7)",
+    fontFamily: template.id === "modern-minimal" ? template.authorFont : template.titleFont,
+    fontSize: template.id === "romantic-accent" ? "9px" : template.id === "ornamental-clothbound" ? "7px" : "6px",
+    lineHeight: 1,
+    letterSpacing: 0,
+    pointerEvents: "none",
+  };
+}
+
+function authorStyle(template: SpineTemplateDefinition): CSSProperties {
+  return {
+    fontFamily: template.authorFont,
+    color: template.id === "dark-luxe" ? "rgba(239, 211, 159, .76)" : undefined,
+    letterSpacing: template.id === "modern-minimal" ? ".055em" : ".02em",
   };
 }
 
@@ -81,7 +127,9 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const [spineCrop, setSpineCrop] = useState<string>();
   const displayedCover = preferred || cover;
   const coverUrl = displayedCover?.url;
-  const displayTitle = shortTitle(book.title);
+  const spineWidth = 42 + ((index * 5) % 12);
+  const template = pickSpineTemplate(book.title, book.author, book.color);
+  const fittedTitle = fitSpineTitle(book.title, spineWidth, template);
 
   useEffect(() => {
     if (preferred) {
@@ -172,8 +220,10 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
 
   const style = {
     "--mobile-spine-color": book.color,
-    "--mobile-spine-width": `${42 + ((index * 5) % 12)}px`,
+    "--mobile-spine-width": `${spineWidth}px`,
   } as CSSProperties;
+
+  const showOverlayTypography = generatedMode !== "integrated";
 
   return (
     <button
@@ -186,6 +236,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
       title={`${book.title} — ${book.author}`}
       data-book-id={book.id}
       data-spine-crop={spineCrop}
+      data-spine-template={template.id}
     >
       {coverUrl ? (
         <img
@@ -213,10 +264,17 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
         />
       ) : null}
       <span className={styles.spineShade} aria-hidden="true" />
-      {generatedMode !== "integrated" ? (
-        <span className={styles.spineTitle} style={uprightTitleStyle(displayTitle)}>{displayTitle}</span>
+      {showOverlayTypography ? (
+        <>
+          <span aria-hidden="true" style={ornamentStyle(template)}>{template.ornament}</span>
+          <span className={styles.spineTitle} style={titleAreaStyle(fittedTitle, template)}>
+            {fittedTitle.lines.map((line, lineIndex) => (
+              <span key={`${line}-${lineIndex}`} style={titleLineStyle(fittedTitle, template, lineIndex)}>{line}</span>
+            ))}
+          </span>
+          <span className={styles.spineAuthor} style={authorStyle(template)}>{book.author}</span>
+        </>
       ) : null}
-      {generatedMode !== "integrated" ? <span className={styles.spineAuthor}>{book.author}</span> : null}
     </button>
   );
 }
