@@ -118,14 +118,14 @@ export default function MobileShelfScene({
         aria-hidden="true"
         style={{
           position: "absolute",
-          zIndex: 12,
-          top: "calc(27vh - 150px)",
-          right: "0px",
-          width: "188px",
+          zIndex: 22,
+          top: "calc(27vh - 126px)",
+          right: "-6px",
+          width: "150px",
           height: "auto",
           pointerEvents: "none",
           objectFit: "contain",
-          filter: "brightness(.82) saturate(.9) contrast(1.04) drop-shadow(-5px 11px 9px rgba(0,0,0,.34))",
+          filter: "brightness(.88) saturate(.92) contrast(1.03) drop-shadow(-4px 9px 8px rgba(0,0,0,.34))",
         }}
       />
 
