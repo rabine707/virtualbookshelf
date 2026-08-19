@@ -59,8 +59,6 @@ function layoutClass(id: SpineLayoutId) {
 
 function printFinishFor(book: Book, design: SpineDesign): PrintFinish {
   const roll = stableNumber(`${book.id}|${book.title}|${book.author}|finish`) % 20;
-
-  // Keep the shelf mostly matte and readable. Foil is an accent, not the default.
   if (design.layout.id === "decorative-special" && roll < 5) return "foil";
   if (design.layout.id === "clothbound-literary" && (roll === 6 || roll === 12)) return "debossed";
   return "ink";
@@ -75,21 +73,19 @@ function printedFaceFor(book: Book): PrintedFace {
 
 function inkColors(design: SpineDesign) {
   if (design.ink === "gold") {
-    return {
-      ink: "rgba(239, 205, 142, .94)",
-      author: "rgba(226, 200, 153, .78)",
-    };
+    return { ink: "rgba(239, 205, 142, .94)", author: "rgba(226, 200, 153, .82)" };
   }
   if (design.ink === "white") {
-    return {
-      ink: "rgba(255, 248, 236, .97)",
-      author: "rgba(247, 236, 219, .84)",
-    };
+    return { ink: "rgba(255, 248, 236, .97)", author: "rgba(247, 236, 219, .88)" };
   }
-  return {
-    ink: "rgba(255, 241, 216, .95)",
-    author: "rgba(241, 225, 199, .76)",
-  };
+  return { ink: "rgba(255, 241, 216, .95)", author: "rgba(241, 225, 199, .82)" };
+}
+
+function displayAuthorLastName(author: string) {
+  const cleaned = author.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned) return author.toUpperCase();
+  const last = cleaned.split(" ").filter(Boolean).at(-1) || cleaned;
+  return last.replace(/^[^A-Za-z0-9À-ÖØ-öø-ÿ'’-]+|[^A-Za-z0-9À-ÖØ-öø-ÿ'’-]+$/g, "").toUpperCase();
 }
 
 function titleAreaStyle(fit: FittedSpineTitle, design: SpineDesign): CSSProperties {
@@ -108,8 +104,8 @@ function titleAreaStyle(fit: FittedSpineTitle, design: SpineDesign): CSSProperti
 
   return {
     top: `${top}px`,
-    left: `${layout.titlePadding}px`,
-    right: `${layout.titlePadding}px`,
+    left: "5px",
+    right: "5px",
     width: "auto",
     height: `${height}px`,
     maxHeight: `${height}px`,
@@ -120,7 +116,7 @@ function titleAreaStyle(fit: FittedSpineTitle, design: SpineDesign): CSSProperti
     gap: layout.id === "contemporary-editorial" ? "1.5px" : "1px",
     textAlign: leftAligned ? "left" : "center",
     fontFamily: design.fonts.titleFont,
-    fontSize: `${fit.fontSize}px`,
+    fontSize: `${Math.max(7.4, fit.fontSize)}px`,
     fontWeight: layout.titleWeight,
     lineHeight: layout.lineHeight,
     letterSpacing: `${layout.letterSpacingEm}em`,
@@ -129,18 +125,14 @@ function titleAreaStyle(fit: FittedSpineTitle, design: SpineDesign): CSSProperti
   };
 }
 
-function titleLineStyle(
-  fit: FittedSpineTitle,
-  design: SpineDesign,
-  lineIndex: number,
-): CSSProperties {
+function titleLineStyle(fit: FittedSpineTitle, design: SpineDesign, lineIndex: number): CSSProperties {
   const accent = lineIndex === fit.accentLine && Boolean(design.fonts.accentFont);
-  const baseScale = fit.lineScales[lineIndex] ?? 1;
-  const scale = accent ? Math.min(baseScale, .84) : baseScale;
+  const baseScale = Math.max(.72, fit.lineScales[lineIndex] ?? 1);
+  const scale = accent ? Math.min(baseScale, .86) : baseScale;
 
   return {
     fontFamily: accent ? design.fonts.accentFont : undefined,
-    fontSize: accent ? `${Math.min(design.layout.maxTitleSize + .7, fit.fontSize * 1.14)}px` : undefined,
+    fontSize: accent ? `${Math.min(design.layout.maxTitleSize + .7, Math.max(7.4, fit.fontSize) * 1.14)}px` : undefined,
     fontWeight: accent ? 500 : undefined,
     fontStyle: accent ? "italic" : undefined,
     letterSpacing: accent ? "0" : undefined,
@@ -150,59 +142,22 @@ function titleLineStyle(
   };
 }
 
-function authorStyle(book: Book, design: SpineDesign): CSSProperties {
-  const extra = Math.max(0, book.author.trim().length - 15);
-  const fontSize = Math.max(4.25, design.layout.authorSize - (extra * .055));
-
+function authorStyle(design: SpineDesign): CSSProperties {
   return {
     fontFamily: design.fonts.authorFont,
-    fontSize: `${fontSize}px`,
-    fontWeight: design.layout.id === "contemporary-editorial" ? 600 : 500,
-    letterSpacing: design.layout.id === "contemporary-editorial" ? ".045em" : ".018em",
+    fontSize: "5px",
+    fontWeight: design.layout.id === "contemporary-editorial" ? 650 : 550,
+    letterSpacing: ".055em",
   };
 }
 
 function SpineMotif({ type }: { type: NonNullable<SpineDesign["motif"]> }) {
-  if (type === "botanical") {
-    return (
-      <svg viewBox="0 0 18 18" aria-hidden="true">
-        <g fill="currentColor" opacity=".94">
-          <ellipse cx="9" cy="3.4" rx="1.25" ry="2.4" />
-          <ellipse cx="9" cy="14.6" rx="1.25" ry="2.4" />
-          <ellipse cx="3.4" cy="9" rx="2.4" ry="1.25" />
-          <ellipse cx="14.6" cy="9" rx="2.4" ry="1.25" />
-          <ellipse cx="5.05" cy="5.05" rx="1.15" ry="2.15" transform="rotate(-45 5.05 5.05)" />
-          <ellipse cx="12.95" cy="5.05" rx="1.15" ry="2.15" transform="rotate(45 12.95 5.05)" />
-          <ellipse cx="5.05" cy="12.95" rx="1.15" ry="2.15" transform="rotate(45 5.05 12.95)" />
-          <ellipse cx="12.95" cy="12.95" rx="1.15" ry="2.15" transform="rotate(-45 12.95 12.95)" />
-          <circle cx="9" cy="9" r="1.9" />
-        </g>
-      </svg>
-    );
-  }
-
-  if (type === "crescent") {
-    return (
-      <svg viewBox="0 0 18 18" aria-hidden="true">
-        <path
-          d="M12.9 13.8A6.2 6.2 0 0 1 5.1 4.2a5.45 5.45 0 1 0 7.8 9.6Z"
-          fill="currentColor"
-        />
-        <circle cx="13.3" cy="4.8" r=".75" fill="currentColor" opacity=".8" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg viewBox="0 0 18 18" aria-hidden="true">
-      <path
-        d="m9 1.9 1.25 4.05L14.3 7.2l-4.05 1.25L9 12.5 7.75 8.45 3.7 7.2l4.05-1.25L9 1.9Z"
-        fill="currentColor"
-      />
-      <circle cx="14.2" cy="12.8" r=".65" fill="currentColor" opacity=".75" />
-      <circle cx="4.15" cy="13.3" r=".45" fill="currentColor" opacity=".55" />
-    </svg>
-  );
+  const src = type === "botanical"
+    ? "/themes/botanical/v3/spine-ornaments/daisies.webp"
+    : type === "crescent"
+      ? "/themes/botanical/v3/spine-ornaments/crescent.webp"
+      : "/themes/botanical/v3/spine-ornaments/starburst.webp";
+  return <img className={unifiedStyles.ornament} src={src} alt="" aria-hidden="true" />;
 }
 
 export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps) {
@@ -224,6 +179,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const colors = inkColors(design);
   const printFinish = printFinishFor(book, design);
   const printedFace = printedFaceFor(book);
+  const displayAuthor = displayAuthorLastName(book.author);
 
   useEffect(() => {
     if (preferred) {
@@ -339,10 +295,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
     >
       <span className={unifiedStyles.physicalShell} aria-hidden="true" />
 
-      <span
-        className={`${unifiedStyles.printedDesign} ${unifiedStyles[printFinish]}`}
-        data-face={printedFace}
-      >
+      <span className={`${unifiedStyles.printedDesign} ${unifiedStyles[printFinish]}`} data-face={printedFace}>
         {coverUrl ? (
           <img
             className={`${styles.spineCover} ${publishedArt ? designStyles.artCover : designStyles.quietCover}`}
@@ -400,12 +353,8 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
               ))}
             </span>
 
-            <span
-              className={designStyles.author}
-              data-print-role="author"
-              style={authorStyle(book, design)}
-            >
-              {book.author}
+            <span className={designStyles.author} data-print-role="author" style={authorStyle(design)}>
+              {displayAuthor}
             </span>
           </>
         ) : null}

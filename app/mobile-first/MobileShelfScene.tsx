@@ -84,9 +84,10 @@ export default function MobileShelfScene({
       <div className={headStyles.dust} aria-hidden="true" />
       <img
         className={headStyles.hangingVine}
-        src="/themes/botanical/v3/hanging-vine-right.webp"
+        src="/themes/botanical/v3/hanging-pothos.webp"
         alt=""
         aria-hidden="true"
+        style={{ top: "7.5vh", right: "-8vw", width: "min(33vw, 172px)", height: "43vh" }}
       />
 
       <header className={styles.topBar}>
@@ -97,10 +98,16 @@ export default function MobileShelfScene({
         </div>
       </header>
 
-      <div className={headStyles.quoteFrame} aria-hidden="true">
-        <span>just</span>
-        <span>one more</span>
-        <span>chapter</span>
+      <div
+        className={headStyles.quoteFrame}
+        aria-hidden="true"
+        style={{ padding: "8px", overflow: "hidden" }}
+      >
+        <img
+          src="/themes/botanical/v3/botanical-sage-bluebell.webp"
+          alt=""
+          style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }}
+        />
       </div>
 
       <div className={headStyles.scenePlant} aria-hidden="true">
