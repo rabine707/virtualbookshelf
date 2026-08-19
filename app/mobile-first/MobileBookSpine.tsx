@@ -27,15 +27,24 @@ type MobileBookSpineProps = {
   onSelect: (book: Book) => void;
 };
 
+function cleanDisplayTitle(title: string) {
+  let cleaned = title.trim();
+  while (/\s*\([^()]*\)\s*$/.test(cleaned)) {
+    cleaned = cleaned.replace(/\s*\([^()]*\)\s*$/, "").trim();
+  }
+  return cleaned || title.trim();
+}
+
 function shortTitle(title: string) {
-  if (title.length <= 42) return title;
-  return `${title.slice(0, 39).trim()}…`;
+  const cleaned = cleanDisplayTitle(title);
+  if (cleaned.length <= 42) return cleaned;
+  return `${cleaned.slice(0, 39).trim()}…`;
 }
 
 export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const key = coverKey(book);
-  const eager = index < 16;
+  const eager = index < 14;
   const preferred = book.preferredCover && !rejectedUrls(book).has(book.preferredCover.url)
     ? book.preferredCover
     : undefined;
@@ -136,7 +145,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
 
   const style = {
     "--mobile-spine-color": book.color,
-    "--mobile-spine-width": `${32 + ((index * 7) % 9)}px`,
+    "--mobile-spine-width": `${42 + ((index * 5) % 12)}px`,
   } as CSSProperties;
 
   return (
@@ -153,7 +162,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
     >
       {coverUrl ? (
         <img
-          className={styles.spineCover}
+          className={`${styles.spineCover} ${styles.fallbackCover}`}
           src={coverUrl}
           alt=""
           data-shelf-cover="true"
@@ -169,12 +178,11 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
       ) : null}
       {generatedSpine ? (
         <img
-          className={styles.spineCover}
+          className={`${styles.spineCover} ${styles.generatedSpineArt}`}
           src={generatedSpine}
           alt=""
           data-shelf-generated-spine="true"
           decoding="async"
-          style={{ zIndex: 1, transform: "none", filter: "saturate(.86) brightness(.82) contrast(1.06)" }}
         />
       ) : null}
       <span className={styles.spineShade} aria-hidden="true" />
