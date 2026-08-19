@@ -113,6 +113,23 @@ export default function MobileShelfScene({
       />
 
       <div className={styles.shelfStage} role="main">
+        <img
+          src="/themes/botanical/v6/hanging-pothos-shelf.webp"
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            zIndex: 24,
+            top: "-162px",
+            right: "-8px",
+            width: "174px",
+            height: "auto",
+            pointerEvents: "none",
+            objectFit: "contain",
+            filter: "brightness(.80) saturate(.86) contrast(1.04) drop-shadow(-5px 11px 9px rgba(0,0,0,.34))",
+          }}
+        />
+
         <div className={styles.cabinetCap} aria-hidden="true" />
 
         <div className={styles.shelfViewport}>
