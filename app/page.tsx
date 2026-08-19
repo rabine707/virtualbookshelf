@@ -56,7 +56,6 @@ export default function Home() {
     <>
       <MobileShelfScene
         books={books}
-        storageReady={storageReady}
         importMessage={importMessage}
         onSelect={setSelected}
         onAddBook={() => window.dispatchEvent(new Event("shelf-open-book-search"))}
