@@ -144,6 +144,49 @@ function authorStyle(book: Book, design: SpineDesign): CSSProperties {
   };
 }
 
+function SpineMotif({ type }: { type: NonNullable<SpineDesign["motif"]> }) {
+  if (type === "botanical") {
+    return (
+      <svg viewBox="0 0 18 18" aria-hidden="true">
+        <g fill="currentColor" opacity=".94">
+          <ellipse cx="9" cy="3.4" rx="1.25" ry="2.4" />
+          <ellipse cx="9" cy="14.6" rx="1.25" ry="2.4" />
+          <ellipse cx="3.4" cy="9" rx="2.4" ry="1.25" />
+          <ellipse cx="14.6" cy="9" rx="2.4" ry="1.25" />
+          <ellipse cx="5.05" cy="5.05" rx="1.15" ry="2.15" transform="rotate(-45 5.05 5.05)" />
+          <ellipse cx="12.95" cy="5.05" rx="1.15" ry="2.15" transform="rotate(45 12.95 5.05)" />
+          <ellipse cx="5.05" cy="12.95" rx="1.15" ry="2.15" transform="rotate(45 5.05 12.95)" />
+          <ellipse cx="12.95" cy="12.95" rx="1.15" ry="2.15" transform="rotate(-45 12.95 12.95)" />
+          <circle cx="9" cy="9" r="1.9" />
+        </g>
+      </svg>
+    );
+  }
+
+  if (type === "crescent") {
+    return (
+      <svg viewBox="0 0 18 18" aria-hidden="true">
+        <path
+          d="M12.9 13.8A6.2 6.2 0 0 1 5.1 4.2a5.45 5.45 0 1 0 7.8 9.6Z"
+          fill="currentColor"
+        />
+        <circle cx="13.3" cy="4.8" r=".75" fill="currentColor" opacity=".8" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 18 18" aria-hidden="true">
+      <path
+        d="m9 1.9 1.25 4.05L14.3 7.2l-4.05 1.25L9 12.5 7.75 8.45 3.7 7.2l4.05-1.25L9 1.9Z"
+        fill="currentColor"
+      />
+      <circle cx="14.2" cy="12.8" r=".65" fill="currentColor" opacity=".75" />
+      <circle cx="4.15" cy="13.3" r=".45" fill="currentColor" opacity=".55" />
+    </svg>
+  );
+}
+
 export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const key = coverKey(book);
@@ -311,7 +354,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
           {design.motif ? (
             <span className={designStyles.motifBand} aria-hidden="true">
               <i />
-              <b>{design.motif}</b>
+              <SpineMotif type={design.motif} />
               <i />
             </span>
           ) : null}
