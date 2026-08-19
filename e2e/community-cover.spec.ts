@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { searchShelf, shelfBook, shelfCover } from "./mobile-shelf-helpers";
 
 const COMMUNITY_COVER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23795'/%3E%3C/svg%3E";
 const CHOSEN_COVER = "https://example.com/chosen-cover.svg";
@@ -23,8 +24,7 @@ test("applies an approved community cover to the live shelf without reloading", 
   });
 
   await page.goto("/");
-  const fourthWing = page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]');
-  await expect(fourthWing.locator(".book-cover-art")).toHaveAttribute("src", COMMUNITY_COVER, { timeout: 8000 });
+  await expect(shelfCover(page, "Fourth Wing", "Rebecca Yarros")).toHaveAttribute("src", COMMUNITY_COVER, { timeout: 8000 });
 
   const state = await page.evaluate(() => {
     const books = JSON.parse(window.localStorage.getItem("shelf-of-fame-library-v1") || "[]") as Array<{
@@ -80,8 +80,8 @@ test("submits a signed-in reader's chosen cover directly from the React action",
   await page.evaluate(() => {
     window.localStorage.setItem("shelf-of-fame-supabase-session", JSON.stringify({ access_token: "test-access-token" }));
   });
-  await page.getByPlaceholder("Search title or author…").fill("Fourth Wing");
-  await page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]').click();
+  await searchShelf(page, "Fourth Wing");
+  await shelfBook(page, "Fourth Wing", "Rebecca Yarros").click();
 
   const correctCover = page.getByTitle("Save this as the correct cover");
   await expect(correctCover).toBeEnabled();
