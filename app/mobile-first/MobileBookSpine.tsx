@@ -21,11 +21,13 @@ import {
 } from "../../lib/spines/client";
 import {
   fitSpineTitle,
-  pickSpineTemplate,
+  pickSpineDesign,
   type FittedSpineTitle,
-  type SpineTemplateDefinition,
+  type SpineDesign,
+  type SpineLayoutId,
 } from "./spineTemplates";
 import styles from "./MobileShelfScene.module.css";
+import designStyles from "./SpineDesign.module.css";
 
 type MobileBookSpineProps = {
   book: Book;
@@ -33,83 +35,112 @@ type MobileBookSpineProps = {
   onSelect: (book: Book) => void;
 };
 
-function titleAreaStyle(fit: FittedSpineTitle, template: SpineTemplateDefinition): CSSProperties {
+function stableNumber(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function spineWidthFor(book: Book) {
+  return 43 + (stableNumber(`${book.id}|${book.title}|${book.author}`) % 10);
+}
+
+function layoutClass(id: SpineLayoutId) {
+  if (id === "clothbound-literary") return designStyles.clothbound;
+  if (id === "contemporary-editorial") return designStyles.editorial;
+  if (id === "decorative-special") return designStyles.decorative;
+  return designStyles.publishedArt;
+}
+
+function inkColors(design: SpineDesign) {
+  if (design.ink === "gold") {
+    return {
+      ink: "rgba(239, 205, 142, .94)",
+      author: "rgba(226, 200, 153, .78)",
+    };
+  }
+  if (design.ink === "white") {
+    return {
+      ink: "rgba(255, 248, 236, .97)",
+      author: "rgba(247, 236, 219, .84)",
+    };
+  }
   return {
-    top: "22px",
-    left: "5px",
-    right: "5px",
+    ink: "rgba(255, 241, 216, .95)",
+    author: "rgba(241, 225, 199, .76)",
+  };
+}
+
+function titleAreaStyle(fit: FittedSpineTitle, design: SpineDesign): CSSProperties {
+  const { layout } = design;
+  const leftAligned = design.titleAlign === "left";
+  let top = layout.titleTop;
+  let height = layout.titleHeight;
+
+  if (layout.id === "clothbound-literary" && design.variant === 2) top += 5;
+  if (layout.id === "contemporary-editorial" && design.variant === 2) {
+    top += 11;
+    height -= 6;
+  }
+  if (layout.id === "decorative-special") top += 2;
+  if (layout.id === "published-art" && design.variant === 0) height += 4;
+
+  return {
+    top: `${top}px`,
+    left: `${layout.titlePadding}px`,
+    right: `${layout.titlePadding}px`,
     width: "auto",
-    height: "88px",
-    maxHeight: "88px",
-    transform: "none",
-    writingMode: "horizontal-tb",
+    height: `${height}px`,
+    maxHeight: `${height}px`,
     display: "flex",
     flexDirection: "column",
-    alignItems: "center",
+    alignItems: leftAligned ? "flex-start" : "center",
     justifyContent: "center",
-    gap: template.id === "modern-minimal" ? "2px" : "1px",
-    overflow: "visible",
-    textAlign: "center",
-    whiteSpace: "normal",
-    fontFamily: template.titleFont,
+    gap: layout.id === "contemporary-editorial" ? "1.5px" : "1px",
+    textAlign: leftAligned ? "left" : "center",
+    fontFamily: design.fonts.titleFont,
     fontSize: `${fit.fontSize}px`,
-    fontWeight: template.titleWeight,
-    lineHeight: template.id === "romantic-accent" ? 1.02 : 1.08,
-    letterSpacing: template.letterSpacing,
-    textTransform: template.textTransform,
-    fontVariantCaps: template.id === "dark-luxe" ? "small-caps" : undefined,
+    fontWeight: layout.titleWeight,
+    lineHeight: layout.lineHeight,
+    letterSpacing: `${layout.letterSpacingEm}em`,
+    textTransform: layout.textTransform,
+    fontVariantCaps: layout.id === "decorative-special" && design.variant === 1 ? "small-caps" : undefined,
   };
 }
 
 function titleLineStyle(
   fit: FittedSpineTitle,
-  template: SpineTemplateDefinition,
+  design: SpineDesign,
   lineIndex: number,
 ): CSSProperties {
-  const accent = lineIndex === fit.accentLine && Boolean(template.accentFont);
+  const accent = lineIndex === fit.accentLine && Boolean(design.fonts.accentFont);
+  const baseScale = fit.lineScales[lineIndex] ?? 1;
+  const scale = accent ? Math.min(baseScale, .84) : baseScale;
+
   return {
-    display: "block",
-    maxWidth: "100%",
-    whiteSpace: "nowrap",
-    fontFamily: accent ? template.accentFont : undefined,
-    fontSize: accent ? `${Math.min(template.maxTitleSize + .4, fit.fontSize * 1.08)}px` : undefined,
+    fontFamily: accent ? design.fonts.accentFont : undefined,
+    fontSize: accent ? `${Math.min(design.layout.maxTitleSize + .7, fit.fontSize * 1.14)}px` : undefined,
     fontWeight: accent ? 500 : undefined,
     fontStyle: accent ? "italic" : undefined,
     letterSpacing: accent ? "0" : undefined,
     textTransform: accent ? "none" : undefined,
-    transform: accent ? "scaleX(.9)" : undefined,
-    transformOrigin: "center",
+    transform: `scaleX(${scale})`,
+    transformOrigin: design.titleAlign === "left" ? "left center" : "center",
   };
 }
 
-function ornamentStyle(template: SpineTemplateDefinition): CSSProperties {
-  const color = template.id === "dark-luxe"
-    ? "rgba(235, 196, 126, .82)"
-    : template.id === "romantic-accent"
-      ? "rgba(255, 226, 215, .8)"
-      : "rgba(247, 230, 198, .7)";
+function authorStyle(book: Book, design: SpineDesign): CSSProperties {
+  const extra = Math.max(0, book.author.trim().length - 15);
+  const fontSize = Math.max(4.25, design.layout.authorSize - (extra * .055));
 
   return {
-    position: "absolute",
-    zIndex: 4,
-    top: template.id === "modern-minimal" ? "12px" : "10px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    color,
-    textShadow: "0 1px 2px rgba(0, 0, 0, .7)",
-    fontFamily: template.id === "modern-minimal" ? template.authorFont : template.titleFont,
-    fontSize: template.id === "romantic-accent" ? "9px" : template.id === "ornamental-clothbound" ? "7px" : "6px",
-    lineHeight: 1,
-    letterSpacing: 0,
-    pointerEvents: "none",
-  };
-}
-
-function authorStyle(template: SpineTemplateDefinition): CSSProperties {
-  return {
-    fontFamily: template.authorFont,
-    color: template.id === "dark-luxe" ? "rgba(239, 211, 159, .76)" : undefined,
-    letterSpacing: template.id === "modern-minimal" ? ".055em" : ".02em",
+    fontFamily: design.fonts.authorFont,
+    fontSize: `${fontSize}px`,
+    fontWeight: design.layout.id === "contemporary-editorial" ? 600 : 500,
+    letterSpacing: design.layout.id === "contemporary-editorial" ? ".045em" : ".018em",
   };
 }
 
@@ -127,9 +158,10 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const [spineCrop, setSpineCrop] = useState<string>();
   const displayedCover = preferred || cover;
   const coverUrl = displayedCover?.url;
-  const spineWidth = 42 + ((index * 5) % 12);
-  const template = pickSpineTemplate(book.title, book.author, book.color);
-  const fittedTitle = fitSpineTitle(book.title, spineWidth, template);
+  const spineWidth = spineWidthFor(book);
+  const design = pickSpineDesign(book.title, book.author, book.color, Boolean(coverUrl));
+  const fittedTitle = fitSpineTitle(book.title, spineWidth, design);
+  const colors = inkColors(design);
 
   useEffect(() => {
     if (preferred) {
@@ -221,26 +253,30 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const style = {
     "--mobile-spine-color": book.color,
     "--mobile-spine-width": `${spineWidth}px`,
+    "--spine-ink": colors.ink,
+    "--spine-author-ink": colors.author,
   } as CSSProperties;
 
   const showOverlayTypography = generatedMode !== "integrated";
+  const publishedArt = design.layout.id === "published-art";
 
   return (
     <button
       ref={ref}
       type="button"
-      className={`${styles.bookSpine} ${coverUrl ? styles.bookSpineWithCover : ""}`}
+      className={`${styles.bookSpine} ${coverUrl ? styles.bookSpineWithCover : ""} ${designStyles.publisherSpine} ${layoutClass(design.layout.id)}`}
       style={style}
       onClick={() => onSelect(book)}
       aria-label={`${book.title} by ${book.author}`}
       title={`${book.title} — ${book.author}`}
       data-book-id={book.id}
       data-spine-crop={spineCrop}
-      data-spine-template={template.id}
+      data-spine-layout={design.layout.id}
+      data-spine-variant={design.variant}
     >
       {coverUrl ? (
         <img
-          className={`${styles.spineCover} ${styles.fallbackCover}`}
+          className={`${styles.spineCover} ${publishedArt ? designStyles.artCover : designStyles.quietCover}`}
           src={coverUrl}
           alt=""
           data-shelf-cover="true"
@@ -254,25 +290,48 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
           }}
         />
       ) : null}
+
+      <span className={designStyles.material} aria-hidden="true" />
+      {publishedArt && coverUrl ? <span className={designStyles.artWash} aria-hidden="true" /> : null}
+
       {generatedSpine ? (
         <img
-          className={`${styles.spineCover} ${styles.generatedSpineArt}`}
+          className={`${styles.spineCover} ${designStyles.generatedArt}`}
           src={generatedSpine}
           alt=""
           data-shelf-generated-spine="true"
           decoding="async"
         />
       ) : null}
-      <span className={styles.spineShade} aria-hidden="true" />
+
       {showOverlayTypography ? (
         <>
-          <span aria-hidden="true" style={ornamentStyle(template)}>{template.ornament}</span>
-          <span className={styles.spineTitle} style={titleAreaStyle(fittedTitle, template)}>
+          {design.showFrame ? <span className={designStyles.frame} aria-hidden="true" /> : null}
+          {design.showDivider ? <span className={designStyles.divider} aria-hidden="true" /> : null}
+          {design.motif ? (
+            <span className={designStyles.motifBand} aria-hidden="true">
+              <i />
+              <b>{design.motif}</b>
+              <i />
+            </span>
+          ) : null}
+
+          <span
+            className={`${designStyles.title} ${design.titleAlign === "left" ? designStyles.titleLeft : ""}`}
+            style={titleAreaStyle(fittedTitle, design)}
+          >
             {fittedTitle.lines.map((line, lineIndex) => (
-              <span key={`${line}-${lineIndex}`} style={titleLineStyle(fittedTitle, template, lineIndex)}>{line}</span>
+              <span
+                className={designStyles.titleLine}
+                key={`${line}-${lineIndex}`}
+                style={titleLineStyle(fittedTitle, design, lineIndex)}
+              >
+                {line}
+              </span>
             ))}
           </span>
-          <span className={styles.spineAuthor} style={authorStyle(template)}>{book.author}</span>
+
+          <span className={designStyles.author} style={authorStyle(book, design)}>{book.author}</span>
         </>
       ) : null}
     </button>
