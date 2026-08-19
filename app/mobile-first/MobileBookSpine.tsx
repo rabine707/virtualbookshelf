@@ -41,6 +41,32 @@ function shortTitle(title: string) {
   return `${cleaned.slice(0, 39).trim()}…`;
 }
 
+function uprightTitleStyle(title: string): CSSProperties {
+  const compactLength = title.replace(/\s+/g, "").length;
+  const fontSize = compactLength > 30 ? "7.5px" : compactLength > 22 ? "8.5px" : compactLength > 14 ? "9.5px" : "10.5px";
+
+  return {
+    top: "12px",
+    left: "4px",
+    right: "4px",
+    width: "auto",
+    height: "108px",
+    maxHeight: "108px",
+    transform: "none",
+    writingMode: "horizontal-tb",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+    whiteSpace: "normal",
+    overflowWrap: "break-word",
+    wordBreak: "normal",
+    fontSize,
+    lineHeight: 1.08,
+    letterSpacing: ".012em",
+  };
+}
+
 export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const key = coverKey(book);
@@ -55,6 +81,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const [spineCrop, setSpineCrop] = useState<string>();
   const displayedCover = preferred || cover;
   const coverUrl = displayedCover?.url;
+  const displayTitle = shortTitle(book.title);
 
   useEffect(() => {
     if (preferred) {
@@ -186,7 +213,9 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
         />
       ) : null}
       <span className={styles.spineShade} aria-hidden="true" />
-      {generatedMode !== "integrated" ? <span className={styles.spineTitle}>{shortTitle(book.title)}</span> : null}
+      {generatedMode !== "integrated" ? (
+        <span className={styles.spineTitle} style={uprightTitleStyle(displayTitle)}>{displayTitle}</span>
+      ) : null}
       {generatedMode !== "integrated" ? <span className={styles.spineAuthor}>{book.author}</span> : null}
     </button>
   );
