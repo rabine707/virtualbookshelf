@@ -98,24 +98,25 @@ export default function MobileShelfScene({
         </div>
       </header>
 
-      <div
+      <img
         className={headStyles.quoteFrame}
+        src="/themes/botanical/v6/botanical-frame.webp"
+        alt=""
         aria-hidden="true"
-        style={{ padding: "8px", overflow: "hidden", background: "#d8c2a5" }}
-      >
-        <img
-          src="/themes/botanical/v3/botanical-chart-user.webp"
-          alt=""
-          style={{
-            display: "block",
-            width: "100%",
-            height: "100%",
-            objectFit: "contain",
-            objectPosition: "center",
-            background: "#f7f3eb",
-          }}
-        />
-      </div>
+        style={{
+          display: "block",
+          width: "138px",
+          height: "auto",
+          minHeight: 0,
+          padding: 0,
+          border: "none",
+          outline: "none",
+          background: "transparent",
+          objectFit: "contain",
+          boxShadow: "0 13px 24px rgba(0,0,0,.34), 0 3px 5px rgba(0,0,0,.22)",
+          transform: "rotate(.25deg)",
+        }}
+      />
 
       <div className={headStyles.scenePlant} aria-hidden="true">
         <img src="/themes/botanical/v3/ceramic-pothos-planter.webp" alt="" />
