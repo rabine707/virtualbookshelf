@@ -82,13 +82,6 @@ export default function MobileShelfScene({
       <div className={headStyles.sunbeam} aria-hidden="true" />
       <div className={headStyles.windowShadowCast} aria-hidden="true" />
       <div className={headStyles.dust} aria-hidden="true" />
-      <img
-        className={headStyles.hangingVine}
-        src="/themes/botanical/v3/hanging-pothos.webp"
-        alt=""
-        aria-hidden="true"
-        style={{ top: "7.5vh", right: "-8vw", width: "min(33vw, 172px)", height: "43vh" }}
-      />
 
       <header className={styles.topBar}>
         <div className={styles.brand} aria-label="Shelf of Fame">
@@ -118,10 +111,6 @@ export default function MobileShelfScene({
           transform: "rotate(.25deg)",
         }}
       />
-
-      <div className={headStyles.scenePlant} aria-hidden="true">
-        <img src="/themes/botanical/v3/ceramic-pothos-planter.webp" alt="" />
-      </div>
 
       <div className={styles.shelfStage} role="main">
         <div className={styles.cabinetCap} aria-hidden="true" />
