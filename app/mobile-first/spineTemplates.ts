@@ -30,7 +30,7 @@ export type SpineDesign = {
   layout: SpineLayoutDefinition;
   fonts: SpineFontSet;
   variant: 0 | 1 | 2;
-  motif: string | null;
+  motif: "star" | "botanical" | "crescent" | null;
   showFrame: boolean;
   showDivider: boolean;
   accentEligible: boolean;
@@ -247,7 +247,7 @@ export function pickSpineDesign(
   }
 
   const fonts = layout.fontSets[variant % layout.fontSets.length];
-  const decorativeMotifs = ["✦", "❦", "✿"];
+  const decorativeMotifs: Array<"star" | "botanical" | "crescent"> = ["star", "botanical", "crescent"];
   const motif = layout.id === "decorative-special" ? decorativeMotifs[variant] : null;
   const showFrame = layout.id === "decorative-special" || (layout.id === "clothbound-literary" && variant === 1);
   const showDivider = layout.id === "clothbound-literary"
