@@ -1,0 +1,120 @@
+.root :global(button[data-spine-layout] > span:has(> span)) {
+  transform-origin: center center;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.root :global(button[data-spine-variant="0"] > span:has(> span)) {
+  transform: perspective(260px) rotateY(-0.35deg);
+}
+
+.root :global(button[data-spine-variant="1"] > span:has(> span)) {
+  transform: perspective(260px) rotateY(0deg);
+}
+
+.root :global(button[data-spine-variant="2"] > span:has(> span)) {
+  transform: perspective(260px) rotateY(0.35deg);
+}
+
+/* Default printed-ink finish: slightly imperfect and seated into the cloth. */
+.root :global(button[data-spine-layout] > span:has(> span) > span) {
+  opacity: .94;
+  color: var(--spine-ink, rgba(255, 241, 216, .95));
+  text-shadow:
+    0 .45px .35px rgba(255, 255, 255, .08),
+    0 1px .8px rgba(0, 0, 0, .58),
+    0 1.8px 2.4px rgba(0, 0, 0, .16);
+  filter: contrast(1.025);
+}
+
+/* Authors should look printed, not like bright UI labels. */
+.root :global(button[data-spine-layout] > span:last-child) {
+  opacity: .82;
+  text-shadow:
+    0 .35px .25px rgba(255, 255, 255, .06),
+    0 .9px .7px rgba(0, 0, 0, .52);
+  filter: contrast(1.015);
+}
+
+/* Literary cloth: traditional tracking and shallow letterpress impression. */
+.root :global(button[data-spine-layout="clothbound-literary"] > span:has(> span) > span) {
+  letter-spacing: .025em;
+}
+
+.root :global(button[data-spine-layout="clothbound-literary"][data-spine-variant="0"] > span:has(> span) > span),
+.root :global(button[data-spine-layout="clothbound-literary"][data-spine-variant="2"] > span:has(> span) > span) {
+  text-shadow:
+    -.4px -.4px .35px rgba(0, 0, 0, .48),
+    .45px .45px .35px rgba(255, 255, 255, .14),
+    0 1px 1px rgba(0, 0, 0, .32);
+  opacity: .91;
+}
+
+/* Contemporary spines use flatter ink with crisp commercial-print edges. */
+.root :global(button[data-spine-layout="contemporary-editorial"] > span:has(> span) > span) {
+  letter-spacing: .012em;
+  text-shadow:
+    0 .4px .3px rgba(255, 255, 255, .07),
+    0 .85px .55px rgba(0, 0, 0, .5);
+  opacity: .95;
+}
+
+/* Special editions get true foil rather than a flat gold text color. */
+.root :global(button[data-spine-layout="decorative-special"] > span:has(> span) > span),
+.root :global(button[data-spine-layout="clothbound-literary"][data-spine-variant="1"] > span:has(> span) > span),
+.root :global(button[data-spine-layout="published-art"][data-spine-variant="1"] > span:has(> span) > span) {
+  color: transparent;
+  background:
+    linear-gradient(
+      118deg,
+      #9a6a22 0%,
+      #d7ad57 13%,
+      #fff0aa 29%,
+      #b77c27 43%,
+      #f1cf77 58%,
+      #fff2b1 72%,
+      #a86f20 100%
+    );
+  background-size: 165% 100%;
+  background-position: 42% center;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: .08px rgba(86, 55, 17, .38);
+  text-shadow: 0 .85px .7px rgba(0, 0, 0, .55);
+  filter:
+    drop-shadow(0 -.25px .18px rgba(255, 244, 188, .28))
+    drop-shadow(0 .75px .45px rgba(0, 0, 0, .32));
+  opacity: .97;
+}
+
+.root :global(button[data-spine-layout="decorative-special"] > span:has(> span) > span) {
+  letter-spacing: .032em;
+}
+
+/* Art-led books should feel like ink printed over an illustration, not a floating label. */
+.root :global(button[data-spine-layout="published-art"]:not([data-spine-variant="1"]) > span:has(> span) > span) {
+  opacity: .92;
+  text-shadow:
+    0 .4px .3px rgba(255, 255, 255, .08),
+    0 1px .85px rgba(0, 0, 0, .62),
+    0 0 2px rgba(0, 0, 0, .18);
+}
+
+/* Give foil authors a quieter matching stamp without competing with the title. */
+.root :global(button[data-spine-layout="decorative-special"] > span:last-child),
+.root :global(button[data-spine-layout="clothbound-literary"][data-spine-variant="1"] > span:last-child) {
+  color: color-mix(in srgb, #e9c873 72%, var(--spine-author-ink) 28%);
+  opacity: .78;
+  text-shadow:
+    0 .5px .35px rgba(255, 244, 190, .12),
+    0 1px .8px rgba(0, 0, 0, .55);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .root :global(button[data-spine-layout="decorative-special"]:active > span:has(> span) > span),
+  .root :global(button[data-spine-layout="clothbound-literary"][data-spine-variant="1"]:active > span:has(> span) > span) {
+    background-position: 55% center;
+  }
+}
