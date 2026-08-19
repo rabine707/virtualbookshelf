@@ -1,11 +1,9 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef } from "react";
 import BookSearchAdd from "./BookSearchAdd";
 import { BookDetailsModal } from "./components/BookDetailsModal";
-import { Bookshelf } from "./components/Bookshelf";
 import { CoverUndoToast } from "./components/CoverUndoToast";
-import { ShelfToolbar } from "./components/ShelfToolbar";
 import { useAudibleCoverFallback } from "./hooks/useAudibleCoverFallback";
 import { useBookCoverManager } from "./hooks/useBookCoverManager";
 import { useBookMetadataEditor } from "./hooks/useBookMetadataEditor";
@@ -13,10 +11,18 @@ import { useCloudShelfSync } from "./hooks/useCloudShelfSync";
 import { useCommunityCoverSync } from "./hooks/useCommunityCoverSync";
 import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
-import { Book, CoverResult, WebCoverResult } from "../lib/books/client-library";
+import MobileShelfScene from "./mobile-first/MobileShelfScene";
+import { CoverResult, WebCoverResult } from "../lib/books/client-library";
 
 export default function Home() {
-  const { books, setBooks, storageReady, importMessage, showToast, importGoodreadsCsv } = useShelfLibrary();
+  const {
+    books,
+    setBooks,
+    storageReady,
+    importMessage,
+    showToast,
+    importGoodreadsCsv,
+  } = useShelfLibrary();
 
   useCloudShelfSync({ books, setBooks, storageReady });
   const { submitCoverChoice } = useCommunityCoverSync({ books, setBooks });
@@ -44,86 +50,40 @@ export default function Home() {
     if (selected) void submitCoverChoice(selected, { url: result.url, source: "Web image" });
   }
 
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState("title");
   const goodreadsInput = useRef<HTMLInputElement>(null);
 
-  const visibleBooks = useMemo(() => {
-    const q = query.toLowerCase().trim();
-    const filtered = q ? books.filter((book) => `${book.title} ${book.author}`.toLowerCase().includes(q)) : [...books];
-    return filtered.sort((a, b) => {
-      if (sort === "author") return a.author.localeCompare(b.author);
-      if (sort === "rating") return (b.rating || 0) - (a.rating || 0);
-      return a.title.localeCompare(b.title);
-    });
-  }, [books, query, sort]);
-
-  const shelves = useMemo(() => {
-    const result: Book[][] = [];
-    for (let i = 0; i < visibleBooks.length; i += 14) result.push(visibleBooks.slice(i, i + 14));
-
-    // Give a brand-new/small library one furnished room row beneath its books,
-    // without stretching a dozen books across several obviously empty shelves.
-    // Search results remain literal and do not add scenery rows.
-    if (!query.trim() && visibleBooks.length > 0) {
-      while (result.length < 2) result.push([]);
-    }
-
-    return result;
-  }, [visibleBooks, query]);
-
   return (
-    <main className="shelf-page">
-      <section className="cinematic-room" aria-label="Shelf of Fame controls">
-        <div className="cinematic-room__plate" aria-hidden="true" />
-        <div className="cinematic-room__daylight" aria-hidden="true" />
-        <div className="cinematic-room__vignette" aria-hidden="true" />
+    <>
+      <MobileShelfScene
+        books={books}
+        storageReady={storageReady}
+        importMessage={importMessage}
+        onSelect={setSelected}
+        onAddBook={() => window.dispatchEvent(new Event("shelf-open-book-search"))}
+      />
 
-        <div className="cinematic-room__content">
-          <header className="hero reader-hero">
-            <div className="hero-copy">
-              <p className="eyebrow">YOUR READING LIFE, ON DISPLAY</p>
-              <h1>Shelf of Fame</h1>
-            </div>
-            <div className="reader-hero-actions">
-              <div className="reader-add-books">
-                <button type="button" className="primary reader-add-books-trigger" aria-haspopup="dialog" onClick={() => window.dispatchEvent(new Event("shelf-open-book-search"))}>
-                  ＋ Add books
-                </button>
-              </div>
-            </div>
-            <input ref={goodreadsInput} type="file" accept=".csv,text/csv" hidden onChange={importGoodreadsCsv} />
-          </header>
+      <input
+        ref={goodreadsInput}
+        type="file"
+        accept=".csv,text/csv"
+        hidden
+        onChange={importGoodreadsCsv}
+      />
 
-          <ShelfToolbar
-            query={query}
-            sort={sort}
-            count={visibleBooks.length}
-            onQueryChange={setQuery}
-            onSortChange={setSort}
-            onImportGoodreads={() => goodreadsInput.current?.click()}
-          />
-        </div>
-      </section>
+      <BookSearchAdd
+        books={books}
+        setBooks={setBooks}
+        showToast={showToast}
+        onImportGoodreads={() => goodreadsInput.current?.click()}
+      />
 
-      <Bookshelf shelves={shelves} onSelect={setSelected} />
-
-      <BookSearchAdd books={books} setBooks={setBooks} showToast={showToast} onImportGoodreads={() => goodreadsInput.current?.click()} />
-
-      <footer>
-        <span>Real cover art loads onto the spines as you browse.</span>
-        <span>{storageReady ? "Saved on this browser — refresh anytime." : "Loading your saved shelf…"}</span>
-        <a href="/credits">Asset credits</a>
-      </footer>
-
-      {importMessage && (
-        <div className="toast" role="status">
-          <span className="toast-dot" aria-hidden="true">✓</span>
-          {importMessage}
-        </div>
+      {coverUndo && (
+        <CoverUndoToast
+          kind={coverUndo.kind}
+          onUndo={undoCoverDecision}
+          onDismiss={dismissCoverUndo}
+        />
       )}
-
-      {coverUndo && <CoverUndoToast kind={coverUndo.kind} onUndo={undoCoverDecision} onDismiss={dismissCoverUndo} />}
 
       {selected && (
         <BookDetailsModal
@@ -152,6 +112,6 @@ export default function Home() {
           onSaveBookMetadata={saveBookMetadata}
         />
       )}
-    </main>
+    </>
   );
 }
