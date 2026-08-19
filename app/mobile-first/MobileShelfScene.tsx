@@ -183,7 +183,7 @@ export default function MobileShelfScene({
         </Link>
       </nav>
 
-      {importMessage ? <div className={styles.toast}>{importMessage}</div> : null}
+      {importMessage ? <div className={styles.toast} role="status">{importMessage}</div> : null}
     </div>
   );
 }
