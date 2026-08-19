@@ -6,6 +6,7 @@ import { Book } from "../../lib/books/client-library";
 import { MobileBookSpine } from "./MobileBookSpine";
 import headStyles from "./CinematicHead.module.css";
 import styles from "./MobileShelfScene.module.css";
+import typographyStyles from "./SpineTypographyFinish.module.css";
 
 type MobileShelfSceneProps = {
   books: Book[];
@@ -64,7 +65,7 @@ export default function MobileShelfScene({
   }, [query, visibleBooks]);
 
   return (
-    <div className={styles.scene}>
+    <div className={`${styles.scene} ${typographyStyles.root}`}>
       <div className={headStyles.wallTexture} aria-hidden="true" />
       <div className={headStyles.wallDepth} aria-hidden="true" />
       <div className={headStyles.windowGlow} aria-hidden="true" />
