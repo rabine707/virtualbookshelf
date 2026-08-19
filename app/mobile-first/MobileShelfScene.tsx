@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CSSProperties, useMemo, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { Book } from "../../lib/books/client-library";
 import { MobileBookSpine } from "./MobileBookSpine";
 import { SPINE_SHELL_TEXTURES } from "./spineShellTextures";
@@ -16,6 +16,8 @@ type MobileShelfSceneProps = {
 };
 
 const BOOKS_PER_ROW = 7;
+const FULL_BOTANICAL_ASSET = "/themes/botanical/v3/botanical-sage-bluebell-fullframe.webp";
+const BOTANICAL_FALLBACK = "/themes/botanical/v3/botanical-sage-bluebell.webp";
 
 function SearchIcon() {
   return (
@@ -32,6 +34,83 @@ function UserIcon() {
       <circle cx="12" cy="8" r="3.5" />
       <path d="M5.5 20c.5-4.1 2.8-6.2 6.5-6.2s6 2.1 6.5 6.2" />
     </svg>
+  );
+}
+
+function FullBotanicalFrameImage() {
+  const [src, setSrc] = useState(BOTANICAL_FALLBACK);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | undefined;
+
+    void fetch(FULL_BOTANICAL_ASSET, { cache: "force-cache" })
+      .then(async (response) => {
+        if (!response.ok) return;
+
+        const buffer = await response.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        const startsWith = (...values: number[]) => values.every((value, index) => bytes[index] === value);
+
+        let mime: string | undefined;
+        if (startsWith(0xff, 0xd8, 0xff)) mime = "image/jpeg";
+        else if (startsWith(0x89, 0x50, 0x4e, 0x47)) mime = "image/png";
+        else if (
+          bytes.length > 12 &&
+          String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+          String.fromCharCode(...bytes.slice(8, 12)) === "WEBP"
+        ) mime = "image/webp";
+
+        if (mime) {
+          objectUrl = URL.createObjectURL(new Blob([buffer], { type: mime }));
+          if (!cancelled) setSrc(objectUrl);
+          return;
+        }
+
+        // The first full-chart upload was accidentally stored as base64 text.
+        // Decode that payload in the browser so the exact original artwork still renders.
+        let encoded = new TextDecoder().decode(bytes).trim();
+        if (!encoded) return;
+
+        if (encoded.startsWith("data:image/")) {
+          if (!cancelled) setSrc(encoded);
+          return;
+        }
+
+        encoded = encoded.replace(/^\s+|\s+$/g, "");
+        const decodedMime = encoded.startsWith("/9j/")
+          ? "image/jpeg"
+          : encoded.startsWith("iVBOR")
+            ? "image/png"
+            : encoded.startsWith("UklG")
+              ? "image/webp"
+              : undefined;
+
+        if (decodedMime && !cancelled) {
+          setSrc(`data:${decodedMime};base64,${encoded}`);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, []);
+
+  return (
+    <img
+      src={src}
+      alt=""
+      style={{
+        display: "block",
+        width: "100%",
+        height: "100%",
+        objectFit: "contain",
+        objectPosition: "center",
+        background: "#d4bda0",
+      }}
+    />
   );
 }
 
@@ -103,11 +182,7 @@ export default function MobileShelfScene({
         aria-hidden="true"
         style={{ padding: "8px", overflow: "hidden" }}
       >
-        <img
-          src="/themes/botanical/v3/botanical-sage-bluebell-fullframe.webp"
-          alt=""
-          style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }}
-        />
+        <FullBotanicalFrameImage />
       </div>
 
       <div className={headStyles.scenePlant} aria-hidden="true">
