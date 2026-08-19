@@ -113,7 +113,8 @@ export default function MobileShelfScene({
           outline: "none",
           background: "transparent",
           objectFit: "contain",
-          boxShadow: "0 13px 24px rgba(0,0,0,.34), 0 3px 5px rgba(0,0,0,.22)",
+          boxShadow: "none",
+          filter: "drop-shadow(0 9px 9px rgba(0,0,0,.30))",
           transform: "rotate(.25deg)",
         }}
       />
