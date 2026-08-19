@@ -104,7 +104,7 @@ export default function MobileShelfScene({
         style={{ padding: "8px", overflow: "hidden" }}
       >
         <img
-          src="/themes/botanical/v3/botanical-sage-bluebell.webp"
+          src="/themes/botanical/v3/botanical-sage-bluebell-fullframe.webp"
           alt=""
           style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }}
         />
