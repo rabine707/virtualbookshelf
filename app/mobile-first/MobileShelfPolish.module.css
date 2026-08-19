@@ -1,0 +1,222 @@
+.topBar {
+  top: max(16px, env(safe-area-inset-top));
+  left: 19px;
+}
+
+.brand {
+  font-size: clamp(15px, 4.5vw, 21px);
+  letter-spacing: .13em;
+  text-shadow:
+    0 2px 7px rgba(0, 0, 0, .62),
+    0 0 18px rgba(255, 238, 207, .08);
+}
+
+.quoteFrame {
+  top: 8.1vh;
+  right: 12.5vw;
+}
+
+.shelfStage {
+  top: 27vh;
+  bottom: calc(86px + env(safe-area-inset-bottom));
+  border-radius: 8px 8px 4px 4px;
+  box-shadow:
+    -15px 0 28px rgba(0, 0, 0, .29),
+    15px 0 30px rgba(0, 0, 0, .34),
+    0 -11px 30px rgba(0, 0, 0, .26),
+    0 18px 34px rgba(0, 0, 0, .25);
+}
+
+.shelfStage::before,
+.shelfStage::after {
+  content: "";
+  position: absolute;
+  z-index: 18;
+  top: 1px;
+  bottom: -2px;
+  width: 12px;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 232, 194, .08), transparent 28%),
+    linear-gradient(180deg, #3f291c 0%, #261810 45%, #150e0a 100%);
+  box-shadow:
+    inset 1px 0 rgba(255, 255, 255, .035),
+    inset -2px 0 5px rgba(0, 0, 0, .48);
+}
+
+.shelfStage::before {
+  left: 0;
+  border-radius: 5px 0 0 3px;
+}
+
+.shelfStage::after {
+  right: 0;
+  transform: scaleX(-1);
+  border-radius: 5px 0 0 3px;
+}
+
+.cabinetCap {
+  top: -13px;
+  left: -4px;
+  right: -4px;
+  height: 22px;
+  border-radius: 6px 6px 2px 2px;
+  background:
+    linear-gradient(180deg, rgba(255, 225, 181, .18) 0%, rgba(255, 255, 255, .025) 19%, transparent 35%),
+    linear-gradient(180deg, #60412b 0%, #422a1b 34%, #27170f 68%, #170e0a 100%);
+  box-shadow:
+    0 7px 12px rgba(0, 0, 0, .68),
+    0 15px 24px rgba(0, 0, 0, .22),
+    inset 0 1px rgba(255, 255, 255, .18),
+    inset 0 -1px rgba(0, 0, 0, .55);
+}
+
+.cabinetCap::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: -7px;
+  height: 8px;
+  border-radius: 0 0 3px 3px;
+  pointer-events: none;
+  background: linear-gradient(180deg, #2a190f 0%, #170d08 100%);
+  box-shadow: 0 5px 8px rgba(0, 0, 0, .55);
+}
+
+.shelfViewport {
+  border-left-width: 11px;
+  border-right-width: 11px;
+  scroll-padding-bottom: 92px;
+  background:
+    radial-gradient(ellipse at 50% 2%, rgba(151, 101, 60, .16), transparent 34%),
+    linear-gradient(90deg, rgba(0, 0, 0, .42), transparent 7%, transparent 92%, rgba(0, 0, 0, .47)),
+    linear-gradient(180deg, #2a1e17 0%, #211712 58%, #1a120e 100%);
+  box-shadow:
+    inset 0 17px 30px rgba(0, 0, 0, .58),
+    inset 10px 0 18px rgba(0, 0, 0, .2),
+    inset -10px 0 18px rgba(0, 0, 0, .26);
+}
+
+.bookcase {
+  min-height: calc(100% + 1px);
+  padding-top: 7px;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+.shelfRow {
+  box-shadow:
+    inset 0 9px 14px rgba(0, 0, 0, .08),
+    inset 0 -13px 16px rgba(0, 0, 0, .25);
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, .34), transparent 9%, transparent 91%, rgba(0, 0, 0, .31)),
+    radial-gradient(ellipse at 50% 3%, rgba(139, 94, 55, .13), transparent 48%);
+}
+
+.booksRow::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 7%;
+  right: 7%;
+  bottom: 1px;
+  height: 9px;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, .55) 0%, rgba(0, 0, 0, .25) 43%, transparent 74%);
+  filter: blur(2px);
+}
+
+.shelfPlank {
+  height: 23px;
+  background:
+    linear-gradient(180deg, rgba(255, 231, 195, .14) 0%, rgba(255, 255, 255, .025) 17%, transparent 28%),
+    linear-gradient(180deg, #533722 0%, #372215 40%, #25150d 68%, #150c08 100%);
+  box-shadow:
+    0 8px 13px rgba(0, 0, 0, .76),
+    0 15px 21px rgba(0, 0, 0, .22),
+    inset 0 1px rgba(255, 255, 255, .11),
+    inset 0 -1px rgba(0, 0, 0, .62);
+}
+
+.shelfRowHint {
+  height: 78px;
+  opacity: .98;
+  background:
+    linear-gradient(180deg, rgba(36, 25, 19, .14), rgba(20, 14, 11, .8)),
+    linear-gradient(90deg, rgba(0, 0, 0, .31), transparent 12%, transparent 90%, rgba(0, 0, 0, .35));
+}
+
+.shelfRowHint .booksRow {
+  height: 46px;
+}
+
+.bottomDock {
+  bottom: max(8px, env(safe-area-inset-bottom));
+  width: min(calc(100% - 42px), 450px);
+  min-height: 64px;
+  padding: 5px 8px;
+  border: 1px solid rgba(222, 188, 139, .2);
+  border-radius: 25px;
+  background:
+    linear-gradient(180deg, rgba(78, 53, 36, .22), rgba(28, 20, 16, .08) 42%),
+    rgba(24, 18, 15, .9);
+  box-shadow:
+    0 15px 34px rgba(0, 0, 0, .52),
+    0 2px 7px rgba(0, 0, 0, .28),
+    inset 0 1px rgba(255, 247, 232, .07),
+    inset 0 -1px rgba(0, 0, 0, .34);
+  backdrop-filter: blur(18px) saturate(.82);
+  -webkit-backdrop-filter: blur(18px) saturate(.82);
+}
+
+.bottomDock::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(255, 241, 219, .035);
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+.bottomDock > button,
+.bottomDock > a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.bottomDock > button:focus-visible,
+.bottomDock > a:focus-visible {
+  outline: 1px solid rgba(242, 207, 154, .6);
+  outline-offset: -4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bottomDock > button:hover,
+  .bottomDock > a:hover {
+    background: rgba(255, 244, 226, .045);
+  }
+}
+
+@media (min-width: 620px) {
+  .quoteFrame {
+    right: 94px;
+  }
+}
+
+@media (max-height: 720px) {
+  .shelfStage {
+    top: 24vh;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .bookcase {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottomDock {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
