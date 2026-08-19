@@ -126,6 +126,25 @@
   filter: blur(2px);
 }
 
+.booksRow > button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transform-origin: center bottom;
+  transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+}
+
+.booksRow > button:active,
+.booksRow > button:focus-visible {
+  transform: translateY(-7px) scale(1.015);
+  filter: brightness(1.08) saturate(1.02);
+  box-shadow:
+    0 11px 18px rgba(0, 0, 0, .48),
+    -2px 0 3px rgba(0, 0, 0, .26),
+    2px 0 4px rgba(0, 0, 0, .38),
+    inset 0 1px rgba(255, 255, 255, .18);
+  outline: none;
+}
+
 .shelfPlank {
   height: 23px;
   background:
@@ -191,6 +210,11 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .booksRow > button:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.04);
+  }
+
   .bottomDock > button:hover,
   .bottomDock > a:hover {
     background: rgba(255, 244, 226, .045);
@@ -215,6 +239,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .booksRow > button {
+    transition: none;
+  }
+
   .bottomDock {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
