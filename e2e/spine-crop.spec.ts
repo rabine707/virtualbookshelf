@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { searchShelf, shelfBook } from "./mobile-shelf-helpers";
 
 const COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23456'/%3E%3C/svg%3E";
 
@@ -28,8 +29,8 @@ test("cover crop saves a spine and updates the live shelf without reloading", as
   await mockCoverApis(page);
   await page.goto("/");
 
-  await page.getByPlaceholder("Search title or author…").fill("Fourth Wing");
-  const book = page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]');
+  await searchShelf(page, "Fourth Wing");
+  const book = shelfBook(page, "Fourth Wing", "Rebecca Yarros");
   await book.click();
 
   const dialog = page.getByRole("dialog", { name: "Fourth Wing" });
@@ -53,6 +54,7 @@ test("cover crop saves a spine and updates the live shelf without reloading", as
   await expect(editor).toHaveCount(0);
   await expect(dialog.locator(".generate-spine-status")).toContainText("Right detail saved for Fourth Wing");
   await expect(book).toHaveAttribute("data-spine-crop", "right");
+  await expect(book.locator('img[data-shelf-generated-spine="true"]')).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __spineCropMarker?: string }).__spineCropMarker)).toBe("alive");
 
   const saved = await page.evaluate(async (coverUrl) => {
