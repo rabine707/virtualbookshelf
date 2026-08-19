@@ -113,7 +113,7 @@ export default function MobileShelfScene({
       />
 
       <img
-        src="/themes/botanical/v6/hanging-pothos-shelf.webp"
+        src="/themes/botanical/v6/hanging-pothos-shelf.webp?v=2"
         alt=""
         aria-hidden="true"
         style={{
