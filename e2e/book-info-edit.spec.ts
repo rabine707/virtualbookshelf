@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { searchShelf, shelfBook } from "./mobile-shelf-helpers";
 
 const COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23668'/%3E%3C/svg%3E";
 
@@ -48,8 +49,8 @@ test.beforeEach(async ({ page }) => {
 
 test("edits book metadata in place and migrates spine candidate identity without reloading", async ({ page }) => {
   await page.goto("/");
-  await page.getByPlaceholder("Search title or author…").fill("Fourth Wing");
-  await page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]').click();
+  await searchShelf(page, "Fourth Wing");
+  await shelfBook(page, "Fourth Wing", "Rebecca Yarros").click();
 
   const bookDialog = page.getByRole("dialog", { name: "Fourth Wing" });
   await expect(bookDialog).toBeVisible();
@@ -66,7 +67,7 @@ test("edits book metadata in place and migrates spine candidate identity without
 
   await expect(editor).toBeHidden();
   await expect(page.getByRole("dialog", { name: "Fourth Wing Corrected" })).toBeVisible();
-  await expect(page.locator('button.book[title="Fourth Wing Corrected — Rebecca Yarros"]')).toBeVisible();
+  await expect(shelfBook(page, "Fourth Wing Corrected", "Rebecca Yarros")).toBeVisible();
 
   const stored = await page.evaluate(() => {
     const books = JSON.parse(window.localStorage.getItem("shelf-of-fame-library-v1") || "[]") as Array<{
