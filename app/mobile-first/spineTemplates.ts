@@ -63,15 +63,15 @@ export const SPINE_LAYOUTS: Record<SpineLayoutId, SpineLayoutDefinition> = {
     ],
     titleWeight: 600,
     textTransform: "uppercase",
-    maxTitleSize: 10.7,
-    minTitleSize: 5.35,
+    maxTitleSize: 12.2,
+    minTitleSize: 6.15,
     maxLines: 5,
-    lineHeight: 1.07,
-    letterSpacingEm: .012,
-    titleTop: 24,
-    titleHeight: 76,
+    lineHeight: 1.06,
+    letterSpacingEm: .01,
+    titleTop: 22,
+    titleHeight: 80,
     titlePadding: 7,
-    authorSize: 5.2,
+    authorSize: 5.25,
   },
   "contemporary-editorial": {
     id: "contemporary-editorial",
@@ -82,15 +82,15 @@ export const SPINE_LAYOUTS: Record<SpineLayoutId, SpineLayoutDefinition> = {
     ],
     titleWeight: 650,
     textTransform: "none",
-    maxTitleSize: 11.4,
-    minTitleSize: 5.4,
+    maxTitleSize: 13.1,
+    minTitleSize: 6.2,
     maxLines: 4,
-    lineHeight: 1.03,
-    letterSpacingEm: .008,
-    titleTop: 18,
-    titleHeight: 76,
+    lineHeight: 1.02,
+    letterSpacingEm: .006,
+    titleTop: 17,
+    titleHeight: 82,
     titlePadding: 7,
-    authorSize: 5.1,
+    authorSize: 5.15,
   },
   "decorative-special": {
     id: "decorative-special",
@@ -101,15 +101,15 @@ export const SPINE_LAYOUTS: Record<SpineLayoutId, SpineLayoutDefinition> = {
     ],
     titleWeight: 600,
     textTransform: "uppercase",
-    maxTitleSize: 10.4,
-    minTitleSize: 5.25,
+    maxTitleSize: 11.7,
+    minTitleSize: 6,
     maxLines: 5,
-    lineHeight: 1.06,
-    letterSpacingEm: .016,
-    titleTop: 22,
-    titleHeight: 70,
+    lineHeight: 1.05,
+    letterSpacingEm: .012,
+    titleTop: 21,
+    titleHeight: 74,
     titlePadding: 8,
-    authorSize: 5,
+    authorSize: 5.05,
   },
   "published-art": {
     id: "published-art",
@@ -120,15 +120,15 @@ export const SPINE_LAYOUTS: Record<SpineLayoutId, SpineLayoutDefinition> = {
     ],
     titleWeight: 650,
     textTransform: "none",
-    maxTitleSize: 11.7,
-    minTitleSize: 5.5,
+    maxTitleSize: 13.2,
+    minTitleSize: 6.2,
     maxLines: 4,
-    lineHeight: 1.02,
-    letterSpacingEm: .004,
-    titleTop: 13,
-    titleHeight: 66,
+    lineHeight: 1.01,
+    letterSpacingEm: .003,
+    titleTop: 12,
+    titleHeight: 70,
     titlePadding: 7,
-    authorSize: 5.35,
+    authorSize: 5.4,
   },
 };
 
@@ -221,44 +221,64 @@ export function pickSpineDesign(
   const text = normalizedTitle(title);
   const mood = colorMood(color);
   const bucket = stableBucket(`${title}|${author}|layout`);
+  const detailBucket = stableBucket(`${title}|${author}|details`);
   const variant = variantFor(title, author);
+  const isDarkOrFantasy = includesAny(text, DARK_WORDS) || includesAny(text, FANTASY_WORDS);
+  const isContemporary = includesAny(text, CONTEMPORARY_WORDS);
+  const isArtFriendly = hasCover && includesAny(text, ART_FRIENDLY_WORDS);
 
   let layout: SpineLayoutDefinition;
 
-  if (includesAny(text, DARK_WORDS) || includesAny(text, FANTASY_WORDS)) {
-    layout = bucket < 78 ? SPINE_LAYOUTS["decorative-special"] : SPINE_LAYOUTS["clothbound-literary"];
-  } else if (hasCover && includesAny(text, ART_FRIENDLY_WORDS)) {
-    layout = bucket < 68 ? SPINE_LAYOUTS["published-art"] : SPINE_LAYOUTS["contemporary-editorial"];
-  } else if (includesAny(text, CONTEMPORARY_WORDS)) {
-    layout = bucket < 68 ? SPINE_LAYOUTS["contemporary-editorial"] : SPINE_LAYOUTS["published-art"];
-    if (!hasCover && layout.id === "published-art") layout = SPINE_LAYOUTS["contemporary-editorial"];
+  // Most shelves should read like a mixed bookstore, not a matching special-edition set.
+  // Strong genre signals influence the design language, but they do not force decoration.
+  if (isDarkOrFantasy) {
+    if (hasCover && bucket >= 84) layout = SPINE_LAYOUTS["published-art"];
+    else if (bucket < 22) layout = SPINE_LAYOUTS["decorative-special"];
+    else if (bucket < 72) layout = SPINE_LAYOUTS["clothbound-literary"];
+    else layout = SPINE_LAYOUTS["contemporary-editorial"];
+  } else if (isArtFriendly) {
+    if (bucket < 34) layout = SPINE_LAYOUTS["published-art"];
+    else if (bucket < 64) layout = SPINE_LAYOUTS["contemporary-editorial"];
+    else layout = SPINE_LAYOUTS["clothbound-literary"];
+  } else if (isContemporary) {
+    if (hasCover && bucket >= 90) layout = SPINE_LAYOUTS["published-art"];
+    else if (bucket < 48) layout = SPINE_LAYOUTS["contemporary-editorial"];
+    else layout = SPINE_LAYOUTS["clothbound-literary"];
   } else if (mood === "dark" || mood === "jewel") {
-    layout = bucket < 28 ? SPINE_LAYOUTS["decorative-special"] : SPINE_LAYOUTS["clothbound-literary"];
-  } else if (hasCover && bucket >= 86) {
-    layout = SPINE_LAYOUTS["published-art"];
-  } else if (bucket < 44) {
-    layout = SPINE_LAYOUTS["clothbound-literary"];
-  } else if (bucket < 74) {
-    layout = SPINE_LAYOUTS["contemporary-editorial"];
-  } else if (bucket < 88) {
-    layout = SPINE_LAYOUTS["decorative-special"];
+    if (bucket < 12) layout = SPINE_LAYOUTS["decorative-special"];
+    else if (hasCover && bucket >= 92) layout = SPINE_LAYOUTS["published-art"];
+    else if (bucket < 70) layout = SPINE_LAYOUTS["clothbound-literary"];
+    else layout = SPINE_LAYOUTS["contemporary-editorial"];
   } else {
-    layout = SPINE_LAYOUTS["clothbound-literary"];
+    if (bucket < 58) layout = SPINE_LAYOUTS["clothbound-literary"];
+    else if (bucket < 83) layout = SPINE_LAYOUTS["contemporary-editorial"];
+    else if (hasCover && bucket < 94) layout = SPINE_LAYOUTS["published-art"];
+    else if (bucket < 98) layout = SPINE_LAYOUTS["decorative-special"];
+    else layout = SPINE_LAYOUTS["clothbound-literary"];
   }
 
   const fonts = layout.fontSets[variant % layout.fontSets.length];
   const decorativeMotifs: Array<"star" | "botanical" | "crescent"> = ["star", "botanical", "crescent"];
-  const motif = layout.id === "decorative-special" ? decorativeMotifs[variant] : null;
-  const showFrame = layout.id === "decorative-special" || (layout.id === "clothbound-literary" && variant === 1);
+  const motif = layout.id === "decorative-special" && detailBucket < 68
+    ? decorativeMotifs[variant]
+    : null;
+  const showFrame = layout.id === "decorative-special"
+    ? detailBucket < 72
+    : layout.id === "clothbound-literary"
+      ? detailBucket < 11
+      : false;
   const showDivider = layout.id === "clothbound-literary"
-    ? variant !== 0
+    ? detailBucket >= 76 && detailBucket < 91
     : layout.id === "contemporary-editorial"
-      ? variant === 1
+      ? detailBucket >= 82
       : layout.id === "published-art"
-        ? variant === 2
+        ? detailBucket >= 88
         : false;
-  const accentEligible = layout.id === "published-art" && variant === 1 && Boolean(fonts.accentFont);
-  const titleAlign = layout.id === "contemporary-editorial" && variant === 1 ? "left" : "center";
+  const accentEligible = layout.id === "published-art"
+    && variant === 1
+    && detailBucket < 58
+    && Boolean(fonts.accentFont);
+  const titleAlign = layout.id === "contemporary-editorial" && detailBucket < 34 ? "left" : "center";
   const ink = layout.id === "decorative-special" && (mood === "dark" || mood === "jewel")
     ? "gold"
     : layout.id === "published-art"
@@ -356,35 +376,49 @@ export function fitSpineTitle(
   const layout = design.layout;
   const innerWidth = Math.max(22, spineWidth - (layout.titlePadding * 2));
   const maxLines = Math.min(layout.maxLines, Math.max(1, words.length));
+  const compactLength = title.replace(/\s+/g, "").length;
+  const shortBoost = compactLength <= 10 ? 1.9 : compactLength <= 16 ? 1.05 : compactLength <= 22 ? .45 : 0;
+  const candidateMaxSize = layout.maxTitleSize + shortBoost;
 
   let bestLines = [title];
   let bestFontSize = layout.minTitleSize;
+  let bestScales = [1];
   let bestScore = -Infinity;
 
   for (let lineCount = 1; lineCount <= maxLines; lineCount += 1) {
     const lines = balancedPartition(words, lineCount, layout);
-    const maxEm = Math.max(...lines.map((line) => measureTextEm(line, layout)));
-    const widthFit = (innerWidth * .94) / maxEm;
     const heightFit = (layout.titleHeight * .94) / (lineCount * layout.lineHeight);
-    const fontSize = Math.min(layout.maxTitleSize, widthFit, heightFit);
-    const clamped = Math.max(4.9, fontSize);
-    const readabilityPenalty = clamped < layout.minTitleSize ? (layout.minTitleSize - clamped) * 1.6 : 0;
-    const linePenalty = lineCount * .08;
-    const score = clamped - readabilityPenalty - linePenalty;
+    let fontSize = Math.min(candidateMaxSize, heightFit);
+
+    // Protect readability first. Long lines may condense horizontally before the type gets tiny.
+    const maxEm = Math.max(...lines.map((line) => measureTextEm(line, layout)));
+    const scaleAtSize = (innerWidth * .9) / (maxEm * fontSize);
+    if (scaleAtSize < .72) {
+      fontSize = Math.min(fontSize, (innerWidth * .9) / (maxEm * .72));
+    }
+    fontSize = Math.max(layout.minTitleSize, fontSize);
+
+    const lineScales = lines.map((line) => {
+      const measured = measureTextEm(line, layout) * fontSize;
+      if (measured <= 0) return 1;
+      return Math.max(.68, Math.min(1, (innerWidth * .9) / measured));
+    });
+
+    const compressionPenalty = lineScales.reduce((sum, scale) => sum + ((1 - scale) * 2.1), 0);
+    const linePenalty = Math.abs(lineCount - Math.min(3, words.length)) * .12;
+    const tinyPenalty = fontSize < layout.minTitleSize + .35 ? .8 : 0;
+    const score = fontSize - compressionPenalty - linePenalty - tinyPenalty;
 
     if (score > bestScore) {
       bestScore = score;
       bestLines = lines;
-      bestFontSize = clamped;
+      bestFontSize = fontSize;
+      bestScales = lineScales;
     }
   }
 
-  const fontSize = Math.round(Math.max(4.9, bestFontSize) * 10) / 10;
-  const lineScales = bestLines.map((line) => {
-    const measured = measureTextEm(line, layout) * fontSize;
-    if (measured <= 0) return 1;
-    return Math.max(.78, Math.min(1, (innerWidth * .92) / measured));
-  });
+  const fontSize = Math.round(bestFontSize * 10) / 10;
+  const lineScales = bestScales.map((scale) => Math.round(scale * 100) / 100);
 
   let accentLine = -1;
   if (design.accentEligible) {
