@@ -28,12 +28,18 @@ import {
 } from "./spineTemplates";
 import styles from "./MobileShelfScene.module.css";
 import designStyles from "./SpineDesign.module.css";
+import unifiedStyles from "./UnifiedSpine.module.css";
 
 type MobileBookSpineProps = {
   book: Book;
   index: number;
   onSelect: (book: Book) => void;
 };
+
+type PrintFinish = "ink" | "debossed" | "foil";
+type PrintedFace = "left" | "center" | "right";
+
+const UNIFORM_SPINE_WIDTH = 49;
 
 function stableNumber(value: string) {
   let hash = 2166136261;
@@ -44,15 +50,27 @@ function stableNumber(value: string) {
   return hash >>> 0;
 }
 
-function spineWidthFor(book: Book) {
-  return 43 + (stableNumber(`${book.id}|${book.title}|${book.author}`) % 10);
-}
-
 function layoutClass(id: SpineLayoutId) {
   if (id === "clothbound-literary") return designStyles.clothbound;
   if (id === "contemporary-editorial") return designStyles.editorial;
   if (id === "decorative-special") return designStyles.decorative;
   return designStyles.publishedArt;
+}
+
+function printFinishFor(book: Book, design: SpineDesign): PrintFinish {
+  const roll = stableNumber(`${book.id}|${book.title}|${book.author}|finish`) % 20;
+
+  // Keep the shelf mostly matte and readable. Foil is an accent, not the default.
+  if (design.layout.id === "decorative-special" && roll < 5) return "foil";
+  if (design.layout.id === "clothbound-literary" && (roll === 6 || roll === 12)) return "debossed";
+  return "ink";
+}
+
+function printedFaceFor(book: Book): PrintedFace {
+  const roll = stableNumber(`${book.id}|${book.title}|face`) % 3;
+  if (roll === 0) return "left";
+  if (roll === 2) return "right";
+  return "center";
 }
 
 function inkColors(design: SpineDesign) {
@@ -201,10 +219,11 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const [spineCrop, setSpineCrop] = useState<string>();
   const displayedCover = preferred || cover;
   const coverUrl = displayedCover?.url;
-  const spineWidth = spineWidthFor(book);
   const design = pickSpineDesign(book.title, book.author, book.color, Boolean(coverUrl));
-  const fittedTitle = fitSpineTitle(book.title, spineWidth, design);
+  const fittedTitle = fitSpineTitle(book.title, UNIFORM_SPINE_WIDTH, design);
   const colors = inkColors(design);
+  const printFinish = printFinishFor(book, design);
+  const printedFace = printedFaceFor(book);
 
   useEffect(() => {
     if (preferred) {
@@ -295,7 +314,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
 
   const style = {
     "--mobile-spine-color": book.color,
-    "--mobile-spine-width": `${spineWidth}px`,
+    "--mobile-spine-width": `${UNIFORM_SPINE_WIDTH}px`,
     "--spine-ink": colors.ink,
     "--spine-author-ink": colors.author,
   } as CSSProperties;
@@ -307,7 +326,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
     <button
       ref={ref}
       type="button"
-      className={`${styles.bookSpine} ${coverUrl ? styles.bookSpineWithCover : ""} ${designStyles.publisherSpine} ${layoutClass(design.layout.id)}`}
+      className={`${styles.bookSpine} ${coverUrl ? styles.bookSpineWithCover : ""} ${unifiedStyles.book} ${layoutClass(design.layout.id)}`}
       style={style}
       onClick={() => onSelect(book)}
       aria-label={`${book.title} by ${book.author}`}
@@ -316,67 +335,83 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
       data-spine-crop={spineCrop}
       data-spine-layout={design.layout.id}
       data-spine-variant={design.variant}
+      data-print-finish={printFinish}
     >
-      {coverUrl ? (
-        <img
-          className={`${styles.spineCover} ${publishedArt ? designStyles.artCover : designStyles.quietCover}`}
-          src={coverUrl}
-          alt=""
-          data-shelf-cover="true"
-          loading={eager ? "eager" : "lazy"}
-          decoding="async"
-          onError={() => {
-            if (!preferred) {
-              coverMemory.set(key, null);
-              setCover(null);
-            }
-          }}
-        />
-      ) : null}
+      <span className={unifiedStyles.physicalShell} aria-hidden="true" />
 
-      <span className={designStyles.material} aria-hidden="true" />
-      {publishedArt && coverUrl ? <span className={designStyles.artWash} aria-hidden="true" /> : null}
+      <span
+        className={`${unifiedStyles.printedDesign} ${unifiedStyles[printFinish]}`}
+        data-face={printedFace}
+      >
+        {coverUrl ? (
+          <img
+            className={`${styles.spineCover} ${publishedArt ? designStyles.artCover : designStyles.quietCover}`}
+            src={coverUrl}
+            alt=""
+            data-shelf-cover="true"
+            loading={eager ? "eager" : "lazy"}
+            decoding="async"
+            onError={() => {
+              if (!preferred) {
+                coverMemory.set(key, null);
+                setCover(null);
+              }
+            }}
+          />
+        ) : null}
 
-      {generatedSpine ? (
-        <img
-          className={`${styles.spineCover} ${designStyles.generatedArt}`}
-          src={generatedSpine}
-          alt=""
-          data-shelf-generated-spine="true"
-          decoding="async"
-        />
-      ) : null}
+        {publishedArt && coverUrl ? <span className={designStyles.artWash} aria-hidden="true" /> : null}
 
-      {showOverlayTypography ? (
-        <>
-          {design.showFrame ? <span className={designStyles.frame} aria-hidden="true" /> : null}
-          {design.showDivider ? <span className={designStyles.divider} aria-hidden="true" /> : null}
-          {design.motif ? (
-            <span className={designStyles.motifBand} aria-hidden="true">
-              <i />
-              <SpineMotif type={design.motif} />
-              <i />
-            </span>
-          ) : null}
+        {generatedSpine ? (
+          <img
+            className={`${styles.spineCover} ${designStyles.generatedArt}`}
+            src={generatedSpine}
+            alt=""
+            data-shelf-generated-spine="true"
+            decoding="async"
+          />
+        ) : null}
 
-          <span
-            className={`${designStyles.title} ${design.titleAlign === "left" ? designStyles.titleLeft : ""}`}
-            style={titleAreaStyle(fittedTitle, design)}
-          >
-            {fittedTitle.lines.map((line, lineIndex) => (
-              <span
-                className={designStyles.titleLine}
-                key={`${line}-${lineIndex}`}
-                style={titleLineStyle(fittedTitle, design, lineIndex)}
-              >
-                {line}
+        {showOverlayTypography ? (
+          <>
+            {design.showFrame ? <span className={designStyles.frame} aria-hidden="true" /> : null}
+            {design.showDivider ? <span className={designStyles.divider} aria-hidden="true" /> : null}
+            {design.motif ? (
+              <span className={designStyles.motifBand} aria-hidden="true">
+                <i />
+                <SpineMotif type={design.motif} />
+                <i />
               </span>
-            ))}
-          </span>
+            ) : null}
 
-          <span className={designStyles.author} style={authorStyle(book, design)}>{book.author}</span>
-        </>
-      ) : null}
+            <span
+              className={`${designStyles.title} ${design.titleAlign === "left" ? designStyles.titleLeft : ""}`}
+              style={titleAreaStyle(fittedTitle, design)}
+            >
+              {fittedTitle.lines.map((line, lineIndex) => (
+                <span
+                  className={designStyles.titleLine}
+                  data-print-role="title-line"
+                  key={`${line}-${lineIndex}`}
+                  style={titleLineStyle(fittedTitle, design, lineIndex)}
+                >
+                  {line}
+                </span>
+              ))}
+            </span>
+
+            <span
+              className={designStyles.author}
+              data-print-role="author"
+              style={authorStyle(book, design)}
+            >
+              {book.author}
+            </span>
+          </>
+        ) : null}
+      </span>
+
+      <span className={unifiedStyles.spineLighting} aria-hidden="true" />
     </button>
   );
 }
