@@ -1,0 +1,278 @@
+.wallTexture {
+  position: absolute;
+  inset: 0;
+  z-index: -8;
+  opacity: .58;
+  background-image:
+    linear-gradient(180deg, rgba(48, 39, 31, .12) 0%, rgba(38, 31, 26, .28) 52%, rgba(26, 20, 17, .66) 100%),
+    url("/themes/botanical/v3/back-texture.webp");
+  background-size: auto, 250px 250px;
+  background-position: center, center top;
+  filter: contrast(1.08) saturate(.88);
+}
+
+.wallDepth {
+  position: absolute;
+  inset: 0;
+  z-index: -7;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 30% 21%, rgba(255, 224, 172, .095), transparent 29%),
+    radial-gradient(ellipse at 82% 18%, rgba(0, 0, 0, .12), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, .018), transparent 30%, rgba(0, 0, 0, .13) 100%);
+}
+
+.windowGlow {
+  position: absolute;
+  z-index: -6;
+  top: -4vh;
+  left: -10vw;
+  width: 56vw;
+  height: 34vh;
+  border-radius: 46%;
+  background: rgba(255, 222, 160, .105);
+  filter: blur(30px);
+  pointer-events: none;
+}
+
+.windowAsset {
+  position: absolute;
+  z-index: -5;
+  top: 2.8vh;
+  left: -5.5vw;
+  width: min(52vw, 272px);
+  max-height: 31vh;
+  object-fit: contain;
+  object-position: left top;
+  opacity: .98;
+  filter:
+    sepia(.035)
+    saturate(.94)
+    brightness(1.01)
+    contrast(1.09)
+    drop-shadow(7px 11px 15px rgba(0, 0, 0, .31));
+}
+
+.sunbeam {
+  position: absolute;
+  z-index: -4;
+  top: 6.8vh;
+  left: 9vw;
+  width: 47vw;
+  height: 27vh;
+  border-radius: 30% 48% 42% 34%;
+  transform: rotate(-8deg) skewY(-5deg);
+  transform-origin: top left;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      116deg,
+      rgba(255, 240, 204, .25) 0%,
+      rgba(255, 229, 177, .145) 38%,
+      rgba(255, 220, 158, .052) 72%,
+      transparent 100%
+    );
+  filter: blur(9px);
+  opacity: .9;
+}
+
+.windowShadowCast {
+  position: absolute;
+  z-index: -3;
+  top: 8.4vh;
+  left: 12vw;
+  width: 36vw;
+  height: 23vh;
+  pointer-events: none;
+  opacity: .27;
+  transform: rotate(-8deg) skewY(-5deg);
+  transform-origin: top left;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(45, 31, 23, .48) 0 4px,
+      transparent 4px 33px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      rgba(45, 31, 23, .34) 0 4px,
+      transparent 4px 46px
+    );
+  filter: blur(1.4px);
+  -webkit-mask-image: linear-gradient(120deg, #000 10%, rgba(0,0,0,.85) 58%, transparent 100%);
+  mask-image: linear-gradient(120deg, #000 10%, rgba(0,0,0,.85) 58%, transparent 100%);
+}
+
+.dust {
+  position: absolute;
+  z-index: -2;
+  top: 12vh;
+  left: 26vw;
+  width: 1.5px;
+  height: 1.5px;
+  border-radius: 50%;
+  background: rgba(255, 246, 220, .42);
+  box-shadow:
+    32px 25px rgba(255, 246, 220, .15),
+    96px 14px rgba(255, 246, 220, .18),
+    64px 93px rgba(255, 246, 220, .14),
+    155px 110px rgba(255, 246, 220, .12),
+    103px 146px rgba(255, 246, 220, .14);
+  opacity: .54;
+  filter: blur(.15px);
+  animation: cinematicDust 13s ease-in-out infinite alternate;
+}
+
+.hangingVine {
+  position: absolute;
+  z-index: 7;
+  top: 14.5vh;
+  right: -14vw;
+  width: min(23vw, 124px);
+  height: 40vh;
+  object-fit: contain;
+  object-position: top right;
+  pointer-events: none;
+  opacity: .96;
+  filter:
+    brightness(.8)
+    saturate(.88)
+    contrast(1.05)
+    drop-shadow(-7px 13px 11px rgba(0, 0, 0, .3));
+  transform-origin: top center;
+  animation: cinematicVine 10s ease-in-out infinite alternate;
+}
+
+.quoteFrame {
+  position: absolute;
+  z-index: 1;
+  top: 7.6vh;
+  right: 14vw;
+  width: 118px;
+  min-height: 126px;
+  padding: 19px 13px 16px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  color: rgba(50, 38, 29, .9);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.1), transparent 35%),
+    radial-gradient(circle at 40% 20%, rgba(255,255,255,.09), transparent 52%),
+    #c9b297;
+  border: 6px solid #4b3223;
+  outline: 1px solid rgba(221, 183, 130, .36);
+  box-shadow:
+    0 13px 24px rgba(0, 0, 0, .34),
+    0 3px 5px rgba(0, 0, 0, .22),
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    inset 0 0 22px rgba(79, 52, 33, .13);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 10.5px;
+  line-height: 1.25;
+  letter-spacing: .075em;
+  text-transform: lowercase;
+  transform: rotate(.25deg);
+}
+
+.quoteFrame::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  pointer-events: none;
+  border: 1px solid rgba(95, 69, 47, .15);
+  box-shadow: inset 0 0 12px rgba(95, 69, 47, .05);
+}
+
+.scenePlant {
+  position: absolute;
+  z-index: 6;
+  top: 22.8vh;
+  left: -6.5vw;
+  width: min(23vw, 120px);
+  pointer-events: none;
+  filter:
+    brightness(.83)
+    saturate(.9)
+    contrast(1.06)
+    drop-shadow(7px 10px 9px rgba(0, 0, 0, .36));
+}
+
+.scenePlant img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@keyframes cinematicDust {
+  from {
+    transform: translate3d(0, 0, 0);
+    opacity: .38;
+  }
+  to {
+    transform: translate3d(7px, 10px, 0);
+    opacity: .58;
+  }
+}
+
+@keyframes cinematicVine {
+  from { transform: rotate(-.45deg); }
+  to { transform: rotate(.55deg); }
+}
+
+@media (min-width: 620px) {
+  .windowAsset {
+    left: -25px;
+    width: 248px;
+  }
+
+  .quoteFrame {
+    right: 102px;
+  }
+
+  .hangingVine {
+    right: -54px;
+    width: 126px;
+  }
+
+  .scenePlant {
+    left: -27px;
+    width: 120px;
+  }
+}
+
+@media (max-height: 720px) {
+  .quoteFrame {
+    display: none;
+  }
+
+  .windowAsset {
+    max-height: 27vh;
+  }
+
+  .sunbeam {
+    top: 5.5vh;
+    height: 24vh;
+  }
+
+  .windowShadowCast {
+    top: 7vh;
+    height: 20vh;
+  }
+
+  .hangingVine {
+    top: 11vh;
+    height: 36vh;
+  }
+
+  .scenePlant {
+    top: 19vh;
+    width: min(21vw, 108px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dust,
+  .hangingVine {
+    animation: none;
+  }
+}
