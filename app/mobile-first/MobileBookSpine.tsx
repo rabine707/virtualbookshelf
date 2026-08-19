@@ -169,11 +169,12 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
       ) : null}
       {generatedSpine ? (
         <img
-          className={styles.generatedSpineArt}
+          className={styles.spineCover}
           src={generatedSpine}
           alt=""
           data-shelf-generated-spine="true"
           decoding="async"
+          style={{ zIndex: 1, transform: "none", filter: "saturate(.86) brightness(.82) contrast(1.06)" }}
         />
       ) : null}
       <span className={styles.spineShade} aria-hidden="true" />
