@@ -35,7 +35,7 @@ function shortTitle(title: string) {
 export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const key = coverKey(book);
-  const eager = index < 14;
+  const eager = index < 16;
   const preferred = book.preferredCover && !rejectedUrls(book).has(book.preferredCover.url)
     ? book.preferredCover
     : undefined;
@@ -136,7 +136,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
 
   const style = {
     "--mobile-spine-color": book.color,
-    "--mobile-spine-width": `${34 + ((index * 7) % 10)}px`,
+    "--mobile-spine-width": `${32 + ((index * 7) % 9)}px`,
   } as CSSProperties;
 
   return (
