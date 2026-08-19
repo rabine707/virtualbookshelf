@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { CSSProperties, useMemo, useState } from "react";
 import { Book } from "../../lib/books/client-library";
 import { MobileBookSpine } from "./MobileBookSpine";
+import { SPINE_SHELL_TEXTURES } from "./spineShellTextures";
 import headStyles from "./CinematicHead.module.css";
 import styles from "./MobileShelfScene.module.css";
-import typographyStyles from "./SpineTypographyFinish.module.css";
-import uniformStyles from "./UniformSpineGeometry.module.css";
 
 type MobileShelfSceneProps = {
   books: Book[];
@@ -65,8 +64,12 @@ export default function MobileShelfScene({
     return next;
   }, [query, visibleBooks]);
 
+  const sceneStyle = {
+    "--shelf-shell-image": `url("${SPINE_SHELL_TEXTURES.classic}")`,
+  } as CSSProperties;
+
   return (
-    <div className={`${styles.scene} ${typographyStyles.printedShelf} ${uniformStyles.uniformShelf}`}>
+    <div className={styles.scene} style={sceneStyle}>
       <div className={headStyles.wallTexture} aria-hidden="true" />
       <div className={headStyles.wallDepth} aria-hidden="true" />
       <div className={headStyles.windowGlow} aria-hidden="true" />
