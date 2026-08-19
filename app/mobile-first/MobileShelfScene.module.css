@@ -116,7 +116,7 @@
   right: 18px;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-start;
   pointer-events: none;
 }
 
@@ -149,21 +149,7 @@
   background: rgba(255, 248, 230, .7);
 }
 
-.profileButton {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(255, 235, 196, .52);
-  border-radius: 50%;
-  color: #fff4df;
-  background: rgba(26, 20, 17, .53);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, .28), inset 0 0 0 3px rgba(255, 255, 255, .035);
-  backdrop-filter: blur(10px);
-  pointer-events: auto;
-}
-
-.profileButton svg, .bottomDock svg {
+.bottomDock svg {
   width: 21px;
   height: 21px;
   fill: none;
@@ -290,8 +276,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: clamp(2px, .8vw, 4px);
-  padding: 0 6px;
+  gap: clamp(2px, .7vw, 3px);
+  padding: 0 4px;
 }
 
 .shelfRowHint .booksRow {
@@ -320,15 +306,16 @@
   padding: 0;
   margin: 0;
   border: 0;
-  border-radius: 3px 3px 1px 1px;
+  border-radius: 4px 4px 1px 1px;
   color: #f3e5ca;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, .1), transparent 12%, transparent 82%, rgba(0, 0, 0, .31)),
+    linear-gradient(90deg, rgba(255, 255, 255, .11), transparent 10%, transparent 84%, rgba(0, 0, 0, .27)),
+    linear-gradient(180deg, rgba(255, 255, 255, .035), transparent 22%, rgba(0, 0, 0, .08)),
     var(--mobile-spine-color);
   box-shadow:
-    -2px 0 3px rgba(0, 0, 0, .32),
-    2px 0 4px rgba(0, 0, 0, .47),
-    inset 0 1px rgba(255, 255, 255, .14);
+    -2px 0 3px rgba(0, 0, 0, .3),
+    2px 0 4px rgba(0, 0, 0, .45),
+    inset 0 1px rgba(255, 255, 255, .16);
   appearance: none;
   cursor: pointer;
   transform: translateY(0);
@@ -340,9 +327,10 @@
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 4;
+  z-index: 5;
   border-left: 1px solid rgba(255, 255, 255, .07);
-  border-right: 1px solid rgba(0, 0, 0, .24);
+  border-right: 1px solid rgba(0, 0, 0, .22);
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, .025);
   pointer-events: none;
 }
 
@@ -354,7 +342,7 @@
 }
 
 .bookSpineWithCover {
-  background: #251b16;
+  background-color: #251b16;
 }
 
 .spineCover {
@@ -364,32 +352,46 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
-  filter: saturate(.78) brightness(.68) contrast(1.04);
-  transform: scale(1.055);
+  pointer-events: none;
+}
+
+.fallbackCover {
+  z-index: 1;
+  opacity: .34;
+  filter: saturate(.48) brightness(.52) contrast(.92) blur(.25px);
+  transform: scale(1.1);
+  mix-blend-mode: luminosity;
+}
+
+.generatedSpineArt {
+  z-index: 2;
+  opacity: .98;
+  filter: saturate(.88) brightness(.82) contrast(1.06);
+  transform: none;
 }
 
 .spineShade {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 3;
   background:
-    linear-gradient(90deg, rgba(0, 0, 0, .3), transparent 22%, transparent 70%, rgba(0, 0, 0, .38)),
-    linear-gradient(180deg, rgba(0, 0, 0, .06), transparent 38%, rgba(0, 0, 0, .24));
+    linear-gradient(90deg, rgba(0, 0, 0, .31), rgba(0, 0, 0, .05) 23%, rgba(0, 0, 0, .06) 72%, rgba(0, 0, 0, .38)),
+    linear-gradient(180deg, rgba(255, 255, 255, .035), transparent 34%, rgba(0, 0, 0, .2));
   pointer-events: none;
 }
 
 .spineTitle {
   position: absolute;
-  z-index: 3;
-  top: 9px;
+  z-index: 4;
+  top: 10px;
   left: 50%;
-  max-height: 108px;
+  max-height: 112px;
   transform: translateX(-50%) rotate(180deg);
   writing-mode: vertical-rl;
   overflow: hidden;
-  color: rgba(255, 239, 207, .9);
-  text-shadow: 0 1px 3px #000, 0 0 7px rgba(0, 0, 0, .68);
-  font-size: clamp(7px, 1.9vw, 9px);
+  color: rgba(255, 241, 216, .94);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .86), 0 0 6px rgba(0, 0, 0, .42);
+  font-size: clamp(8px, 2vw, 10px);
   line-height: 1;
   letter-spacing: .025em;
   text-transform: uppercase;
@@ -398,18 +400,18 @@
 
 .spineAuthor {
   position: absolute;
-  z-index: 3;
-  left: 2px;
-  right: 2px;
-  bottom: 6px;
+  z-index: 4;
+  left: 3px;
+  right: 3px;
+  bottom: 7px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  color: rgba(238, 221, 193, .72);
-  text-shadow: 0 1px 3px #000;
+  color: rgba(241, 227, 203, .75);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .82);
   font-family: Arial, sans-serif;
-  font-size: 5px;
-  letter-spacing: .015em;
+  font-size: 5.5px;
+  letter-spacing: .02em;
   text-transform: uppercase;
   text-align: center;
   pointer-events: none;
