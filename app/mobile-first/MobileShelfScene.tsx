@@ -8,13 +8,12 @@ import styles from "./MobileShelfScene.module.css";
 
 type MobileShelfSceneProps = {
   books: Book[];
-  storageReady: boolean;
   importMessage: string;
   onSelect: (book: Book) => void;
   onAddBook: () => void;
 };
 
-const BOOKS_PER_ROW = 7;
+const BOOKS_PER_ROW = 8;
 
 function SearchIcon() {
   return (
@@ -36,7 +35,6 @@ function UserIcon() {
 
 export default function MobileShelfScene({
   books,
-  storageReady,
   importMessage,
   onSelect,
   onAddBook,
@@ -55,9 +53,12 @@ export default function MobileShelfScene({
     for (let index = 0; index < visibleBooks.length; index += BOOKS_PER_ROW) {
       next.push(visibleBooks.slice(index, index + BOOKS_PER_ROW));
     }
+
     if (!query.trim()) {
-      while (next.length < 4) next.push([]);
+      if (next.length === 0) next.push([]);
+      else next.push([]);
     }
+
     return next;
   }, [query, visibleBooks]);
 
@@ -129,24 +130,32 @@ export default function MobileShelfScene({
           ) : null}
 
           <div className={styles.bookcase}>
-            {rows.length ? rows.map((row, rowIndex) => (
-              <section className={styles.shelfRow} key={rowIndex} aria-label={`Shelf row ${rowIndex + 1}`}>
-                <div className={styles.booksRow}>
-                  {row.map((book, bookIndex) => (
-                    <MobileBookSpine
-                      key={book.id}
-                      book={book}
-                      index={rowIndex * BOOKS_PER_ROW + bookIndex}
-                      onSelect={onSelect}
-                    />
-                  ))}
-                  {row.length === 0 && rowIndex === 0 ? (
-                    <div className={styles.emptyShelfMessage}>Your books will live here.</div>
-                  ) : null}
-                </div>
-                <div className={styles.shelfPlank} aria-hidden="true" />
-              </section>
-            )) : (
+            {rows.length ? rows.map((row, rowIndex) => {
+              const continuationHint = !query.trim() && books.length > 0 && row.length === 0 && rowIndex === rows.length - 1;
+
+              return (
+                <section
+                  className={`${styles.shelfRow} ${continuationHint ? styles.shelfRowHint : ""}`}
+                  key={rowIndex}
+                  aria-label={continuationHint ? "Shelf continues" : `Shelf row ${rowIndex + 1}`}
+                >
+                  <div className={styles.booksRow}>
+                    {row.map((book, bookIndex) => (
+                      <MobileBookSpine
+                        key={book.id}
+                        book={book}
+                        index={rowIndex * BOOKS_PER_ROW + bookIndex}
+                        onSelect={onSelect}
+                      />
+                    ))}
+                    {row.length === 0 && books.length === 0 && rowIndex === 0 ? (
+                      <div className={styles.emptyShelfMessage}>Your books will live here.</div>
+                    ) : null}
+                  </div>
+                  <div className={styles.shelfPlank} aria-hidden="true" />
+                </section>
+              );
+            }) : (
               <div className={styles.noResults}>
                 <span>No books found.</span>
                 <button type="button" onClick={() => setQuery("")}>Show all books</button>
@@ -154,12 +163,6 @@ export default function MobileShelfScene({
             )}
           </div>
         </div>
-      </div>
-
-      <div className={styles.statusPill} aria-live="polite">
-        <span>{books.length} {books.length === 1 ? "book" : "books"}</span>
-        <b aria-hidden="true">·</b>
-        <span>{storageReady ? "shelf ready" : "loading shelf"}</span>
       </div>
 
       <nav className={styles.bottomDock} aria-label="Shelf navigation">
