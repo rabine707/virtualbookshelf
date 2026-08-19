@@ -7,6 +7,7 @@ import { MobileBookSpine } from "./MobileBookSpine";
 import { SPINE_SHELL_TEXTURES } from "./spineShellTextures";
 import headStyles from "./CinematicHead.module.css";
 import styles from "./MobileShelfScene.module.css";
+import polish from "./MobileShelfPolish.module.css";
 
 type MobileShelfSceneProps = {
   books: Book[];
@@ -83,8 +84,8 @@ export default function MobileShelfScene({
       <div className={headStyles.windowShadowCast} aria-hidden="true" />
       <div className={headStyles.dust} aria-hidden="true" />
 
-      <header className={styles.topBar}>
-        <div className={styles.brand} aria-label="Shelf of Fame">
+      <header className={`${styles.topBar} ${polish.topBar}`}>
+        <div className={`${styles.brand} ${polish.brand}`} aria-label="Shelf of Fame">
           <span>SHELF</span>
           <i>of</i>
           <span>FAME</span>
@@ -92,7 +93,7 @@ export default function MobileShelfScene({
       </header>
 
       <img
-        className={headStyles.quoteFrame}
+        className={`${headStyles.quoteFrame} ${polish.quoteFrame}`}
         src="/themes/botanical/v6/botanical-frame.webp"
         alt=""
         aria-hidden="true"
@@ -129,10 +130,10 @@ export default function MobileShelfScene({
         }}
       />
 
-      <div className={styles.shelfStage} role="main">
-        <div className={styles.cabinetCap} aria-hidden="true" />
+      <div className={`${styles.shelfStage} ${polish.shelfStage}`} role="main">
+        <div className={`${styles.cabinetCap} ${polish.cabinetCap}`} aria-hidden="true" />
 
-        <div className={styles.shelfViewport}>
+        <div className={`${styles.shelfViewport} ${polish.shelfViewport}`}>
           {searchOpen ? (
             <div className={styles.searchPanel}>
               <SearchIcon />
@@ -156,17 +157,17 @@ export default function MobileShelfScene({
             </div>
           ) : null}
 
-          <div className={styles.bookcase}>
+          <div className={`${styles.bookcase} ${polish.bookcase}`}>
             {rows.length ? rows.map((row, rowIndex) => {
               const continuationHint = !query.trim() && books.length > 0 && row.length === 0 && rowIndex === rows.length - 1;
 
               return (
                 <section
-                  className={`${styles.shelfRow} ${continuationHint ? styles.shelfRowHint : ""}`}
+                  className={`${styles.shelfRow} ${polish.shelfRow} ${continuationHint ? `${styles.shelfRowHint} ${polish.shelfRowHint}` : ""}`}
                   key={rowIndex}
                   aria-label={continuationHint ? "Shelf continues" : `Shelf row ${rowIndex + 1}`}
                 >
-                  <div className={styles.booksRow}>
+                  <div className={`${styles.booksRow} ${polish.booksRow}`}>
                     {row.map((book, bookIndex) => (
                       <MobileBookSpine
                         key={book.id}
@@ -179,7 +180,7 @@ export default function MobileShelfScene({
                       <div className={styles.emptyShelfMessage}>Your books will live here.</div>
                     ) : null}
                   </div>
-                  <div className={styles.shelfPlank} aria-hidden="true" />
+                  <div className={`${styles.shelfPlank} ${polish.shelfPlank}`} aria-hidden="true" />
                 </section>
               );
             }) : (
@@ -192,7 +193,7 @@ export default function MobileShelfScene({
         </div>
       </div>
 
-      <nav className={styles.bottomDock} aria-label="Shelf navigation">
+      <nav className={`${styles.bottomDock} ${polish.bottomDock}`} aria-label="Shelf navigation">
         <button
           type="button"
           className={searchOpen ? styles.activeDockButton : ""}
