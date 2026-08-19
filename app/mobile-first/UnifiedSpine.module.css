@@ -1,0 +1,195 @@
+.book {
+  position: relative !important;
+  width: 49px !important;
+  min-width: 49px !important;
+  max-width: 49px !important;
+  height: 146px !important;
+  min-height: 146px !important;
+  max-height: 146px !important;
+  flex: 0 0 49px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 6px 6px 3px 3px !important;
+  background: var(--mobile-spine-color, #6b5441) !important;
+  box-shadow:
+    -2px 0 3px rgba(0, 0, 0, .34),
+    2px 0 5px rgba(0, 0, 0, .46),
+    0 2px 3px rgba(0, 0, 0, .28) !important;
+  transform: translateY(0);
+  transform-origin: 50% 100%;
+  transition: transform 150ms ease, filter 150ms ease, box-shadow 150ms ease;
+  isolation: isolate;
+}
+
+/* Disable the older pseudo-element shell/shading so this component has one source of truth. */
+.book::before,
+.book::after {
+  content: none !important;
+  display: none !important;
+}
+
+.book:active,
+.book:focus-visible {
+  transform: translateY(-8px) !important;
+  filter: brightness(1.06);
+  outline: none;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, .48) !important;
+}
+
+/* LAYER 1 — one manufactured cloth blank, dynamically recolored per book. */
+.physicalShell {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  background: var(--mobile-spine-color, #6b5441);
+  pointer-events: none;
+}
+
+.physicalShell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--shelf-shell-image);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: grayscale(1) contrast(1.13) brightness(1.04);
+  mix-blend-mode: soft-light;
+  opacity: .96;
+}
+
+.physicalShell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.07) 0%, transparent 5%, transparent 91%, rgba(0,0,0,.17) 100%),
+    radial-gradient(ellipse at 48% 6%, rgba(255,255,255,.055), transparent 28%);
+  mix-blend-mode: soft-light;
+  opacity: .8;
+}
+
+/* LAYER 2 — live publisher design: art, ornaments, title and author. */
+.printedDesign {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Matte printed ink is the default. It sits into the cloth instead of floating above it. */
+.ink [data-print-role="title-line"] {
+  color: var(--spine-ink, rgba(255, 241, 216, .96));
+  -webkit-text-fill-color: currentColor;
+  opacity: .94;
+  text-shadow:
+    -.22px -.22px .25px rgba(0,0,0,.25),
+    .3px .35px .28px rgba(255,255,255,.08),
+    0 .8px .7px rgba(0,0,0,.46) !important;
+  filter: contrast(1.025);
+}
+
+/* A restrained letterpress/debossed treatment for a minority of literary spines. */
+.debossed [data-print-role="title-line"] {
+  color: var(--spine-ink, rgba(246, 228, 198, .93));
+  -webkit-text-fill-color: currentColor;
+  opacity: .9;
+  text-shadow:
+    -.45px -.45px .35px rgba(0,0,0,.52),
+    .45px .45px .32px rgba(255,255,255,.14),
+    0 .8px .7px rgba(0,0,0,.3) !important;
+}
+
+/* Champagne foil: bright enough to stay readable at actual mobile shelf size. */
+.foil [data-print-role="title-line"] {
+  color: transparent !important;
+  background: linear-gradient(
+    118deg,
+    #d0a956 0%,
+    #f2d889 18%,
+    #fff1b4 34%,
+    #d2a64f 48%,
+    #f6dd91 64%,
+    #fff3bf 78%,
+    #c99945 100%
+  );
+  background-size: 150% 100%;
+  background-position: 46% center;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: .06px rgba(91, 57, 17, .25);
+  opacity: .98;
+  text-shadow: 0 .65px .55px rgba(0,0,0,.38) !important;
+  filter: drop-shadow(0 -.18px .12px rgba(255,247,205,.24));
+}
+
+.printedDesign [data-print-role="author"] {
+  opacity: .82;
+  text-shadow:
+    0 .3px .25px rgba(255,255,255,.05),
+    0 .75px .65px rgba(0,0,0,.48) !important;
+  filter: contrast(1.015);
+}
+
+.foil [data-print-role="author"] {
+  color: #e7c979 !important;
+  opacity: .78;
+}
+
+/* LAYER 3 — universal cylindrical spine lighting and manufactured edge depth. */
+.spineLighting {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0,0,0,.38) 0%,
+      rgba(0,0,0,.12) 5%,
+      rgba(255,255,255,.13) 13%,
+      rgba(255,255,255,.035) 24%,
+      transparent 39%,
+      transparent 78%,
+      rgba(0,0,0,.10) 88%,
+      rgba(0,0,0,.42) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.085) 0%,
+      transparent 5%,
+      transparent 91%,
+      rgba(0,0,0,.22) 100%
+    );
+  box-shadow:
+    inset 1px 0 rgba(255,255,255,.07),
+    inset -1px 0 rgba(0,0,0,.24),
+    inset 0 1px rgba(255,255,255,.08),
+    inset 0 -4px 7px rgba(0,0,0,.11);
+  mix-blend-mode: soft-light;
+}
+
+/* Keep the physical blank uniform; perspective belongs to the printed face only. */
+.printedDesign[data-face="left"] {
+  transform: perspective(280px) rotateY(-.22deg);
+  transform-origin: center;
+}
+
+.printedDesign[data-face="right"] {
+  transform: perspective(280px) rotateY(.22deg);
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book {
+    transition: none;
+  }
+}
