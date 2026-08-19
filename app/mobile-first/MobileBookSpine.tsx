@@ -12,6 +12,13 @@ import {
   CoverResult,
   rejectedUrls,
 } from "../../lib/books/client-library";
+import {
+  getGeneratedSpine,
+  getGeneratedSpineMode,
+  storedSpineCrop,
+  type SpineGeneratedEventDetail,
+  type SpineRenderMode,
+} from "../../lib/spines/client";
 import styles from "./MobileShelfScene.module.css";
 
 type MobileBookSpineProps = {
@@ -34,7 +41,11 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
     : undefined;
   const [cover, setCover] = useState<CoverResult | null>(() => preferred || coverMemory.get(key) || null);
   const [shouldLoad, setShouldLoad] = useState(() => eager || coverMemory.has(key));
+  const [generatedSpine, setGeneratedSpine] = useState<string>();
+  const [generatedMode, setGeneratedMode] = useState<SpineRenderMode>("overlay");
+  const [spineCrop, setSpineCrop] = useState<string>();
   const displayedCover = preferred || cover;
+  const coverUrl = displayedCover?.url;
 
   useEffect(() => {
     if (preferred) {
@@ -94,6 +105,35 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
     return () => controller.abort();
   }, [book, key, preferred, shouldLoad]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setGeneratedSpine(undefined);
+    setGeneratedMode("overlay");
+    setSpineCrop(undefined);
+    if (!coverUrl) return () => { cancelled = true; };
+
+    void Promise.all([getGeneratedSpine(coverUrl), getGeneratedSpineMode(coverUrl)]).then(([image, mode]) => {
+      if (cancelled || !image) return;
+      setGeneratedSpine(image);
+      setGeneratedMode(mode);
+      setSpineCrop(storedSpineCrop(image));
+    });
+
+    const onGenerated = (event: Event) => {
+      const detail = (event as CustomEvent<SpineGeneratedEventDetail>).detail;
+      if (!detail || detail.coverUrl !== coverUrl) return;
+      setGeneratedSpine(detail.image);
+      setGeneratedMode(detail.renderMode || "overlay");
+      setSpineCrop(detail.position || storedSpineCrop(detail.image));
+    };
+
+    window.addEventListener("shelf-spine-generated", onGenerated);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("shelf-spine-generated", onGenerated);
+    };
+  }, [coverUrl]);
+
   const style = {
     "--mobile-spine-color": book.color,
     "--mobile-spine-width": `${34 + ((index * 7) % 10)}px`,
@@ -103,17 +143,20 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
     <button
       ref={ref}
       type="button"
-      className={`${styles.bookSpine} ${displayedCover?.url ? styles.bookSpineWithCover : ""}`}
+      className={`${styles.bookSpine} ${coverUrl ? styles.bookSpineWithCover : ""}`}
       style={style}
       onClick={() => onSelect(book)}
       aria-label={`${book.title} by ${book.author}`}
       title={`${book.title} — ${book.author}`}
+      data-book-id={book.id}
+      data-spine-crop={spineCrop}
     >
-      {displayedCover?.url ? (
+      {coverUrl ? (
         <img
           className={styles.spineCover}
-          src={displayedCover.url}
+          src={coverUrl}
           alt=""
+          data-shelf-cover="true"
           loading={eager ? "eager" : "lazy"}
           decoding="async"
           onError={() => {
@@ -124,9 +167,18 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
           }}
         />
       ) : null}
+      {generatedSpine ? (
+        <img
+          className={styles.generatedSpineArt}
+          src={generatedSpine}
+          alt=""
+          data-shelf-generated-spine="true"
+          decoding="async"
+        />
+      ) : null}
       <span className={styles.spineShade} aria-hidden="true" />
-      <span className={styles.spineTitle}>{shortTitle(book.title)}</span>
-      <span className={styles.spineAuthor}>{book.author}</span>
+      {generatedMode !== "integrated" ? <span className={styles.spineTitle}>{shortTitle(book.title)}</span> : null}
+      {generatedMode !== "integrated" ? <span className={styles.spineAuthor}>{book.author}</span> : null}
     </button>
   );
 }
