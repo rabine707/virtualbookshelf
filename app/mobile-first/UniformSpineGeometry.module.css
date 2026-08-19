@@ -1,0 +1,56 @@
+.uniformShelf :global([data-book-id][data-spine-layout]) {
+  width: 49px !important;
+  min-width: 49px !important;
+  max-width: 49px !important;
+  flex: 0 0 49px !important;
+  height: 146px !important;
+  min-height: 146px !important;
+  max-height: 146px !important;
+  margin: 0 !important;
+  border-radius: 6px 6px 3px 3px !important;
+  transform-origin: 50% 100%;
+  box-shadow:
+    -2px 0 3px rgba(0, 0, 0, .32),
+    2px 0 5px rgba(0, 0, 0, .44),
+    0 2px 2px rgba(0, 0, 0, .26),
+    inset 3px 0 5px rgba(255, 255, 255, .05),
+    inset -4px 0 6px rgba(0, 0, 0, .18),
+    inset 0 1px rgba(255, 255, 255, .14) !important;
+}
+
+/* Keep every cloth blank manufactured to the same visual profile. */
+.uniformShelf :global([data-book-id][data-spine-layout])::before {
+  inset: 0 !important;
+  border-radius: 6px 6px 3px 3px !important;
+  background-size: 100% 100%, 100% 100% !important;
+  background-position: center, center !important;
+  opacity: .82 !important;
+  filter: contrast(1.06) brightness(1.015) saturate(.9) !important;
+}
+
+.uniformShelf :global([data-book-id][data-spine-layout])::after {
+  border-radius: 6px 6px 3px 3px !important;
+  border-left: 1px solid rgba(255, 255, 255, .075) !important;
+  border-right: 1px solid rgba(0, 0, 0, .24) !important;
+  border-top: 1px solid rgba(255, 255, 255, .08) !important;
+  box-shadow:
+    inset 2px 0 3px rgba(255, 255, 255, .025),
+    inset -2px 0 4px rgba(0, 0, 0, .09),
+    inset 0 -5px 7px rgba(0, 0, 0, .08) !important;
+}
+
+/* A consistent top/bottom roll makes the row read as one physical product family. */
+.uniformShelf :global([data-book-id][data-spine-layout]) {
+  background-clip: padding-box !important;
+}
+
+.uniformShelf :global([data-book-id][data-spine-layout]):active,
+.uniformShelf :global([data-book-id][data-spine-layout]):focus-visible {
+  transform: translateY(-8px) !important;
+}
+
+/* Uniform spacing and baseline: like the clean color-variation row in the reference. */
+.uniformShelf :global(.booksRow) {
+  align-items: flex-end !important;
+  gap: 3px !important;
+}
