@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Book } from "../../lib/books/client-library";
 import { MobileBookSpine } from "./MobileBookSpine";
+import headStyles from "./CinematicHead.module.css";
 import styles from "./MobileShelfScene.module.css";
 
 type MobileShelfSceneProps = {
@@ -64,18 +65,20 @@ export default function MobileShelfScene({
 
   return (
     <div className={styles.scene}>
-      <div className={styles.wallTexture} aria-hidden="true" />
-      <div className={styles.windowGlow} aria-hidden="true" />
+      <div className={headStyles.wallTexture} aria-hidden="true" />
+      <div className={headStyles.wallDepth} aria-hidden="true" />
+      <div className={headStyles.windowGlow} aria-hidden="true" />
       <img
-        className={styles.windowAsset}
+        className={headStyles.windowAsset}
         src="/themes/botanical/v3/window-left.webp"
         alt=""
         aria-hidden="true"
       />
-      <div className={styles.sunbeam} aria-hidden="true" />
-      <div className={styles.dust} aria-hidden="true" />
+      <div className={headStyles.sunbeam} aria-hidden="true" />
+      <div className={headStyles.windowShadowCast} aria-hidden="true" />
+      <div className={headStyles.dust} aria-hidden="true" />
       <img
-        className={styles.hangingVine}
+        className={headStyles.hangingVine}
         src="/themes/botanical/v3/hanging-vine-right.webp"
         alt=""
         aria-hidden="true"
@@ -89,13 +92,13 @@ export default function MobileShelfScene({
         </div>
       </header>
 
-      <div className={styles.quoteFrame} aria-hidden="true">
+      <div className={headStyles.quoteFrame} aria-hidden="true">
         <span>just</span>
         <span>one more</span>
         <span>chapter</span>
       </div>
 
-      <div className={styles.scenePlant} aria-hidden="true">
+      <div className={headStyles.scenePlant} aria-hidden="true">
         <img src="/themes/botanical/v3/ceramic-pothos-planter.webp" alt="" />
       </div>
 
