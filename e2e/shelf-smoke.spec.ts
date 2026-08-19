@@ -1,4 +1,5 @@
 import { expect, Page, test } from "@playwright/test";
+import { searchShelf, shelfBook } from "./mobile-shelf-helpers";
 
 const COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23567'/%3E%3C/svg%3E";
 const SECOND_COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23765'/%3E%3C/svg%3E";
@@ -66,9 +67,8 @@ async function mockCoverApis(page: Page) {
 async function openFourthWing(page: Page) {
   await mockCoverApis(page);
   await page.goto("/");
-  const search = page.getByPlaceholder("Search title or author…");
-  await search.fill("Fourth Wing");
-  await page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]').click();
+  await searchShelf(page, "Fourth Wing");
+  await shelfBook(page, "Fourth Wing", "Rebecca Yarros").click();
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toBeVisible();
   await expect(page.getByTitle("Save this as the correct cover")).toBeEnabled();
 }
@@ -100,7 +100,7 @@ test("loads the shelf, searches, opens a book, and preserves a rejected cover", 
   await expect.poll(() => rejectedCoverIsPersisted(page)).toBe(true);
 
   await page.getByRole("button", { name: "Close" }).click();
-  const spine = page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]');
+  const spine = shelfBook(page, "Fourth Wing", "Rebecca Yarros");
   await spine.click();
 
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toBeVisible();
@@ -137,7 +137,7 @@ test("book modal owns reader controls and can undo a cover rejection without rel
   await expect(undoToast).toContainText("Cover rejected. Accident?");
   await undoToast.getByRole("button", { name: "Undo", exact: true }).click();
 
-  await expect(page.locator('.toast[role="status"]')).toContainText("Restored the previous cover choice for Fourth Wing");
+  await expect(page.getByRole("status")).toContainText("Restored the previous cover choice for Fourth Wing");
   await expect.poll(() => rejectedCoverIsPersisted(page)).toBe(false);
   await expect(page.locator(".cover-undo-toast")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __coverUndoMarker?: string }).__coverUndoMarker)).toBe("alive");
@@ -183,7 +183,7 @@ test("saved cover choices are managed by React without reloading the page", asyn
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __savedCoverMarker?: string }).__savedCoverMarker)).toBe("alive");
 
-  await page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]').click();
+  await shelfBook(page, "Fourth Wing", "Rebecca Yarros").click();
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toBeVisible();
 
   const savedOption = page.getByRole("button", { name: "Use saved Google Books cover" });
@@ -227,7 +227,7 @@ test("adding a searched book updates the live shelf without reloading the page",
     (window as typeof window & { __addBookMarker?: string }).__addBookMarker = "alive";
   });
 
-  await page.getByRole("button", { name: /Add books/i }).first().click();
+  await page.getByRole("button", { name: "Add Book", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Add books" });
   await expect(dialog).toBeVisible();
   await dialog.getByPlaceholder("Church").fill("A Test Book");
@@ -237,7 +237,7 @@ test("adding a searched book updates the live shelf without reloading the page",
   const searchResult = dialog.locator(".book-search-result").filter({ hasText: "A Test Book" }).first();
   await expect(searchResult).toBeVisible();
   await searchResult.click();
-  await expect(page.locator('button.book[title="A Test Book — Test Author"]')).toBeVisible();
+  await expect(shelfBook(page, "A Test Book", "Test Author")).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __addBookMarker?: string }).__addBookMarker)).toBe("alive");
 });
 
@@ -252,7 +252,7 @@ test("a single database-cover tap saves the cover and returns to the shelf", asy
   await secondCover.click();
 
   await expect(page.getByRole("dialog", { name: "Fourth Wing" })).toHaveCount(0);
-  await expect(page.locator('button.book[title="Fourth Wing — Rebecca Yarros"]')).toBeVisible();
+  await expect(shelfBook(page, "Fourth Wing", "Rebecca Yarros")).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { __singleTapMarker?: string }).__singleTapMarker)).toBe("alive");
   await expect.poll(async () => page.evaluate(() => {
     const books = JSON.parse(window.localStorage.getItem("shelf-of-fame-library-v1") || "[]") as Array<{
