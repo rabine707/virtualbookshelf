@@ -2,69 +2,24 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-
-const SUPABASE_URL = "https://vrkuimrfdkejfhpxlwlf.supabase.co";
-const SUPABASE_KEY = "sb_publishable_mf0u925xGBkP4iNgxSCjuQ_H4Dp8r1S";
-const SESSION_KEY = "shelf-of-fame-supabase-session";
-
-type User = {
-  id?: string;
-  email?: string;
-  user_metadata?: { username?: string; display_name?: string };
-};
-
-type Profile = {
-  username?: string;
-  display_name?: string | null;
-  avatar_url?: string | null;
-  bio?: string | null;
-};
-
-type Session = {
-  access_token: string;
-  refresh_token?: string;
-  user?: User;
-  profile?: Profile;
-};
-
-function cleanUsername(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function usernameFormatError(value: string) {
-  if (value.length < 3 || value.length > 24) return "Username must be 3–24 characters.";
-  if (!/^[a-z0-9][a-z0-9_.]*$/.test(value)) return "Use letters, numbers, underscores, or periods only.";
-  if (/[_.]{2,}/.test(value)) return "Avoid repeated periods or underscores.";
-  return "";
-}
-
-async function getUser(accessToken: string): Promise<User | undefined> {
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${accessToken}` },
-  });
-  if (!response.ok) return undefined;
-  return response.json();
-}
-
-async function getProfile(userId: string, accessToken: string): Promise<Profile | undefined> {
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/profiles?select=username,display_name,avatar_url,bio&id=eq.${encodeURIComponent(userId)}&limit=1`,
-    { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
-  );
-  if (!response.ok) return undefined;
-  const rows = await response.json();
-  return Array.isArray(rows) ? rows[0] : undefined;
-}
-
-async function usernameAvailable(username: string) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/username_available`, {
-    method: "POST",
-    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ candidate: username }),
-  });
-  if (!response.ok) throw new Error("Could not check that username right now.");
-  return Boolean(await response.json());
-}
+import CloudAccountSettings from "../CloudAccountSettings";
+import {
+  AUTH_CHANGED_EVENT,
+  AUTH_ERROR_EVENT,
+  SUPABASE_KEY,
+  SUPABASE_URL,
+  ShelfProfile,
+  ShelfSession,
+  cleanUsername,
+  parseShelfAuthHash,
+  persistShelfSession,
+  readStoredShelfSession,
+  signOutShelfSession,
+  storeShelfSession,
+  supabaseAuthRequest,
+  usernameAvailable,
+  usernameFormatError,
+} from "../auth-client";
 
 function initials(displayName: string, username: string) {
   const source = displayName.trim() || username.trim() || "S";
@@ -72,10 +27,15 @@ function initials(displayName: string, username: string) {
 }
 
 export default function AccountPage() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<ShelfSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authCheckingUsername, setAuthCheckingUsername] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
   const [message, setMessage] = useState("");
   const [messageKind, setMessageKind] = useState<"ok" | "error" | "">("");
   const [username, setUsername] = useState("");
@@ -85,35 +45,153 @@ export default function AccountPage() {
   const [avatarUrl, setAvatarUrl] = useState("");
 
   useEffect(() => {
-    async function load() {
-      try {
-        const raw = localStorage.getItem(SESSION_KEY);
-        if (!raw) return;
-        const stored = JSON.parse(raw) as Session;
-        if (!stored.access_token) return;
-        const user = stored.user || await getUser(stored.access_token);
-        if (!user?.id) return;
-        const profile = await getProfile(user.id, stored.access_token);
-        const enriched = { ...stored, user, profile };
-        localStorage.setItem(SESSION_KEY, JSON.stringify(enriched));
-        setSession(enriched);
-        const nextUsername = profile?.username || user.user_metadata?.username || "";
+    let stopped = false;
+    let callbackTimer: number | undefined;
+
+    function applySession(next: ShelfSession | null) {
+      if (stopped) return;
+      setSession(next);
+      if (next?.user?.id) {
+        const nextUsername = next.profile?.username || next.user.user_metadata?.username || "";
         setUsername(nextUsername);
         setOriginalUsername(nextUsername);
-        setDisplayName(profile?.display_name || user.user_metadata?.display_name || "");
-        setBio(profile?.bio || "");
-        setAvatarUrl(profile?.avatar_url || "");
+        setDisplayName(next.profile?.display_name || next.user.user_metadata?.display_name || "");
+        setBio(next.profile?.bio || "");
+        setAvatarUrl(next.profile?.avatar_url || "");
+      }
+      setLoading(false);
+    }
+
+    function onAuthChanged(event: Event) {
+      applySession((event as CustomEvent<ShelfSession | null>).detail || null);
+    }
+
+    function onAuthError(event: Event) {
+      if (stopped) return;
+      setAuthMessage(String((event as CustomEvent<string>).detail || "Could not sign in."));
+      setLoading(false);
+    }
+
+    window.addEventListener(AUTH_CHANGED_EVENT, onAuthChanged as EventListener);
+    window.addEventListener(AUTH_ERROR_EVENT, onAuthError as EventListener);
+
+    async function load() {
+      try {
+        const stored = readStoredShelfSession();
+        if (stored?.access_token) {
+          applySession(stored);
+          const enriched = await persistShelfSession(stored);
+          applySession(enriched);
+          return;
+        }
+
+        const callback = parseShelfAuthHash(window.location.hash);
+        if (callback?.error) {
+          setAuthMessage(callback.error);
+          setLoading(false);
+          return;
+        }
+        if (callback?.session) {
+          callbackTimer = window.setTimeout(() => {
+            if (!stopped) {
+              setAuthMessage("Account confirmation is taking longer than expected. Refresh this page to try again.");
+              setLoading(false);
+            }
+          }, 8000);
+          return;
+        }
+
+        setLoading(false);
       } catch {
         setMessage("Could not load your account.");
         setMessageKind("error");
-      } finally {
         setLoading(false);
       }
     }
     void load();
+
+    return () => {
+      stopped = true;
+      if (callbackTimer) window.clearTimeout(callbackTimer);
+      window.removeEventListener(AUTH_CHANGED_EVENT, onAuthChanged as EventListener);
+      window.removeEventListener(AUTH_ERROR_EVENT, onAuthError as EventListener);
+    };
   }, []);
 
   const avatarInitials = useMemo(() => initials(displayName, username), [displayName, username]);
+
+  async function checkSignupUsername(rawUsername: string) {
+    const clean = cleanUsername(rawUsername);
+    const formatError = usernameFormatError(clean);
+    if (formatError) {
+      setAuthMessage(formatError);
+      return false;
+    }
+    setAuthCheckingUsername(true);
+    try {
+      const available = await usernameAvailable(clean);
+      setAuthMessage(available ? `@${clean} is available.` : "That username is unavailable or not allowed.");
+      return available;
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : "Could not check that username.");
+      return false;
+    } finally {
+      setAuthCheckingUsername(false);
+    }
+  }
+
+  async function submitAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAuthBusy(true);
+    setAuthMessage("");
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") || "").trim();
+    const password = String(form.get("password") || "");
+    const signupUsername = cleanUsername(String(form.get("username") || ""));
+    const signupDisplayName = String(form.get("display_name") || "").trim();
+
+    try {
+      let data;
+      if (authMode === "signup") {
+        const formatError = usernameFormatError(signupUsername);
+        if (formatError) throw new Error(formatError);
+        if (!(await usernameAvailable(signupUsername))) {
+          throw new Error("That username is unavailable or not allowed.");
+        }
+        const redirectTo = `${window.location.origin}/account`;
+        data = await supabaseAuthRequest(`signup?redirect_to=${encodeURIComponent(redirectTo)}`, {
+          email,
+          password,
+          data: {
+            username: signupUsername,
+            display_name: signupDisplayName || signupUsername,
+          },
+        });
+      } else {
+        data = await supabaseAuthRequest("token?grant_type=password", { email, password });
+      }
+
+      if (data.access_token) {
+        const next = await persistShelfSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          user: data.user,
+        });
+        setSession(next);
+        setAuthMessage("");
+      } else {
+        setAuthMessage("Account created! Check your email to confirm it, then return here to sign in.");
+        setAuthMode("login");
+      }
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "Could not continue.";
+      setAuthMessage(text.includes("Database error saving new user")
+        ? "That username is unavailable or not allowed."
+        : text);
+    } finally {
+      setAuthBusy(false);
+    }
+  }
 
   async function checkUsername() {
     const clean = cleanUsername(username);
@@ -186,7 +264,7 @@ export default function AccountPage() {
         throw new Error(String(detail));
       }
 
-      const savedProfile: Profile = Array.isArray(profileData) ? profileData[0] : {
+      const savedProfile: ShelfProfile = Array.isArray(profileData) ? profileData[0] : {
         username: clean,
         display_name: displayName.trim() || clean,
         bio: bio.trim() || null,
@@ -202,16 +280,15 @@ export default function AccountPage() {
         },
         body: JSON.stringify({ data: { username: clean, display_name: savedProfile.display_name } }),
       });
-      const updatedUser = authResponse.ok ? await authResponse.json() as User : session.user;
+      const updatedUser = authResponse.ok ? await authResponse.json() : session.user;
 
-      const next: Session = { ...session, user: updatedUser, profile: savedProfile };
-      localStorage.setItem(SESSION_KEY, JSON.stringify(next));
+      const next: ShelfSession = { ...session, user: updatedUser, profile: savedProfile };
+      storeShelfSession(next);
       setSession(next);
       setOriginalUsername(clean);
       setUsername(clean);
       setMessage("Profile saved.");
       setMessageKind("ok");
-      window.dispatchEvent(new CustomEvent("shelf-auth-changed", { detail: next }));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save your profile.");
       setMessageKind("error");
@@ -240,10 +317,19 @@ export default function AccountPage() {
     }
   }
 
-  function signOut() {
-    localStorage.removeItem(SESSION_KEY);
-    window.dispatchEvent(new CustomEvent("shelf-auth-changed", { detail: null }));
-    window.location.href = "/";
+  async function signOut() {
+    if (!session || signingOut) return;
+    setSigningOut(true);
+    setMessage("");
+    setMessageKind("");
+    try {
+      await signOutShelfSession(session);
+      window.location.assign("/");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not sign out right now.");
+      setMessageKind("error");
+      setSigningOut(false);
+    }
   }
 
   if (loading) {
@@ -252,11 +338,68 @@ export default function AccountPage() {
 
   if (!session?.access_token || !session.user?.id) {
     return <main className="sof-account-page">
-      <div className="sof-account-panel sof-account-empty">
+      <div className="sof-auth-card sof-account-auth-card">
         <div className="sof-account-kicker">SHELF OF FAME</div>
-        <h1>Account</h1>
-        <p>You need to sign in before editing your profile.</p>
-        <Link className="sof-account-back" href="/">← Back to your shelf</Link>
+        <h1>{authMode === "login" ? "Welcome back" : "Create your account"}</h1>
+        <p>{authMode === "login"
+          ? "Sign in to sync this shelf across your devices."
+          : "Choose a public username. Your email stays private."}</p>
+        <form onSubmit={submitAuth}>
+          {authMode === "signup" && <>
+            <label>Username
+              <input
+                name="username"
+                type="text"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                minLength={3}
+                maxLength={24}
+                pattern="[A-Za-z0-9][A-Za-z0-9_.]{2,23}"
+                placeholder="booklover92"
+                onBlur={(event) => {
+                  if (event.currentTarget.value) void checkSignupUsername(event.currentTarget.value);
+                }}
+                required
+              />
+            </label>
+            <label>Display name <span className="sof-auth-optional">(optional)</span>
+              <input name="display_name" type="text" autoComplete="name" maxLength={50} placeholder="Your name" />
+            </label>
+          </>}
+          <label>Email
+            <input name="email" type="email" autoComplete="email" inputMode="email" required />
+          </label>
+          <label>Password
+            <input
+              name="password"
+              type="password"
+              autoComplete={authMode === "login" ? "current-password" : "new-password"}
+              minLength={6}
+              required
+            />
+          </label>
+          {authMessage && <div className="sof-auth-message" role="status">{authMessage}</div>}
+          <button className="sof-auth-primary" type="submit" disabled={authBusy || authCheckingUsername}>
+            {authBusy
+              ? "Working…"
+              : authCheckingUsername
+                ? "Checking username…"
+                : authMode === "login" ? "Sign in" : "Create account"}
+          </button>
+        </form>
+        <button
+          className="sof-auth-switch"
+          type="button"
+          onClick={() => {
+            setAuthMessage("");
+            setAuthMode((current) => current === "login" ? "signup" : "login");
+          }}
+        >
+          {authMode === "login" ? "New here? Create an account" : "Already have an account? Sign in"}
+        </button>
+        <p className="sof-account-sync-note">The books already on this device will sync after you sign in.</p>
+        <Link className="sof-account-back sof-account-auth-back" href="/">← Back to your shelf</Link>
       </div>
     </main>;
   }
@@ -320,9 +463,12 @@ export default function AccountPage() {
 
         <div className="sof-account-actions">
           <button className="sof-account-save" type="submit" disabled={saving || checking}>{saving ? "Saving…" : "Save changes"}</button>
-          <button className="sof-account-signout" type="button" onClick={signOut}>Sign out</button>
+          <button className="sof-account-signout" type="button" onClick={() => void signOut()} disabled={signingOut}>
+            {signingOut ? "Signing out…" : "Sign out"}
+          </button>
         </div>
       </form>
+      <CloudAccountSettings />
     </div>
   </main>;
 }

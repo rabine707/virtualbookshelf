@@ -1,14 +1,21 @@
 .topBar {
-  top: max(16px, env(safe-area-inset-top));
-  left: 19px;
+  z-index: 0;
+  top: max(24px, 5vh, env(safe-area-inset-top));
+  left: 36%;
+  right: auto;
 }
 
 .brand {
-  font-size: clamp(15px, 4.5vw, 21px);
-  letter-spacing: .13em;
+  color: rgba(239, 221, 184, .91);
+  font-size: clamp(16px, 4.4vw, 23px);
+  font-weight: 500;
+  letter-spacing: .17em;
+  opacity: .94;
   text-shadow:
-    0 2px 7px rgba(0, 0, 0, .62),
-    0 0 18px rgba(255, 238, 207, .08);
+    0 1px .5px rgba(255, 248, 226, .2),
+    1px 2px 2px rgba(31, 21, 13, .72),
+    0 7px 13px rgba(18, 12, 8, .18);
+  filter: sepia(.08) saturate(.88);
 }
 
 .quoteFrame {
@@ -17,6 +24,8 @@
 }
 
 .shelfStage {
+  --walnut-grain-horizontal: url("/themes/botanical/v7/walnut-grain.webp");
+  --walnut-grain-vertical: url("/themes/botanical/v7/walnut-grain-vertical.webp");
   top: 27vh;
   bottom: calc(86px + env(safe-area-inset-bottom));
   border-radius: 8px 8px 4px 4px;
@@ -32,85 +41,100 @@
   content: "";
   position: absolute;
   z-index: 18;
-  top: 1px;
+  top: -1px;
   bottom: -2px;
-  width: 12px;
+  width: clamp(14px, 3.7vw, 26px);
+  display: block;
   pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(255, 232, 194, .08), transparent 28%),
-    linear-gradient(180deg, #3f291c 0%, #261810 45%, #150e0a 100%);
-  box-shadow:
-    inset 1px 0 rgba(255, 255, 255, .035),
-    inset -2px 0 5px rgba(0, 0, 0, .48);
+  background: url("/themes/botanical/v7/bookcase-upright-walnut-v1.webp") center / 100% 100% no-repeat;
+  filter: brightness(.86) saturate(.9);
 }
 
 .shelfStage::before {
-  left: 0;
-  border-radius: 5px 0 0 3px;
+  left: -1px;
+  box-shadow: 4px 0 7px rgba(8, 3, 1, .34);
 }
 
 .shelfStage::after {
-  right: 0;
+  right: -1px;
   transform: scaleX(-1);
-  border-radius: 5px 0 0 3px;
+  filter: brightness(.72) saturate(.82);
+  box-shadow: -4px 0 7px rgba(8, 3, 1, .4);
 }
 
 .cabinetCap {
-  top: -13px;
-  left: -4px;
-  right: -4px;
-  height: 22px;
-  border-radius: 6px 6px 2px 2px;
-  background:
-    linear-gradient(180deg, rgba(255, 225, 181, .18) 0%, rgba(255, 255, 255, .025) 19%, transparent 35%),
-    linear-gradient(180deg, #60412b 0%, #422a1b 34%, #27170f 68%, #170e0a 100%);
+  z-index: 20;
+  top: -35px;
+  left: -24px;
+  right: -24px;
+  height: auto;
+  aspect-ratio: 1440 / 162;
+  border-radius: 0;
+  background: url("/themes/botanical/v7/bookcase-crown-walnut-v1.webp") center / 100% 100% no-repeat;
   box-shadow:
-    0 7px 12px rgba(0, 0, 0, .68),
-    0 15px 24px rgba(0, 0, 0, .22),
-    inset 0 1px rgba(255, 255, 255, .18),
-    inset 0 -1px rgba(0, 0, 0, .55);
+    0 8px 12px rgba(0, 0, 0, .4),
+    0 17px 25px rgba(0, 0, 0, .18);
 }
 
+.cabinetCap::before,
 .cabinetCap::after {
-  content: "";
-  position: absolute;
-  left: 2px;
-  right: 2px;
-  bottom: -7px;
-  height: 8px;
-  border-radius: 0 0 3px 3px;
-  pointer-events: none;
-  background: linear-gradient(180deg, #2a190f 0%, #170d08 100%);
-  box-shadow: 0 5px 8px rgba(0, 0, 0, .55);
+  display: none;
 }
 
 .shelfViewport {
-  border-left-width: 11px;
-  border-right-width: 11px;
+  border: 0;
   scroll-padding-bottom: 92px;
-  background:
-    radial-gradient(ellipse at 50% 2%, rgba(151, 101, 60, .16), transparent 34%),
-    linear-gradient(90deg, rgba(0, 0, 0, .42), transparent 7%, transparent 92%, rgba(0, 0, 0, .47)),
-    linear-gradient(180deg, #2a1e17 0%, #211712 58%, #1a120e 100%);
-  box-shadow:
-    inset 0 17px 30px rgba(0, 0, 0, .58),
-    inset 10px 0 18px rgba(0, 0, 0, .2),
-    inset -10px 0 18px rgba(0, 0, 0, .26);
+  background: #1b110d;
+  box-shadow: inset 0 13px 22px rgba(0, 0, 0, .32);
 }
 
 .bookcase {
   min-height: calc(100% + 1px);
-  padding-top: 7px;
+  padding-top: clamp(21px, 5.2vw, 40px);
   padding-bottom: calc(76px + env(safe-area-inset-bottom));
 }
 
 .shelfRow {
-  box-shadow:
-    inset 0 9px 14px rgba(0, 0, 0, .08),
-    inset 0 -13px 16px rgba(0, 0, 0, .25);
-  background:
-    linear-gradient(90deg, rgba(0, 0, 0, .34), transparent 9%, transparent 91%, rgba(0, 0, 0, .31)),
-    radial-gradient(ellipse at 50% 3%, rgba(139, 94, 55, .13), transparent 48%);
+  --shelf-bay-image: url("/themes/botanical/v7/shelf-bay-walnut-v1.webp");
+  isolation: isolate;
+  background: var(--shelf-bay-image) center top / 100% 215px no-repeat;
+  box-shadow: none;
+}
+
+.shelfRow:nth-child(2n) {
+  --shelf-bay-image: url("/themes/botanical/v7/shelf-bay-walnut-v2.webp");
+}
+
+.shelfRow:nth-child(3n) {
+  --shelf-bay-image: url("/themes/botanical/v7/shelf-bay-walnut-v3.webp");
+}
+
+/* Calm the baked left-edge glare while leaving the live book spines untouched. */
+.shelfRow::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(22, 9, 4, .38) 0%,
+    rgba(22, 9, 4, .18) 7%,
+    rgba(22, 9, 4, .05) 16%,
+    transparent 26%
+  );
+}
+
+/* The photographed bay already contains its own top plane, crown shadow,
+   rounded bevel and fascia; the old synthetic plank must not double them. */
+.shelfRow .shelfPlank {
+  background: transparent;
+  box-shadow: none;
+}
+
+.shelfRow .shelfPlank::before,
+.shelfRow .shelfPlank::after {
+  display: none;
 }
 
 .booksRow::before {
@@ -148,13 +172,60 @@
 .shelfPlank {
   height: 23px;
   background:
-    linear-gradient(180deg, rgba(255, 231, 195, .14) 0%, rgba(255, 255, 255, .025) 17%, transparent 28%),
-    linear-gradient(180deg, #533722 0%, #372215 40%, #25150d 68%, #150c08 100%);
+    linear-gradient(180deg, rgba(255, 231, 195, .18) 0%, rgba(255, 255, 255, .035) 15%, transparent 27%),
+    linear-gradient(90deg, rgba(255, 205, 143, .12), transparent 31%, rgba(0, 0, 0, .2) 100%),
+    linear-gradient(180deg, rgba(96, 59, 34, .06) 0%, rgba(29, 14, 8, .72) 100%),
+    var(--walnut-grain-horizontal) center 54% / 420px 420px repeat;
   box-shadow:
     0 8px 13px rgba(0, 0, 0, .76),
     0 15px 21px rgba(0, 0, 0, .22),
     inset 0 1px rgba(255, 255, 255, .11),
     inset 0 -1px rgba(0, 0, 0, .62);
+}
+
+.shelfRow:nth-child(2n) .shelfPlank {
+  background-position: center, center, center, 18% 63%;
+}
+
+.shelfRow:nth-child(3n) .shelfPlank {
+  background-position: center, center, center, 71% 36%;
+}
+
+.shelfPlank::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: -5px;
+  height: 7px;
+  pointer-events: none;
+  clip-path: polygon(.5% 0, 99.5% 0, 100% 100%, 0 100%);
+  background:
+    linear-gradient(180deg, rgba(255, 226, 184, .18), rgba(42, 22, 12, .42)),
+    var(--walnut-grain-horizontal) center 47% / 420px 420px repeat;
+  box-shadow:
+    inset 0 1px rgba(255, 242, 215, .2),
+    inset 0 -2px 3px rgba(0, 0, 0, .34);
+}
+
+.shelfRow:nth-child(2n) .shelfPlank::before {
+  background-position: center, 18% 57%;
+}
+
+.shelfRow:nth-child(3n) .shelfPlank::before {
+  background-position: center, 71% 42%;
+}
+
+.shelfPlank::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(8, 3, 2, .72));
+  box-shadow: inset 0 -1px rgba(0, 0, 0, .7);
 }
 
 .shelfRowHint {
@@ -172,8 +243,8 @@
 .bottomDock {
   bottom: max(8px, env(safe-area-inset-bottom));
   width: min(calc(100% - 42px), 450px);
-  min-height: 64px;
-  padding: 5px 8px;
+  min-height: 68px;
+  padding: 6px 8px;
   border: 1px solid rgba(222, 188, 139, .2);
   border-radius: 25px;
   background:
@@ -218,6 +289,13 @@
   .bottomDock > button:hover,
   .bottomDock > a:hover {
     background: rgba(255, 244, 226, .045);
+  }
+}
+
+@media (max-width: 395px) {
+  .shelfStage::before,
+  .shelfStage::after {
+    width: 14px;
   }
 }
 

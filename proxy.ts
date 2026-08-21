@@ -65,6 +65,7 @@ export const config = {
     "/api/generate-spine",
     "/api/web-covers",
     "/api/cover",
+    "/api/cover-palette",
     "/api/romance-cover",
     "/api/asin",
   ],

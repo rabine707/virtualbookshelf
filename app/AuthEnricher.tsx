@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { signOutShelfSession } from "./auth-client";
 
 const SUPABASE_URL = "https://vrkuimrfdkejfhpxlwlf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mf0u925xGBkP4iNgxSCjuQ_H4Dp8r1S";
@@ -222,9 +223,19 @@ export default function AuthEnricher() {
     }
   }
 
-  function logout() {
-    localStorage.removeItem(SESSION_KEY); setSession(null); setOpen(false);
-    window.dispatchEvent(new CustomEvent("shelf-auth-changed", { detail: null }));
+  async function logout() {
+    if (!session || busy) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      await signOutShelfSession(session);
+      setSession(null);
+      setOpen(false);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not sign out right now.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const visibleUsername = session?.profile?.username || session?.user?.user_metadata?.username;
@@ -240,7 +251,8 @@ export default function AuthEnricher() {
             : <span className="sof-profile-mini-avatar">{initials(visibleName)}</span>}
           <span>{visibleUsername ? `@${visibleUsername}` : visibleName}</span>
         </Link>
-        <button className="sof-account-signout-mini" type="button" onClick={logout}>Sign out</button>
+        <button className="sof-account-signout-mini" type="button" onClick={() => void logout()} disabled={busy}>Sign out</button>
+        {message && <span className="sof-account-inline-error" role="alert">{message}</span>}
       </> : <button type="button" onClick={() => setOpen(true)}>Sign in / Create account</button>}
     </div>
     {open && !session && <div className="sof-auth-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>

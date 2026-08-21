@@ -13,6 +13,7 @@ import "./book-hub.css";
 import "./auth.css";
 import "./account/account.css";
 import "./help-shelf-launcher.css";
+import AuthSessionManager from "./AuthSessionManager";
 
 export const metadata: Metadata = {
   title: "Shelf of Fame — Your Reading Life, On Display",
@@ -22,7 +23,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <AuthSessionManager />
+      </body>
     </html>
   );
 }

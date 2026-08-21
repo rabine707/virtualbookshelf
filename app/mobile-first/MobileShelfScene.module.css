@@ -10,6 +10,61 @@
   font-family: Georgia, "Times New Roman", serif;
 }
 
+/* Camera layer 1: a warm window leak that crosses the wall, shelf and books.
+   It stays below navigation and dialogs, and its movement is intentionally
+   sub-pixel so the scene feels alive without looking animated. */
+.scene::before {
+  content: "";
+  position: absolute;
+  inset: -4%;
+  z-index: 8;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 10% 25%, rgba(255, 235, 202, .2) 0%, rgba(255, 220, 176, .08) 28%, transparent 58%),
+    linear-gradient(132deg, rgba(255, 225, 186, .17) 0%, rgba(255, 215, 164, .055) 38%, transparent 69%);
+  mix-blend-mode: screen;
+  filter: blur(3.5px);
+  opacity: .34;
+  transform: translate3d(-.5%, -.3%, 0) scale(1.015);
+  transform-origin: 18% 18%;
+  will-change: transform, opacity;
+  animation: ambientLightBreath 15s ease-in-out infinite alternate;
+}
+
+/* Camera layer 2: lens falloff and a warm-brown grade unify the composited
+   assets while preserving the active reading zone near the upper-left light. */
+.scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 34% 39%, rgba(255, 237, 207, .025) 0%, rgba(44, 23, 10, .12) 61%, rgba(15, 6, 2, .42) 100%),
+    linear-gradient(180deg, rgba(48, 27, 13, .035) 0%, rgba(26, 12, 5, .08) 58%, rgba(8, 3, 1, .22) 100%);
+  mix-blend-mode: multiply;
+  opacity: .78;
+}
+
+/* A single touch-responsive reflection layer. Pointer coordinates update CSS
+   variables at most once per animation frame, so scrolling never waits on a
+   React render or a canvas draw. */
+.touchLight {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  background:
+    radial-gradient(circle 48px at var(--touch-light-x, 50%) var(--touch-light-y, 48%), rgba(255, 248, 224, .2) 0%, rgba(255, 225, 181, .09) 42%, transparent 76%),
+    radial-gradient(circle 158px at var(--touch-light-x, 50%) var(--touch-light-y, 48%), rgba(255, 220, 171, .2) 0%, rgba(255, 199, 139, .075) 43%, transparent 76%);
+  mix-blend-mode: screen;
+  filter: blur(1.2px) saturate(1.08);
+  opacity: var(--touch-light-strength, 0);
+  transform: translateZ(0);
+  transition: opacity 260ms ease-out;
+  will-change: opacity;
+}
+
 .scene *, .scene *::before, .scene *::after {
   box-sizing: border-box;
 }
@@ -202,8 +257,8 @@
   position: absolute;
   z-index: 4;
   top: 27vh;
-  left: 8px;
-  right: 8px;
+  left: 4px;
+  right: 4px;
   bottom: calc(74px + env(safe-area-inset-bottom));
   border-radius: 8px 8px 3px 3px;
   box-shadow:
@@ -224,6 +279,56 @@
     linear-gradient(180deg, rgba(255, 220, 160, .16), transparent 35%),
     linear-gradient(180deg, #573a26 0%, #2b1b13 50%, #16100c 100%);
   box-shadow: 0 5px 9px rgba(0, 0, 0, .62), inset 0 1px rgba(255, 255, 255, .16);
+}
+
+.shelfStatus {
+  position: absolute;
+  z-index: 22;
+  top: -25px;
+  left: 50%;
+  min-height: 25px;
+  max-width: calc(100% - 104px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 10px 4px;
+  overflow: hidden;
+  border: 1px solid rgba(231, 197, 139, .32);
+  border-radius: 999px;
+  color: rgba(255, 240, 211, .9);
+  background:
+    linear-gradient(180deg, rgba(126, 86, 47, .42), rgba(48, 29, 18, .54)),
+    rgba(26, 17, 12, .78);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, .38),
+    inset 0 1px rgba(255, 249, 230, .09);
+  font: 600 9.5px/1 Arial, sans-serif;
+  letter-spacing: .025em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.shelfStatus span,
+.shelfStatus strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shelfStatus span {
+  color: rgba(255, 245, 225, .82);
+  font-weight: 500;
+}
+
+.shelfStatus i {
+  color: rgba(235, 196, 133, .72);
+  font: inherit;
+}
+
+.shelfStatus strong {
+  color: #fff2d7;
+  font-weight: 700;
 }
 
 .shelfViewport {
@@ -254,8 +359,8 @@
 
 .shelfRow {
   position: relative;
-  height: 180px;
-  padding: 17px 8px 20px;
+  height: 199px;
+  padding: 10px 0 23px;
   background:
     linear-gradient(90deg, rgba(0, 0, 0, .28), transparent 10%, transparent 91%, rgba(0, 0, 0, .26)),
     radial-gradient(circle at 50% 0%, rgba(122, 88, 57, .12), transparent 45%);
@@ -272,12 +377,12 @@
 .booksRow {
   position: relative;
   z-index: 2;
-  height: 148px;
+  height: 166px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: clamp(2px, .7vw, 3px);
-  padding: 0 4px;
+  gap: 2px;
+  padding: 0;
 }
 
 .shelfRowHint .booksRow {
@@ -287,8 +392,8 @@
 .shelfPlank {
   position: absolute;
   z-index: 4;
-  left: -4px;
-  right: -4px;
+  left: 0;
+  right: 0;
   bottom: 0;
   height: 21px;
   background:
@@ -299,9 +404,9 @@
 
 .bookSpine {
   position: relative;
-  width: var(--mobile-spine-width);
-  height: 146px;
-  flex: 0 0 var(--mobile-spine-width);
+  width: var(--mobile-spine-render-width, var(--mobile-spine-width));
+  height: var(--mobile-spine-height, 162px);
+  flex: 0 0 var(--mobile-spine-render-width, var(--mobile-spine-width));
   overflow: hidden;
   padding: 0;
   margin: 0;
@@ -499,12 +604,12 @@
   left: 50%;
   bottom: max(8px, env(safe-area-inset-bottom));
   width: min(calc(100% - 38px), 450px);
-  min-height: 62px;
+  min-height: 66px;
   transform: translateX(-50%);
   display: grid;
   grid-template-columns: 1fr 1.12fr 1fr;
   align-items: center;
-  padding: 5px 7px;
+  padding: 6px 7px;
   border: 1px solid rgba(255, 244, 222, .1);
   border-radius: 24px;
   background: rgba(28, 21, 17, .86);
@@ -514,39 +619,70 @@
 
 .bottomDock button, .dockLink {
   min-width: 0;
-  height: 49px;
+  min-height: 52px;
   display: grid;
   place-items: center;
   align-content: center;
-  gap: 3px;
+  gap: 4px;
   padding: 0;
   border: 0;
   border-radius: 17px;
-  color: rgba(248, 235, 213, .86);
+  color: rgba(250, 239, 220, .88);
   background: transparent;
   text-decoration: none;
-  font: 10.5px/1 Arial, sans-serif;
+  font: 11px/1 Arial, sans-serif;
+  transition: color 140ms ease, background-color 140ms ease, transform 140ms ease;
 }
 
 .bottomDock button:active, .dockLink:active, .activeDockButton {
-  background: rgba(255, 255, 255, .055) !important;
+  color: #fff7e7;
+  background: rgba(255, 240, 213, .085) !important;
 }
 
 .addButton {
-  transform: translateY(-6px);
+  color: #fff3dc !important;
+  transform: translateY(-7px);
+}
+
+.addButton:active {
+  transform: translateY(-6px) scale(.98);
 }
 
 .addCircle {
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
   margin-bottom: 0;
-  border: 1px solid rgba(222, 184, 129, .58);
+  border: 1px solid rgba(244, 207, 147, .82);
   border-radius: 50%;
-  background: linear-gradient(145deg, rgba(83, 56, 37, .95), rgba(33, 24, 19, .96));
-  box-shadow: 0 5px 13px rgba(0, 0, 0, .42), inset 0 1px rgba(255, 255, 255, .1);
-  font: 28px/1 Georgia, serif;
+  color: #fff7e8;
+  background:
+    radial-gradient(circle at 34% 24%, rgba(255, 226, 176, .22), transparent 38%),
+    linear-gradient(145deg, #79512f, #3d291d 58%, #211812);
+  box-shadow:
+    0 6px 15px rgba(0, 0, 0, .48),
+    0 0 0 1px rgba(96, 55, 29, .72),
+    inset 0 1px rgba(255, 249, 230, .2),
+    inset 0 -2px 4px rgba(17, 9, 5, .38);
+  text-shadow: 0 1px 2px rgba(25, 12, 5, .72);
+  font: 30px/1 Georgia, serif;
+}
+
+.dockLabel {
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+.dockScrim {
+  position: absolute;
+  z-index: 39;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(112px + env(safe-area-inset-bottom));
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(10, 6, 4, .52) 54%, rgba(8, 5, 3, .8));
 }
 
 .toast {
@@ -580,6 +716,17 @@
 @keyframes vineSway {
   from { transform: rotate(-.8deg); }
   to { transform: rotate(1deg); }
+}
+
+@keyframes ambientLightBreath {
+  from {
+    opacity: .28;
+    transform: translate3d(-.6%, -.35%, 0) scale(1.012);
+  }
+  to {
+    opacity: .38;
+    transform: translate3d(.35%, .2%, 0) scale(1.025);
+  }
 }
 
 @media (min-width: 620px) {
@@ -643,6 +790,15 @@
 @media (prefers-reduced-motion: reduce) {
   .dust, .hangingVine {
     animation: none;
+  }
+
+  .scene::before {
+    animation: none;
+  }
+
+  .touchLight {
+    display: none;
+    transition: none;
   }
 
   .bookSpine {

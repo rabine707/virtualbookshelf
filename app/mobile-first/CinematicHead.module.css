@@ -2,13 +2,17 @@
   position: absolute;
   inset: 0;
   z-index: -8;
-  opacity: .58;
+  opacity: .72;
   background-image:
-    linear-gradient(180deg, rgba(48, 39, 31, .12) 0%, rgba(38, 31, 26, .28) 52%, rgba(26, 20, 17, .66) 100%),
+    linear-gradient(180deg, rgba(63, 67, 47, .12) 0%, rgba(39, 42, 31, .28) 56%, rgba(25, 23, 18, .62) 100%),
+    radial-gradient(ellipse at 38% 18%, rgba(226, 215, 178, .09), transparent 47%),
+    repeating-linear-gradient(0deg, rgba(241, 229, 198, .024) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(25, 21, 16, .026) 0 1px, transparent 1px 4px),
     url("/themes/botanical/v3/back-texture.webp");
-  background-size: auto, 250px 250px;
-  background-position: center, center top;
-  filter: contrast(1.08) saturate(.88);
+  background-size: auto, auto, 3px 3px, 4px 4px, 220px 220px;
+  background-position: center, center, center, center, center top;
+  background-blend-mode: multiply, soft-light, soft-light, multiply, normal;
+  filter: contrast(1.05) saturate(.82);
 }
 
 .wallDepth {
@@ -17,88 +21,93 @@
   z-index: -7;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 30% 21%, rgba(255, 224, 172, .095), transparent 29%),
-    radial-gradient(ellipse at 82% 18%, rgba(0, 0, 0, .12), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, .018), transparent 30%, rgba(0, 0, 0, .13) 100%);
+    radial-gradient(ellipse at 29% 20%, rgba(255, 226, 177, .12), transparent 34%),
+    radial-gradient(ellipse at 82% 18%, rgba(0, 0, 0, .15), transparent 40%),
+    linear-gradient(112deg, rgba(255, 236, 199, .045), transparent 39%, rgba(16, 12, 9, .08) 84%),
+    linear-gradient(180deg, rgba(255, 255, 255, .015), transparent 32%, rgba(0, 0, 0, .14) 100%);
 }
 
 .windowGlow {
   position: absolute;
   z-index: -6;
-  top: -4vh;
-  left: -10vw;
-  width: 56vw;
-  height: 34vh;
+  top: -5vh;
+  left: -12vw;
+  width: 68vw;
+  height: 40vh;
   border-radius: 46%;
-  background: rgba(255, 222, 160, .105);
-  filter: blur(30px);
+  background: radial-gradient(ellipse at 26% 32%, rgba(255, 233, 187, .18), rgba(255, 220, 162, .065) 43%, transparent 74%);
+  filter: blur(34px);
+  mix-blend-mode: screen;
   pointer-events: none;
 }
 
 .windowAsset {
   position: absolute;
   z-index: -5;
-  top: 2.8vh;
-  left: -5.5vw;
-  width: min(52vw, 272px);
-  max-height: 31vh;
+  top: -1.5vh;
+  left: -14vw;
+  width: auto;
+  height: 90vh;
+  max-height: none;
+  clip-path: inset(0 0 calc(100% - 29vh) 0);
   object-fit: contain;
   object-position: left top;
-  opacity: .98;
+  opacity: .73;
   filter:
-    sepia(.035)
-    saturate(.94)
-    brightness(1.01)
-    contrast(1.09)
-    drop-shadow(7px 11px 15px rgba(0, 0, 0, .31));
+    sepia(.045)
+    saturate(.72)
+    brightness(.65)
+    contrast(1.06)
+    drop-shadow(9px 14px 18px rgba(0, 0, 0, .28));
 }
 
 .sunbeam {
   position: absolute;
   z-index: -4;
-  top: 6.8vh;
-  left: 9vw;
-  width: 47vw;
-  height: 27vh;
+  top: 4.5vh;
+  left: 5vw;
+  width: 72vw;
+  height: 38vh;
   border-radius: 30% 48% 42% 34%;
-  transform: rotate(-8deg) skewY(-5deg);
+  transform: rotate(-7deg) skewY(-4deg);
   transform-origin: top left;
   pointer-events: none;
   background:
     linear-gradient(
       116deg,
-      rgba(255, 240, 204, .25) 0%,
-      rgba(255, 229, 177, .145) 38%,
-      rgba(255, 220, 158, .052) 72%,
+      rgba(255, 241, 207, .21) 0%,
+      rgba(255, 229, 177, .12) 38%,
+      rgba(255, 220, 158, .04) 72%,
       transparent 100%
     );
-  filter: blur(9px);
-  opacity: .9;
+  filter: blur(15px);
+  mix-blend-mode: screen;
+  opacity: .74;
 }
 
 .windowShadowCast {
   position: absolute;
   z-index: -3;
-  top: 8.4vh;
-  left: 12vw;
-  width: 36vw;
-  height: 23vh;
+  top: 7.8vh;
+  left: 10vw;
+  width: 54vw;
+  height: 30vh;
   pointer-events: none;
-  opacity: .27;
-  transform: rotate(-8deg) skewY(-5deg);
+  opacity: .21;
+  transform: rotate(-7deg) skewY(-4deg);
   transform-origin: top left;
   background:
     repeating-linear-gradient(
       90deg,
-      rgba(45, 31, 23, .48) 0 4px,
+      rgba(42, 29, 21, .44) 0 4px,
       transparent 4px 33px
     ),
     repeating-linear-gradient(
       180deg,
-      rgba(45, 31, 23, .34) 0 4px,
+      rgba(42, 29, 21, .3) 0 4px,
       transparent 4px 46px
     );
-  filter: blur(1.4px);
+  filter: blur(2.2px);
   -webkit-mask-image: linear-gradient(120deg, #000 10%, rgba(0,0,0,.85) 58%, transparent 100%);
   mask-image: linear-gradient(120deg, #000 10%, rgba(0,0,0,.85) 58%, transparent 100%);
 }
@@ -221,8 +230,8 @@
 
 @media (min-width: 620px) {
   .windowAsset {
-    left: -25px;
-    width: 248px;
+    left: -78px;
+    height: 86vh;
   }
 
   .quoteFrame {
@@ -246,7 +255,8 @@
   }
 
   .windowAsset {
-    max-height: 27vh;
+    height: 84vh;
+    clip-path: inset(0 0 calc(100% - 26vh) 0);
   }
 
   .sunbeam {
