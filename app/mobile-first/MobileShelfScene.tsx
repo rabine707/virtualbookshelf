@@ -247,55 +247,6 @@ export default function MobileShelfScene({
         </div>
 
         <div ref={shelfViewport} className={`${styles.shelfViewport} ${polish.shelfViewport}`}>
-          {searchOpen ? (
-            <div className={styles.searchPanel} style={{ alignItems: "stretch", flexWrap: "wrap" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
-                <SearchIcon />
-                <input
-                  autoFocus
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search your shelf"
-                  aria-label="Search your shelf"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuery("");
-                    setSearchOpen(false);
-                  }}
-                  aria-label="Close search"
-                >
-                  ×
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={onFindCovers}
-                disabled={missingCoverCount === 0}
-                style={{
-                  width: "100%",
-                  minHeight: 44,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  padding: "0 14px",
-                  border: "1px solid rgba(255,255,255,.12)",
-                  borderRadius: 12,
-                  background: "rgba(64,45,33,.88)",
-                  color: "#f2e4d3",
-                  font: "inherit",
-                  fontWeight: 800,
-                  opacity: missingCoverCount ? 1 : .5,
-                }}
-              >
-                <span>Find Covers</span>
-                <small style={{ opacity: .68 }}>{missingCoverCount ? `${missingCoverCount} missing` : "all set"}</small>
-              </button>
-            </div>
-          ) : null}
-
           <div className={`${styles.bookcase} ${polish.bookcase}`}>
             {rows.length ? rows.map((row, rowIndex) => {
               const continuationHint = !query.trim() && books.length > 0 && row.length === 0 && rowIndex === rows.length - 1;
@@ -332,6 +283,76 @@ export default function MobileShelfScene({
           </div>
         </div>
       </div>
+
+      {searchOpen ? (
+        <div
+          className={styles.searchPanel}
+          style={{
+            position: "fixed",
+            zIndex: 80,
+            top: "auto",
+            left: 12,
+            right: 12,
+            bottom: "calc(78px + env(safe-area-inset-bottom))",
+            width: "auto",
+            height: "auto",
+            minHeight: 54,
+            margin: 0,
+            padding: 8,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "stretch",
+            gap: 7,
+            flexWrap: "nowrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", minHeight: 38 }}>
+            <SearchIcon />
+            <input
+              autoFocus
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search your shelf"
+              aria-label="Search your shelf"
+              style={{ fontSize: 16 }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setSearchOpen(false);
+              }}
+              aria-label="Close search"
+            >
+              ×
+            </button>
+          </div>
+          {missingCoverCount > 0 ? (
+            <button
+              type="button"
+              onClick={onFindCovers}
+              style={{
+                width: "100%",
+                minHeight: 38,
+                height: 38,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                padding: "0 12px",
+                border: "1px solid rgba(255,255,255,.1)",
+                borderRadius: 10,
+                background: "rgba(64,45,33,.82)",
+                color: "#f2e4d3",
+                font: "600 13px/1 Arial, sans-serif",
+              }}
+            >
+              <span>Find Covers</span>
+              <small style={{ opacity: .68 }}>{missingCoverCount} missing</small>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className={styles.dockScrim} aria-hidden="true" />
       <nav className={`${styles.bottomDock} ${polish.bottomDock}`} aria-label="Shelf navigation">
