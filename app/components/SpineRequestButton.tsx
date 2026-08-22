@@ -20,7 +20,7 @@ type SpineRequestButtonProps = {
 type RequestState = "idle" | "checking" | "sending" | "requested" | "sign-in" | "error";
 
 export function SpineRequestButton({ title, author, coverUrl, isbn, asin }: SpineRequestButtonProps) {
-  const [state, setState] = useState<RequestState>("checking");
+  const [state, setState] = useState<RequestState>("idle");
   const [message, setMessage] = useState("");
   const bookKey = spineRequestBookKey({ title, author, isbn, asin });
 
@@ -28,6 +28,7 @@ export function SpineRequestButton({ title, author, coverUrl, isbn, asin }: Spin
     let cancelled = false;
 
     async function checkRequest() {
+      setMessage("");
       const session = readStoredShelfSession();
       if (!session?.access_token) {
         if (!cancelled) setState("sign-in");
@@ -54,8 +55,9 @@ export function SpineRequestButton({ title, author, coverUrl, isbn, asin }: Spin
         }
       } catch {
         if (!cancelled) {
-          setState("error");
-          setMessage("Could not check requests right now.");
+          // The status lookup is optional; keep the request action available.
+          setState("idle");
+          setMessage("");
         }
       }
     }
