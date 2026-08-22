@@ -19,6 +19,8 @@ import polish from "./MobileShelfPolish.module.css";
 type MobileShelfSceneProps = {
   books: Book[];
   importMessage: string;
+  missingCoverCount: number;
+  onFindCovers: () => void;
   onSelect: (book: Book) => void;
   onAddBook: () => void;
 };
@@ -46,6 +48,8 @@ function UserIcon() {
 export default function MobileShelfScene({
   books,
   importMessage,
+  missingCoverCount,
+  onFindCovers,
   onSelect,
   onAddBook,
 }: MobileShelfSceneProps) {
@@ -244,24 +248,50 @@ export default function MobileShelfScene({
 
         <div ref={shelfViewport} className={`${styles.shelfViewport} ${polish.shelfViewport}`}>
           {searchOpen ? (
-            <div className={styles.searchPanel}>
-              <SearchIcon />
-              <input
-                autoFocus
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search your shelf"
-                aria-label="Search your shelf"
-              />
+            <div className={styles.searchPanel} style={{ alignItems: "stretch", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+                <SearchIcon />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search your shelf"
+                  aria-label="Search your shelf"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    setSearchOpen(false);
+                  }}
+                  aria-label="Close search"
+                >
+                  ×
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => {
-                  setQuery("");
-                  setSearchOpen(false);
+                onClick={onFindCovers}
+                disabled={missingCoverCount === 0}
+                style={{
+                  width: "100%",
+                  minHeight: 44,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  padding: "0 14px",
+                  border: "1px solid rgba(255,255,255,.12)",
+                  borderRadius: 12,
+                  background: "rgba(64,45,33,.88)",
+                  color: "#f2e4d3",
+                  font: "inherit",
+                  fontWeight: 800,
+                  opacity: missingCoverCount ? 1 : .5,
                 }}
-                aria-label="Close search"
               >
-                ×
+                <span>Find Covers</span>
+                <small style={{ opacity: .68 }}>{missingCoverCount ? `${missingCoverCount} missing` : "all set"}</small>
               </button>
             </div>
           ) : null}
