@@ -12,7 +12,7 @@ import {
 } from "../../lib/spines/client";
 
 const SESSION_KEY = "shelf-of-fame-supabase-session";
-const DEFAULT_STATUS = "AI allows up to 3 generations per book. Shared spines are reused first.";
+const DEFAULT_STATUS = "Choose a cover crop, or revert to the default textured spine.";
 
 type GenerateSpineResponse = {
   image?: string;
@@ -96,7 +96,7 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
   const [sharedInUse, setSharedInUse] = useState(false);
   const [aiPreview, setAiPreview] = useState<AiPreview | null>(null);
   const [cropPosition, setCropPosition] = useState<SpinePosition | null>(null);
-  const [cropStatus, setCropStatus] = useState("× rejects • ↻ cycles • ✓ saves");
+  const [cropStatus, setCropStatus] = useState("× rejects • ↩ default • ✓ saves");
   const rejectedCrops = useRef(new Set<SpinePosition>());
 
   useEffect(() => {
@@ -205,13 +205,13 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
   function openOrCloseCrop() {
     if (cropPosition) {
       setCropPosition(null);
-      setCropStatus("× rejects • ↻ cycles • ✓ saves");
+      setCropStatus("× rejects • ↩ default • ✓ saves");
       setStatus(DEFAULT_STATUS);
       return;
     }
     setAiPreview(null);
     rejectedCrops.current.clear();
-    setCropStatus("× rejects • ↻ cycles • ✓ saves");
+    setCropStatus("× rejects • ↩ default • ✓ saves");
     setCropPosition(savedPosition || "center");
     setStatus("Using the confirmed cover directly — no AI generation or image credits.");
   }
@@ -225,13 +225,31 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
       const next = SPINE_POSITIONS[(index + step) % SPINE_POSITIONS.length];
       if (!rejected.has(next)) {
         setCropPosition(next);
-        setCropStatus("× rejects • ↻ cycles • ✓ saves");
+        setCropStatus("× rejects • ↩ default • ✓ saves");
         return;
       }
     }
     rejected.clear();
     setCropPosition(SPINE_POSITIONS[(index + 1) % SPINE_POSITIONS.length]);
     setCropStatus("All three reviewed — starting the crops over.");
+  }
+
+  async function revertToDefaultSpine() {
+    setBusy("crop-save");
+    setCropStatus("Restoring default spine…");
+    try {
+      await saveGeneratedSpine(confirmedCoverUrl, "", "overlay");
+      setSaved(undefined);
+      setSharedInUse(false);
+      emitSpine({ coverUrl: confirmedCoverUrl, image: "", renderMode: "overlay" });
+      setCropPosition(null);
+      setStatus(`Default textured spine restored for ${title}.`);
+      setCropStatus("× rejects • ↩ default • ✓ saves");
+    } catch {
+      setCropStatus("Could not restore the default spine on this device.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function saveCrop() {
@@ -246,7 +264,7 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
       emitSpine({ coverUrl: confirmedCoverUrl, image, position: cropPosition, renderMode: "overlay" });
       setStatus(`${positionLabel(cropPosition)} saved for ${title}.`);
       setCropPosition(null);
-      setCropStatus("× rejects • ↻ cycles • ✓ saves");
+      setCropStatus("× rejects • ↩ default • ✓ saves");
     } catch {
       setCropStatus("Could not save that crop on this device.");
     } finally {
@@ -261,6 +279,7 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
       title="Create dedicated spine artwork from this confirmed cover"
       disabled={Boolean(busy) || aiLocked}
       onClick={() => void generateAiPreview()}
+      hidden
     >
       {aiButtonText}
     </button>
@@ -351,11 +370,11 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
           <button
             type="button"
             className="spine-crop-action spine-crop-cycle"
-            aria-label="Show next crop"
-            title="Cycle left, center, and right detail crops"
+            aria-label="Revert to default spine"
+            title="Restore the default textured spine"
             disabled={Boolean(busy)}
-            onClick={() => advanceCrop(false)}
-          >↻</button>
+            onClick={() => void revertToDefaultSpine()}
+          >↩</button>
           <button
             type="button"
             className="spine-crop-action spine-crop-accept"
