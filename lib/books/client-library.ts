@@ -47,6 +47,7 @@ export type Book = {
   preferredCover?: CoverResult;
   savedCovers?: CoverResult[];
   coverFeedback?: CoverFeedback;
+  coverReviewStatus?: "skipped" | "no-match";
 };
 
 export const STORAGE_KEY = "shelf-of-fame-library-v1";

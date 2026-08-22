@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import BookSearchAdd from "./BookSearchAdd";
 import { BookDetailsModal } from "./components/BookDetailsModal";
 import { CoverUndoToast } from "./components/CoverUndoToast";
+import { CoverReviewQueue } from "./components/CoverReviewQueue";
 import { useAudibleCoverFallback } from "./hooks/useAudibleCoverFallback";
 import { useBookCoverManager } from "./hooks/useBookCoverManager";
 import { useBookMetadataEditor } from "./hooks/useBookMetadataEditor";
@@ -41,6 +42,7 @@ export default function Home() {
     deepSearchDone, canResetCoverChoices, coverUndo, chooseCover, removeSavedCover,
     chooseWebCover, searchWebCovers, rejectCurrentCover, undoCoverDecision, dismissCoverUndo,
     resetCoverChoices, searchMoreCovers,
+    finishCoverReview,
   } = useBookCoverManager({ setBooks, showToast });
 
   const { saveBookMetadata } = useBookMetadataEditor({ selected, setSelected, setBooks, showToast });
@@ -112,15 +114,40 @@ export default function Home() {
   }
 
   const goodreadsInput = useRef<HTMLInputElement>(null);
-  const booksNeedingCoverReview = books.filter((book) => !book.preferredCover?.url);
+  const [coverReviewOpen, setCoverReviewOpen] = useState(false);
+  const [coverReviewInitialTotal, setCoverReviewInitialTotal] = useState(0);
+  const booksNeedingCoverReview = books.filter((book) => !book.preferredCover?.url && !book.coverReviewStatus);
 
   function openFindCovers() {
     const next = booksNeedingCoverReview[0];
     if (next) {
+      setCoverReviewInitialTotal(booksNeedingCoverReview.length);
+      setCoverReviewOpen(true);
       setSelected(next);
       return;
     }
-    showToast("Every book already has a saved cover choice.");
+    showToast("Every book has a cover or has already been reviewed.");
+  }
+
+  function finishReviewAndAdvance(approved: CoverResult[], primary?: CoverResult, status?: "skipped" | "no-match") {
+    if (!selected) return;
+    const reviewedId = selected.id;
+    const reviewed = finishCoverReview(approved, primary, status);
+    if (!reviewed) return;
+    for (const option of approved) void submitCoverChoice(reviewed, option);
+
+    const remaining = books.filter((book) => (
+      book.id !== reviewedId && !book.preferredCover?.url && !book.coverReviewStatus
+    ));
+    const next = remaining[0];
+    if (next) {
+      setSelected(next);
+      showToast(`${status === "skipped" ? "Skipped" : status === "no-match" ? "Recorded no match for" : "Saved covers for"} ${selected.title}. Moving to ${next.title}.`);
+    } else {
+      setCoverReviewOpen(false);
+      setSelected(null);
+      showToast("Cover review complete. Every queued book has been handled.");
+    }
   }
 
   return (
@@ -157,7 +184,24 @@ export default function Home() {
         />
       )}
 
-      {selected && (
+      {coverReviewOpen && selected ? (
+        <CoverReviewQueue
+          book={selected}
+          position={Math.max(1, coverReviewInitialTotal - booksNeedingCoverReview.length + 1)}
+          total={Math.max(1, coverReviewInitialTotal)}
+          coverOptions={coverOptions}
+          webCoverResults={webCoverResults}
+          loading={coverLoading}
+          deepSearchLoading={deepSearchLoading}
+          deepSearchDone={deepSearchDone}
+          webCoverLoading={webCoverLoading}
+          webCoverMessage={webCoverMessage}
+          onSearchMore={searchMoreCovers}
+          onSearchWeb={() => searchWebCovers("covers")}
+          onFinish={finishReviewAndAdvance}
+          onClose={() => { setCoverReviewOpen(false); setSelected(null); }}
+        />
+      ) : selected && (
         <BookDetailsModal
           selected={selected}
           selectedIsbn={selectedIsbn}

@@ -204,11 +204,49 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
       wrongEdition: (selected.coverFeedback?.wrongEdition || []).filter((url) => url !== option.url),
     };
     const updated = { ...withSavedCover, preferredCover: option, coverFeedback: feedback };
+    delete updated.coverReviewStatus;
     setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
     setSelected(updated);
     setCover(option);
     coverMemory.set(coverKey(updated), option);
     showToast(`Marked this ${option.source} cover as correct for ${selected.title}.`);
+  }
+
+  function finishCoverReview(
+    approved: CoverResult[],
+    primary: CoverResult | undefined,
+    status?: "skipped" | "no-match",
+  ) {
+    if (!selected) return null;
+    const validApproved = uniqueCovers(approved);
+    const approvedUrls = new Set(validApproved.map((option) => option.url));
+    const savedCovers = uniqueCovers([
+      ...(selected.savedCovers || []),
+      ...(selected.preferredCover?.url ? [selected.preferredCover] : []),
+      ...validApproved,
+    ]);
+    const feedback: CoverFeedback = {
+      ...selected.coverFeedback,
+      accepted: primary?.url || selected.coverFeedback?.accepted,
+      rejected: (selected.coverFeedback?.rejected || []).filter((url) => !approvedUrls.has(url)),
+      wrongEdition: (selected.coverFeedback?.wrongEdition || []).filter((url) => !approvedUrls.has(url)),
+    };
+    const updated: Book = {
+      ...selected,
+      savedCovers,
+      preferredCover: primary || selected.preferredCover,
+      coverFeedback: feedback,
+      coverReviewStatus: status,
+    };
+    if (!status) delete updated.coverReviewStatus;
+
+    setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
+    setSelected(updated);
+    if (primary) {
+      setCover(primary);
+      coverMemory.set(coverKey(updated), primary);
+    }
+    return updated;
   }
 
   function removeSavedCover(option: CoverResult) {
@@ -474,5 +512,6 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
     dismissCoverUndo: () => setCoverUndo(null),
     resetCoverChoices,
     searchMoreCovers,
+    finishCoverReview,
   };
 }
