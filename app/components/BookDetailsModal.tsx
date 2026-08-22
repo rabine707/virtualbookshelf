@@ -15,6 +15,7 @@ import { coverCropImageStyle, stripCoverCrop } from "../../lib/books/cover-crop"
 import { BookInfoEditor } from "./BookInfoEditor";
 import { CoverCropSheet } from "./CoverCropSheet";
 import { SpineTools } from "./SpineTools";
+import { SpineRequestButton } from "./SpineRequestButton";
 
 type BookDetailsModalProps = {
   selected: Book;
@@ -337,6 +338,13 @@ export function BookDetailsModal({
                 </button>
 
                 <SpineTools
+                  title={selected.title}
+                  author={selected.author}
+                  coverUrl={cover?.url ? stripCoverCrop(cover.url) : undefined}
+                  isbn={selectedIsbn}
+                  asin={selected.asin}
+                />
+                <SpineRequestButton
                   title={selected.title}
                   author={selected.author}
                   coverUrl={cover?.url ? stripCoverCrop(cover.url) : undefined}
