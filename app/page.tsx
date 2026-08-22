@@ -51,12 +51,24 @@ export default function Home() {
   }
 
   const goodreadsInput = useRef<HTMLInputElement>(null);
+  const booksNeedingCoverReview = books.filter((book) => !book.preferredCover?.url);
+
+  function openFindCovers() {
+    const next = booksNeedingCoverReview[0];
+    if (next) {
+      setSelected(next);
+      return;
+    }
+    showToast("Every book already has a saved cover choice.");
+  }
 
   return (
     <>
       <MobileShelfScene
         books={books}
         importMessage={importMessage}
+        missingCoverCount={booksNeedingCoverReview.length}
+        onFindCovers={openFindCovers}
         onSelect={setSelected}
         onAddBook={() => window.dispatchEvent(new Event("shelf-open-book-search"))}
       />
