@@ -95,6 +95,24 @@ function statusSortValue(shelf?: string) {
   return 3;
 }
 
+function authorSortValue(author: string) {
+  const suffixes = new Set(["jr", "sr", "ii", "iii", "iv", "v"]);
+  const parts = author
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  while (parts.length > 1) {
+    const tail = parts[parts.length - 1].replace(/[.,]/g, "").toLowerCase();
+    if (!suffixes.has(tail)) break;
+    parts.pop();
+  }
+
+  if (!parts.length) return "";
+  const lastName = parts[parts.length - 1].replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+  return `${lastName} ${parts.slice(0, -1).join(" ")}`.trim();
+}
+
 export default function MobileShelfScene({
   books,
   importMessage,
@@ -167,7 +185,7 @@ export default function MobileShelfScene({
       let comparison = 0;
       if (sortMode === "recent") comparison = a.originalIndex - b.originalIndex;
       if (sortMode === "title") comparison = a.book.title.localeCompare(b.book.title, undefined, { sensitivity: "base" });
-      if (sortMode === "author") comparison = a.book.author.localeCompare(b.book.author, undefined, { sensitivity: "base" });
+      if (sortMode === "author") comparison = authorSortValue(a.book.author).localeCompare(authorSortValue(b.book.author), undefined, { sensitivity: "base" });
       if (sortMode === "rating") comparison = (a.book.rating || 0) - (b.book.rating || 0);
       if (sortMode === "status") comparison = statusSortValue(a.book.shelf) - statusSortValue(b.book.shelf);
       if (sortMode === "color") comparison = colorSortValue(a.book.color) - colorSortValue(b.book.color);
