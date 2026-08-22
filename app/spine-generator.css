@@ -9,8 +9,25 @@
   min-height: 18px;
   margin-top: -2px;
   padding: 0 4px;
-  color: rgba(239,229,211,.76);
-  font: 600 11px/1.35 Arial, sans-serif;
+  color: #5a463b;
+  font: 700 11px/1.35 Arial, sans-serif;
+}
+
+button[data-force-default-cloth="true"] {
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.055), transparent 14%, transparent 80%, rgba(0,0,0,.12)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.02) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.018) 0 1px, transparent 1px 4px),
+    var(--mobile-spine-color) !important;
+}
+
+button[data-force-default-cloth="true"] [data-shelf-cover="true"],
+button[data-force-default-cloth="true"] [data-shelf-generated-spine="true"] {
+  display: none !important;
+}
+
+button[data-force-default-cloth="true"][data-spine-layout="published-art"] [data-face] > span:first-of-type {
+  display: none !important;
 }
 
 .spine-crop-editor {
@@ -256,54 +273,4 @@
   margin: 0;
   color: rgba(239,229,211,.58);
   font: 600 10px/1.4 Arial, sans-serif;
-}
-
-@media (max-width: 720px) {
-  .spine-crop-editor {
-    padding: 12px 10px;
-  }
-
-  .spine-crop-preview {
-    width: 64px;
-    height: 256px;
-    aspect-ratio: 1 / 4;
-  }
-
-  .spine-crop-preview-title {
-    width: 204px;
-    font-size: 17px;
-  }
-
-  .spine-crop-preview-author {
-    bottom: 38px;
-    width: 112px;
-    font-size: 7.2px;
-  }
-
-  .spine-crop-actions {
-    gap: 16px;
-  }
-
-  .spine-crop-action {
-    width: 56px;
-    height: 56px;
-  }
-
-  .saved-spine-grid {
-    gap: 8px;
-    margin-right: -4px;
-  }
-
-  .saved-spine-option {
-    flex-basis: 66px;
-    width: 66px;
-    min-height: 184px;
-    grid-template-rows: 160px auto;
-    padding: 6px 5px 7px;
-  }
-
-  .saved-spine-option img {
-    width: 40px;
-    height: 160px;
-  }
 }
