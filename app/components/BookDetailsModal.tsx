@@ -40,6 +40,7 @@ type BookDetailsModalProps = {
   onSearchMoreCovers: () => void;
   onResetCoverChoices: () => void;
   onSaveBookMetadata: (input: BookMetadataUpdateInput) => SaveBookMetadataResult;
+  onChangeReadStatus: (shelf: string) => void;
 };
 
 type CropTarget =
@@ -70,18 +71,17 @@ export function BookDetailsModal({
   onSearchMoreCovers,
   onResetCoverChoices,
   onSaveBookMetadata,
+  onChangeReadStatus,
 }: BookDetailsModalProps) {
   void onUseSavedCover;
   void onRejectCurrentCover;
   const modalRef = useRef<HTMLElement>(null);
   const deeperSearchStartedFor = useRef<string | null>(null);
   const webFallbackStartedFor = useRef<string | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [showCoverBrowser, setShowCoverBrowser] = useState(false);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
 
   useEffect(() => {
-    setShowAdvanced(false);
     setShowCoverBrowser(false);
     setCropTarget(null);
     deeperSearchStartedFor.current = null;
@@ -129,18 +129,12 @@ export function BookDetailsModal({
   const summaryItems = [
     selected.rating ? ["★", "★".repeat(Math.min(selected.rating, 5))] : null,
     selected.year ? ["◷", selected.year] : null,
-    selected.shelf ? ["▤", selected.shelf] : null,
   ].filter((item): item is [string, string] => Boolean(item));
 
   const hasCoverOptions = coverOptions.length > 0;
   const totalCoverChoices = coverOptions.length + webCoverResults.length;
-
-  const scrollToSpineTools = () => {
-    const modal = modalRef.current;
-    const target = modal?.querySelector<HTMLElement>(".generate-spine-button")
-      || modal?.querySelector<HTMLElement>('[aria-label="Cover feedback"]');
-    target?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
+  const standardStatuses = new Set(["to-read", "currently-reading", "read"]);
+  const currentShelf = selected.shelf || "to-read";
 
   const openCoverBrowser = () => {
     setShowCoverBrowser(true);
@@ -294,7 +288,7 @@ export function BookDetailsModal({
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <article
         ref={modalRef}
-        className={`modal reader-modal book-hub-view book-hub-editing${showAdvanced ? " reader-show-advanced" : ""}`}
+        className="modal reader-modal book-hub-view book-hub-editing"
         data-book-hub="1"
         role="dialog"
         aria-modal="true"
@@ -363,34 +357,45 @@ export function BookDetailsModal({
                 ))}
               </div>
 
-              <div className="reader-book-actions">
-                <button type="button" className="reader-book-action reader-book-action-primary" onClick={scrollToSpineTools}>
-                  ✨ Customize spine
-                </button>
-                <button type="button" className="reader-book-action" onClick={openCoverBrowser}>
-                  🖼 Change cover
-                </button>
-                <button
-                  type="button"
-                  className="reader-book-action reader-book-action-more"
-                  aria-expanded={showAdvanced}
-                  onClick={() => setShowAdvanced((current) => !current)}
-                >{showAdvanced ? "Hide book info" : "More book info"}</button>
-              </div>
+              <label
+                style={{
+                  display: "grid",
+                  gap: 6,
+                  marginTop: 14,
+                  maxWidth: 330,
+                  fontFamily: "Arial, sans-serif",
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(73,49,36,.68)" }}>
+                  Reading status
+                </span>
+                <select
+                  value={currentShelf}
+                  onChange={(event) => onChangeReadStatus(event.target.value)}
+                  aria-label="Reading status"
+                  style={{
+                    width: "100%",
+                    minHeight: 46,
+                    padding: "0 14px",
+                    border: "1px solid rgba(95,65,45,.22)",
+                    borderRadius: 14,
+                    background: "rgba(255,255,255,.56)",
+                    color: "#2f2017",
+                    font: "700 16px/1.2 Arial, sans-serif",
+                  }}
+                >
+                  {!standardStatuses.has(currentShelf) ? <option value={currentShelf}>{currentShelf}</option> : null}
+                  <option value="to-read">Want to read</option>
+                  <option value="currently-reading">Currently reading</option>
+                  <option value="read">Read</option>
+                </select>
+              </label>
 
               <dl>
                 {selected.rating ? <><dt>Your rating</dt><dd>{"★".repeat(Math.min(selected.rating, 5))}</dd></> : null}
                 {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
-                {selected.shelf ? <><dt>Goodreads shelf</dt><dd>{selected.shelf}</dd></> : null}
+                <dt>Reading status</dt><dd>{selected.shelf || "to-read"}</dd>
                 {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
-                {selected.asin ? <><dt className="reader-advanced-row">Audible ASIN</dt><dd className="reader-advanced-row">{selected.asin}</dd></> : null}
-                {selected.romanceioId ? <><dt className="reader-advanced-row">Romance.io ID</dt><dd className="reader-advanced-row">{selected.romanceioId}</dd></> : null}
-                <dt className="reader-advanced-row">ISBN</dt><dd className="reader-advanced-row">{selectedIsbn || "N/A"}</dd>
-                {selectedIsbn && selected.isbnSource ? <><dt className="reader-advanced-row">ISBN source</dt><dd className="reader-advanced-row">{selected.isbnSource}</dd></> : null}
-                {selectedIsbn && selected.isbnConfidence ? <><dt className="reader-advanced-row">ISBN confidence</dt><dd className="reader-advanced-row">{selected.isbnConfidence}</dd></> : null}
-                {cover?.source ? <><dt className="reader-advanced-row">Cover source</dt><dd className="reader-advanced-row">{cover.source}</dd></> : null}
-                {selected.coverFeedback?.rejected?.length ? <><dt className="reader-advanced-row">Rejected covers</dt><dd className="reader-advanced-row">{selected.coverFeedback.rejected.length}</dd></> : null}
-                {selected.coverFeedback?.wrongEdition?.length ? <><dt className="reader-advanced-row">Wrong editions</dt><dd className="reader-advanced-row">{selected.coverFeedback.wrongEdition.length}</dd></> : null}
               </dl>
 
               <BookInfoEditor book={selected} selectedIsbn={selectedIsbn} onSave={onSaveBookMetadata} />
