@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import BookSearchAdd from "./BookSearchAdd";
 import { BookDetailsModal } from "./components/BookDetailsModal";
 import { CoverUndoToast } from "./components/CoverUndoToast";
@@ -12,7 +12,14 @@ import { useCommunityCoverSync } from "./hooks/useCommunityCoverSync";
 import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
 import MobileShelfScene from "./mobile-first/MobileShelfScene";
-import { CoverResult, WebCoverResult } from "../lib/books/client-library";
+import { Book, CoverResult, WebCoverResult } from "../lib/books/client-library";
+
+const DEFAULT_CLOTH_PREFIX = "shelf-of-fame-default-cloth:";
+type BookWithSpineChoice = Book & { defaultSpine?: boolean };
+
+function defaultClothKey(book: Book) {
+  return `${DEFAULT_CLOTH_PREFIX}${book.title.trim().toLowerCase()}::${book.author.trim().toLowerCase()}`;
+}
 
 export default function Home() {
   const {
@@ -39,6 +46,51 @@ export default function Home() {
   const { saveBookMetadata } = useBookMetadataEditor({ selected, setSelected, setBooks, showToast });
 
   useAudibleCoverFallback({ selected, cover, coverLoading, setBooks, setSelected, setCover });
+
+  // Migrate the older device-only "default cloth" preference into the book itself.
+  // Once it lives on the book, normal shelf cloud sync carries it across signed-in devices.
+  useEffect(() => {
+    if (!storageReady) return;
+    const needsMigration = books.some((book) => (
+      !(book as BookWithSpineChoice).defaultSpine
+      && window.localStorage.getItem(defaultClothKey(book)) === "1"
+    ));
+    if (!needsMigration) return;
+    setBooks((current) => current.map((book) => (
+      window.localStorage.getItem(defaultClothKey(book)) === "1"
+        ? { ...book, defaultSpine: true }
+        : book
+    )));
+  }, [books, setBooks, storageReady]);
+
+  // The shelf's cover art is CSS-driven, so re-apply synced spine choices after every render/update.
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const spines = document.querySelectorAll<HTMLButtonElement>("button[data-book-id]");
+      for (const spine of spines) {
+        const book = books.find((candidate) => candidate.id === spine.dataset.bookId) as BookWithSpineChoice | undefined;
+        if (book?.defaultSpine) spine.dataset.forceDefaultCloth = "true";
+        else delete spine.dataset.forceDefaultCloth;
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [books]);
+
+  // SpineTools already emits this event whenever a spine choice is saved/restored.
+  // Mirror that choice onto the selected book so the existing account sync can persist it.
+  useEffect(() => {
+    const onSpineChanged = (event: Event) => {
+      if (!selected) return;
+      const detail = (event as CustomEvent<{ image?: string }>).detail;
+      if (!detail) return;
+      const defaultSpine = detail.image === "";
+      const updated = { ...selected, defaultSpine } as BookWithSpineChoice;
+      setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
+      setSelected(updated);
+    };
+    window.addEventListener("shelf-spine-generated", onSpineChanged as EventListener);
+    return () => window.removeEventListener("shelf-spine-generated", onSpineChanged as EventListener);
+  }, [selected, setBooks, setSelected]);
 
   function chooseCoverAndSync(option: CoverResult) {
     chooseCover(option);
