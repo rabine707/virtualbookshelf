@@ -50,6 +50,15 @@ export default function Home() {
     if (selected) void submitCoverChoice(selected, { url: result.url, source: "Web image" });
   }
 
+  function changeReadStatus(shelf: string) {
+    if (!selected) return;
+    const updated = { ...selected, shelf };
+    setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
+    setSelected(updated);
+    const label = shelf === "read" ? "Read" : shelf === "currently-reading" ? "Currently reading" : "Want to read";
+    showToast(`${selected.title} marked as ${label.toLowerCase()}.`);
+  }
+
   const goodreadsInput = useRef<HTMLInputElement>(null);
   const booksNeedingCoverReview = books.filter((book) => !book.preferredCover?.url);
 
@@ -121,6 +130,7 @@ export default function Home() {
           onSearchMoreCovers={searchMoreCovers}
           onResetCoverChoices={resetCoverChoices}
           onSaveBookMetadata={saveBookMetadata}
+          onChangeReadStatus={changeReadStatus}
         />
       )}
     </>
