@@ -13,6 +13,7 @@ import {
 } from "../../lib/books/client-library";
 import { BookInfoEditor } from "./BookInfoEditor";
 import { SpineTools } from "./SpineTools";
+import { SpineRequestButton } from "./SpineRequestButton";
 
 type BookDetailsModalProps = {
   selected: Book;
@@ -191,6 +192,13 @@ export function BookDetailsModal({
               </button>
             </div>
             <SpineTools
+              title={selected.title}
+              author={selected.author}
+              coverUrl={cover?.url}
+              isbn={selectedIsbn}
+              asin={selected.asin}
+            />
+            <SpineRequestButton
               title={selected.title}
               author={selected.author}
               coverUrl={cover?.url}

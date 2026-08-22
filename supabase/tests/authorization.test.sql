@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(13);
+select plan(16);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -65,6 +65,26 @@ select is(
   (select count(*) from public.shelf_scans where user_id = '22222222-2222-4222-8222-222222222222'),
   0::bigint,
   'authenticated user cannot read another users shelf scans'
+);
+
+select lives_ok(
+  $$ insert into public.spine_requests (requested_by, book_key, title, author)
+     values ('11111111-1111-4111-8111-111111111111', 'isbn:9780000000001', 'Requested Test Book', 'Security Test') $$,
+  'authenticated user can request a spine for themselves'
+);
+
+select throws_ok(
+  $$ insert into public.spine_requests (requested_by, book_key, title, author)
+     values ('22222222-2222-4222-8222-222222222222', 'isbn:9780000000002', 'Forged Request', 'Security Test') $$,
+  '42501',
+  null,
+  'authenticated user cannot create a request for another reader'
+);
+
+select is(
+  (select count(*) from public.spine_requests),
+  1::bigint,
+  'authenticated user sees only their own spine requests'
 );
 
 select is(
