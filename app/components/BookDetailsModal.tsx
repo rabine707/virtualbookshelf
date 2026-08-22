@@ -75,10 +75,12 @@ export function BookDetailsModal({
   const deeperSearchStartedFor = useRef<string | null>(null);
   const webFallbackStartedFor = useRef<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showCoverBrowser, setShowCoverBrowser] = useState(false);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
 
   useEffect(() => {
     setShowAdvanced(false);
+    setShowCoverBrowser(false);
     setCropTarget(null);
     deeperSearchStartedFor.current = null;
     webFallbackStartedFor.current = null;
@@ -128,6 +130,9 @@ export function BookDetailsModal({
     selected.shelf ? ["▤", selected.shelf] : null,
   ].filter((item): item is [string, string] => Boolean(item));
 
+  const hasCoverOptions = coverOptions.length > 0;
+  const totalCoverChoices = coverOptions.length + webCoverResults.length;
+
   const scrollToSpineTools = () => {
     const modal = modalRef.current;
     const target = modal?.querySelector<HTMLElement>(".generate-spine-button")
@@ -135,13 +140,12 @@ export function BookDetailsModal({
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  const scrollToCoverPicker = () => {
-    modalRef.current?.querySelector<HTMLElement>(".cover-picker")
-      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  const openCoverBrowser = () => {
+    setShowCoverBrowser(true);
+    requestAnimationFrame(() => {
+      modalRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    });
   };
-
-  const hasCoverOptions = coverOptions.length > 0;
-  const totalCoverChoices = coverOptions.length + webCoverResults.length;
 
   function confirmCrop(url: string) {
     if (!cropTarget) return;
@@ -152,6 +156,131 @@ export function BookDetailsModal({
     }
     setCropTarget(null);
   }
+
+  const coverBrowser = (
+    <section className="cover-picker" aria-label="Choose a cover" style={{ marginTop: 0 }}>
+      <div className="cover-picker-heading" style={{ alignItems: "center" }}>
+        <div>
+          <strong>{totalCoverChoices ? "Find more covers" : "Finding cover options"}</strong>
+          <div style={{ fontSize: ".78em", opacity: .66, marginTop: 3 }}>Choose another edition or search the wider web.</div>
+        </div>
+        {totalCoverChoices ? <span>{totalCoverChoices} {totalCoverChoices === 1 ? "match" : "matches"}</span> : null}
+      </div>
+
+      {savedCovers.length ? (
+        <section className="saved-cover-choices" aria-label="Saved covers">
+          <div className="saved-cover-heading">
+            <strong>Saved covers</strong>
+            <span>tap a cover to crop or use it</span>
+          </div>
+          <div className="saved-cover-grid">
+            {savedCovers.map((saved) => {
+              const active = selected.preferredCover?.url === saved.url;
+              return (
+                <div className="saved-cover-item" key={saved.url}>
+                  <button
+                    type="button"
+                    className={`saved-cover-option${active ? " active" : ""}`}
+                    title={active ? "Currently on your shelf" : "Use this saved cover on the shelf"}
+                    aria-label={active ? "Currently on your shelf" : `Use saved ${saved.source} cover`}
+                    onClick={() => setCropTarget({ kind: "cover", option: saved })}
+                  >
+                    <img src={stripCoverCrop(saved.url)} style={coverCropImageStyle(saved.url)} alt="" loading="lazy" decoding="async" />
+                    <span>{saved.source || "Saved"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="saved-cover-remove"
+                    title="Remove this saved cover"
+                    aria-label={`Remove ${saved.source || "saved"} cover`}
+                    onClick={() => onRemoveSavedCover(saved)}
+                  >×</button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {hasCoverOptions ? (
+        <div className="cover-options">
+          {coverOptions.map((option, index) => (
+            <button
+              key={`${option.url}-${index}`}
+              type="button"
+              className={`cover-option${cover?.url === option.url ? " selected-cover" : ""}`}
+              onClick={() => setCropTarget({ kind: "cover", option })}
+              aria-label={`Crop or use this ${coverSourceLabel(option.source)} cover`}
+              title={`Crop or use this ${coverSourceLabel(option.source)} cover`}
+            >
+              <img src={stripCoverCrop(option.url)} style={coverCropImageStyle(option.url)} alt="" loading="lazy" decoding="async" />
+              <span>{coverSourceLabel(option.source)}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {webCoverResults.length ? (
+        <section style={{ marginTop: 12 }} aria-label="Web cover results">
+          <div className="web-cover-heading">
+            <strong>Web results</strong>
+            <span>added automatically when book databases come up short</span>
+          </div>
+          <div className="web-cover-results">
+            {webCoverResults.map((result, index) => (
+              <button
+                key={`${result.url}-${index}`}
+                type="button"
+                className="web-cover-result"
+                title={result.title || `Web cover result ${index + 1}`}
+                aria-label={`Crop or use web image ${index + 1}`}
+                onClick={() => setCropTarget({ kind: "web", result })}
+              >
+                <img src={result.thumbnailUrl || result.url} alt="" loading="lazy" decoding="async" />
+                <span>{result.publisher || "Web"}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <button
+        type="button"
+        className="primary"
+        style={{ marginTop: 10 }}
+        onClick={onSearchMoreCovers}
+        disabled={deepSearchLoading || deepSearchDone}
+      >
+        {deepSearchLoading ? "Searching more editions…" : deepSearchDone ? "More editions searched" : "Search more editions"}
+      </button>
+
+      <p className="cover-picker-note reader-technical-note">
+        Cover search checks book databases first, then searches the wider web when strong choices are limited.
+      </p>
+
+      <button
+        type="button"
+        className="primary cover-reset-button"
+        onClick={onResetCoverChoices}
+        disabled={!canResetCoverChoices}
+        title="Clear this book's saved cover choice and rejected-cover history"
+        style={{ marginTop: 8, width: "min(100%, 220px)", opacity: canResetCoverChoices ? 0.76 : 0.42 }}
+      >↻ Reset cover choices</button>
+
+      <section className="web-cover-panel" aria-label="Browse web covers">
+        <div className="web-cover-heading">
+          <strong>Browse web covers</strong>
+          <span>broaden the search manually</span>
+        </div>
+        <div className="web-cover-modes">
+          <button type="button" disabled={webCoverLoading} onClick={() => onSearchWebCovers("covers")}>More web covers</button>
+          <button type="button" disabled={webCoverLoading} onClick={() => onSearchWebCovers("alternate")}>Alternate editions</button>
+          <button type="button" disabled={webCoverLoading} onClick={() => onSearchWebCovers("custom")}>Custom & Etsy</button>
+        </div>
+        <p className="web-cover-status" role="status">{webCoverMessage}</p>
+      </section>
+    </section>
+  );
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -164,239 +293,109 @@ export function BookDetailsModal({
         aria-label={selected.title}
         onClick={(event) => event.stopPropagation()}
       >
-        <button className="close" onClick={onClose} aria-label="Close">×</button>
-        <div className="cover-column">
-          <div className="cover" style={{ overflow: "hidden" }}>
-            <div className="cover-fallback" style={{ background: selected.color }}>
-              <strong>{coverLoading ? "Finding covers…" : selected.title}</strong>
-              <span>{selected.author}</span>
-            </div>
-            {cover?.url ? (
-              <img
-                className="cover-image"
-                src={stripCoverCrop(cover.url)}
-                style={coverCropImageStyle(cover.url)}
-                alt={`Cover of ${selected.title}`}
-                loading="eager"
-                decoding="async"
-                onError={onClearCover}
-              />
-            ) : null}
+        <button className="close" onClick={showCoverBrowser ? () => setShowCoverBrowser(false) : onClose} aria-label={showCoverBrowser ? "Back to book" : "Close"}>
+          {showCoverBrowser ? "‹" : "×"}
+        </button>
+
+        {showCoverBrowser ? (
+          <div className="details" style={{ gridColumn: "1 / -1", width: "100%", paddingTop: 8 }}>
+            {coverBrowser}
           </div>
-
-          <div style={{ display: "grid", gap: 8, marginTop: 12 }} aria-label="Cover feedback">
-            <button
-              type="button"
-              className="primary"
-              disabled={!cover}
-              onClick={() => cover && setCropTarget({ kind: "cover", option: cover })}
-              title="Save this as the correct cover"
-            >
-              ✓ Use this cover
-            </button>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <button
-                type="button"
-                className="primary"
-                disabled={!cover}
-                onClick={() => onRejectCurrentCover("wrong")}
-                style={{ opacity: cover ? 0.78 : 0.45 }}
-              >
-                Not this one
-              </button>
-              <button
-                type="button"
-                className="primary"
-                disabled={!cover}
-                onClick={() => onRejectCurrentCover("edition")}
-                style={{ opacity: cover ? 0.78 : 0.45 }}
-              >
-                Another edition
-              </button>
-            </div>
-            <SpineTools
-              title={selected.title}
-              author={selected.author}
-              coverUrl={cover?.url ? stripCoverCrop(cover.url) : undefined}
-              isbn={selectedIsbn}
-              asin={selected.asin}
-            />
-          </div>
-        </div>
-
-        <div className="details">
-          <p className="eyebrow">YOUR BOOK</p>
-          <h2>{selected.title}</h2>
-          <p className="author">by {selected.author}</p>
-
-          <div className="reader-book-summary">
-            {summaryItems.map(([icon, value]) => (
-              <span className="reader-book-chip" key={`${icon}-${value}`}>{icon} {value}</span>
-            ))}
-          </div>
-
-          <div className="reader-book-actions">
-            <button type="button" className="reader-book-action reader-book-action-primary" onClick={scrollToSpineTools}>
-              ✨ Customize spine
-            </button>
-            <button type="button" className="reader-book-action" onClick={scrollToCoverPicker}>
-              🖼 Change cover
-            </button>
-            <button
-              type="button"
-              className="reader-book-action reader-book-action-more"
-              aria-expanded={showAdvanced}
-              onClick={() => setShowAdvanced((current) => !current)}
-            >
-              {showAdvanced ? "Hide book info" : "More book info"}
-            </button>
-          </div>
-
-          <dl>
-            {selected.rating ? <><dt>Your rating</dt><dd>{"★".repeat(Math.min(selected.rating, 5))}</dd></> : null}
-            {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
-            {selected.shelf ? <><dt>Goodreads shelf</dt><dd>{selected.shelf}</dd></> : null}
-            {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
-            {selected.asin ? <><dt className="reader-advanced-row">Audible ASIN</dt><dd className="reader-advanced-row">{selected.asin}</dd></> : null}
-            {selected.romanceioId ? <><dt className="reader-advanced-row">Romance.io ID</dt><dd className="reader-advanced-row">{selected.romanceioId}</dd></> : null}
-            <dt className="reader-advanced-row">ISBN</dt><dd className="reader-advanced-row">{selectedIsbn || "N/A"}</dd>
-            {selectedIsbn && selected.isbnSource ? <><dt className="reader-advanced-row">ISBN source</dt><dd className="reader-advanced-row">{selected.isbnSource}</dd></> : null}
-            {selectedIsbn && selected.isbnConfidence ? <><dt className="reader-advanced-row">ISBN confidence</dt><dd className="reader-advanced-row">{selected.isbnConfidence}</dd></> : null}
-            {cover?.source ? <><dt className="reader-advanced-row">Cover source</dt><dd className="reader-advanced-row">{cover.source}</dd></> : null}
-            {selected.coverFeedback?.rejected?.length ? <><dt className="reader-advanced-row">Rejected covers</dt><dd className="reader-advanced-row">{selected.coverFeedback.rejected.length}</dd></> : null}
-            {selected.coverFeedback?.wrongEdition?.length ? <><dt className="reader-advanced-row">Wrong editions</dt><dd className="reader-advanced-row">{selected.coverFeedback.wrongEdition.length}</dd></> : null}
-          </dl>
-
-          <BookInfoEditor book={selected} selectedIsbn={selectedIsbn} onSave={onSaveBookMetadata} />
-
-          <section className="cover-picker" aria-label="Choose a cover">
-            <div className="cover-picker-heading">
-              <strong>{totalCoverChoices ? "Pick a cover" : "Finding cover options"}</strong>
-              {totalCoverChoices ? <span>{totalCoverChoices} {totalCoverChoices === 1 ? "match" : "matches"}</span> : null}
-            </div>
-
-            {savedCovers.length ? (
-              <section className="saved-cover-choices" aria-label="Saved covers">
-                <div className="saved-cover-heading">
-                  <strong>Saved covers</strong>
-                  <span>tap a cover to crop or use it</span>
+        ) : (
+          <>
+            <div className="cover-column">
+              <div className="cover" style={{ overflow: "hidden" }}>
+                <div className="cover-fallback" style={{ background: selected.color }}>
+                  <strong>{coverLoading ? "Finding covers…" : selected.title}</strong>
+                  <span>{selected.author}</span>
                 </div>
-                <div className="saved-cover-grid">
-                  {savedCovers.map((saved) => {
-                    const active = selected.preferredCover?.url === saved.url;
-                    return (
-                      <div className="saved-cover-item" key={saved.url}>
-                        <button
-                          type="button"
-                          className={`saved-cover-option${active ? " active" : ""}`}
-                          title={active ? "Currently on your shelf" : "Use this saved cover on the shelf"}
-                          aria-label={active ? "Currently on your shelf" : `Use saved ${saved.source} cover`}
-                          onClick={() => setCropTarget({ kind: "cover", option: saved })}
-                        >
-                          <img src={stripCoverCrop(saved.url)} style={coverCropImageStyle(saved.url)} alt="" loading="lazy" decoding="async" />
-                          <span>{saved.source || "Saved"}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="saved-cover-remove"
-                          title="Remove this saved cover"
-                          aria-label={`Remove ${saved.source || "saved"} cover`}
-                          onClick={() => onRemoveSavedCover(saved)}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : null}
+                {cover?.url ? (
+                  <img
+                    className="cover-image"
+                    src={stripCoverCrop(cover.url)}
+                    style={coverCropImageStyle(cover.url)}
+                    alt={`Cover of ${selected.title}`}
+                    loading="eager"
+                    decoding="async"
+                    onError={onClearCover}
+                  />
+                ) : null}
+              </div>
 
-            {hasCoverOptions ? (
-              <div className="cover-options">
-                {coverOptions.map((option, index) => (
-                  <button
-                    key={`${option.url}-${index}`}
-                    type="button"
-                    className={`cover-option${cover?.url === option.url ? " selected-cover" : ""}`}
-                    onClick={() => setCropTarget({ kind: "cover", option })}
-                    aria-label={`Crop or use this ${coverSourceLabel(option.source)} cover`}
-                    title={`Crop or use this ${coverSourceLabel(option.source)} cover`}
-                  >
-                    <img src={stripCoverCrop(option.url)} style={coverCropImageStyle(option.url)} alt="" loading="lazy" decoding="async" />
-                    <span>{coverSourceLabel(option.source)}</span>
-                  </button>
+              <div style={{ display: "grid", gap: 8, marginTop: 12 }} aria-label="Cover feedback">
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={!cover}
+                  onClick={() => cover && setCropTarget({ kind: "cover", option: cover })}
+                  title="Save this as the correct cover"
+                >✓ Use this cover</button>
+                <button type="button" className="primary" onClick={openCoverBrowser}>
+                  Find more covers
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={!cover}
+                  onClick={() => onRejectCurrentCover("wrong")}
+                  style={{ opacity: cover ? 0.78 : 0.45 }}
+                >Not this one</button>
+
+                <SpineTools
+                  title={selected.title}
+                  author={selected.author}
+                  coverUrl={cover?.url ? stripCoverCrop(cover.url) : undefined}
+                  isbn={selectedIsbn}
+                  asin={selected.asin}
+                />
+              </div>
+            </div>
+
+            <div className="details">
+              <p className="eyebrow">YOUR BOOK</p>
+              <h2>{selected.title}</h2>
+              <p className="author">by {selected.author}</p>
+
+              <div className="reader-book-summary">
+                {summaryItems.map(([icon, value]) => (
+                  <span className="reader-book-chip" key={`${icon}-${value}`}>{icon} {value}</span>
                 ))}
               </div>
-            ) : null}
 
-            {webCoverResults.length ? (
-              <section style={{ marginTop: 12 }} aria-label="Web cover results">
-                <div className="web-cover-heading">
-                  <strong>Web results</strong>
-                  <span>added automatically when book databases come up short</span>
-                </div>
-                <div className="web-cover-results">
-                  {webCoverResults.map((result, index) => (
-                    <button
-                      key={`${result.url}-${index}`}
-                      type="button"
-                      className="web-cover-result"
-                      title={result.title || `Web cover result ${index + 1}`}
-                      aria-label={`Crop or use web image ${index + 1}`}
-                      onClick={() => setCropTarget({ kind: "web", result })}
-                    >
-                      <img src={result.thumbnailUrl || result.url} alt="" loading="lazy" decoding="async" />
-                      <span>{result.publisher || "Web"}</span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            <button
-              type="button"
-              className="primary"
-              style={{ marginTop: 10 }}
-              onClick={onSearchMoreCovers}
-              disabled={deepSearchLoading || deepSearchDone}
-            >
-              {deepSearchLoading
-                ? "Searching more editions…"
-                : deepSearchDone
-                  ? "More editions searched"
-                  : "Find more covers"}
-            </button>
-
-            <p className="cover-picker-note reader-technical-note">
-              Find Covers checks book databases first, then automatically searches the wider web when fewer than three strong choices are available.
-            </p>
-
-            <button
-              type="button"
-              className="primary cover-reset-button"
-              onClick={onResetCoverChoices}
-              disabled={!canResetCoverChoices}
-              title="Clear this book's saved cover choice and rejected-cover history"
-              style={{ marginTop: 8, width: "min(100%, 220px)", opacity: canResetCoverChoices ? 0.76 : 0.42 }}
-            >
-              ↻ Reset cover choices
-            </button>
-
-            <section className="web-cover-panel" aria-label="Browse web covers">
-              <div className="web-cover-heading">
-                <strong>Browse web covers</strong>
-                <span>broaden the search manually</span>
+              <div className="reader-book-actions">
+                <button type="button" className="reader-book-action reader-book-action-primary" onClick={scrollToSpineTools}>
+                  ✨ Customize spine
+                </button>
+                <button type="button" className="reader-book-action" onClick={openCoverBrowser}>
+                  🖼 Change cover
+                </button>
+                <button
+                  type="button"
+                  className="reader-book-action reader-book-action-more"
+                  aria-expanded={showAdvanced}
+                  onClick={() => setShowAdvanced((current) => !current)}
+                >{showAdvanced ? "Hide book info" : "More book info"}</button>
               </div>
-              <div className="web-cover-modes">
-                <button type="button" disabled={webCoverLoading} onClick={() => onSearchWebCovers("covers")}>More web covers</button>
-                <button type="button" disabled={webCoverLoading} onClick={() => onSearchWebCovers("alternate")}>Alternate editions</button>
-                <button type="button" disabled={webCoverLoading} onClick={() => onSearchWebCovers("custom")}>Custom & Etsy</button>
-              </div>
-              <p className="web-cover-status" role="status">{webCoverMessage}</p>
-            </section>
-          </section>
-        </div>
+
+              <dl>
+                {selected.rating ? <><dt>Your rating</dt><dd>{"★".repeat(Math.min(selected.rating, 5))}</dd></> : null}
+                {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
+                {selected.shelf ? <><dt>Goodreads shelf</dt><dd>{selected.shelf}</dd></> : null}
+                {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
+                {selected.asin ? <><dt className="reader-advanced-row">Audible ASIN</dt><dd className="reader-advanced-row">{selected.asin}</dd></> : null}
+                {selected.romanceioId ? <><dt className="reader-advanced-row">Romance.io ID</dt><dd className="reader-advanced-row">{selected.romanceioId}</dd></> : null}
+                <dt className="reader-advanced-row">ISBN</dt><dd className="reader-advanced-row">{selectedIsbn || "N/A"}</dd>
+                {selectedIsbn && selected.isbnSource ? <><dt className="reader-advanced-row">ISBN source</dt><dd className="reader-advanced-row">{selected.isbnSource}</dd></> : null}
+                {selectedIsbn && selected.isbnConfidence ? <><dt className="reader-advanced-row">ISBN confidence</dt><dd className="reader-advanced-row">{selected.isbnConfidence}</dd></> : null}
+                {cover?.source ? <><dt className="reader-advanced-row">Cover source</dt><dd className="reader-advanced-row">{cover.source}</dd></> : null}
+                {selected.coverFeedback?.rejected?.length ? <><dt className="reader-advanced-row">Rejected covers</dt><dd className="reader-advanced-row">{selected.coverFeedback.rejected.length}</dd></> : null}
+                {selected.coverFeedback?.wrongEdition?.length ? <><dt className="reader-advanced-row">Wrong editions</dt><dd className="reader-advanced-row">{selected.coverFeedback.wrongEdition.length}</dd></> : null}
+              </dl>
+
+              <BookInfoEditor book={selected} selectedIsbn={selectedIsbn} onSave={onSaveBookMetadata} />
+            </div>
+          </>
+        )}
       </article>
 
       {cropTarget ? (
