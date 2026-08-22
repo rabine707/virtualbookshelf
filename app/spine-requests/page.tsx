@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AUTH_CHANGED_EVENT,
   SUPABASE_KEY,
@@ -11,6 +11,7 @@ import type { SpineRequestStatus } from "../../lib/spine-requests";
 
 type SpineRequest = {
   id: string;
+  book_key: string;
   title: string;
   author: string;
   isbn: string | null;
@@ -19,8 +20,10 @@ type SpineRequest = {
   status: SpineRequestStatus;
   curator_note: string | null;
   created_at: string;
-  requested_by: string;
+  requested_by: string | null;
 };
+
+type SpineRequestGroup = SpineRequest & { requestIds: string[]; recommendationCount: number };
 
 const STATUS_LABELS: Record<SpineRequestStatus, string> = {
   pending: "Requested",
@@ -54,7 +57,7 @@ export default function SpineRequestsPage() {
     }
 
     const query = new URLSearchParams({
-      select: "id,title,author,isbn,asin,cover_url,status,curator_note,created_at,requested_by",
+      select: "id,book_key,title,author,isbn,asin,cover_url,status,curator_note,created_at,requested_by",
       order: "created_at.asc",
       limit: "200",
     });
@@ -71,17 +74,32 @@ export default function SpineRequestsPage() {
     setMessage(rows.length ? "" : "No spine requests yet.");
   }, []);
 
+  const groupedRequests = useMemo(() => {
+    const groups = new Map<string, SpineRequestGroup>();
+    for (const request of requests) {
+      const existing = groups.get(request.book_key);
+      if (existing) {
+        existing.requestIds.push(request.id);
+        existing.recommendationCount += 1;
+      } else {
+        groups.set(request.book_key, { ...request, requestIds: [request.id], recommendationCount: 1 });
+      }
+    }
+    return [...groups.values()];
+  }, [requests]);
+
   useEffect(() => {
     void load();
     window.addEventListener(AUTH_CHANGED_EVENT, load);
     return () => window.removeEventListener(AUTH_CHANGED_EVENT, load);
   }, [load]);
 
-  async function setStatus(id: string, status: SpineRequestStatus) {
+  async function setStatus(ids: string[], status: SpineRequestStatus) {
     const session = readStoredShelfSession();
     if (!session?.access_token) return;
-    setBusyId(id);
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/spine_requests?id=eq.${encodeURIComponent(id)}`, {
+    setBusyId(ids[0]);
+    const idFilter = `in.(${ids.join(",")})`;
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/spine_requests?id=${encodeURIComponent(idFilter)}`, {
       method: "PATCH",
       headers: {
         apikey: SUPABASE_KEY,
@@ -105,7 +123,7 @@ export default function SpineRequestsPage() {
       </header>
       {message ? <p role="status">{message}</p> : null}
       <div className="spine-request-list">
-        {requests.map((request) => (
+        {groupedRequests.map((request) => (
           <article key={request.id} className="spine-request-card">
             {request.cover_url ? <img src={request.cover_url} alt="" /> : <div className="spine-request-cover-placeholder">No cover</div>}
             <div>
@@ -113,14 +131,14 @@ export default function SpineRequestsPage() {
               <h2>{request.title}</h2>
               <p>by {request.author || "Unknown author"}</p>
               <small>
-                Reader {request.requested_by.slice(0, 8)}
-                {` · ${new Date(request.created_at).toLocaleDateString()}`}
+                {request.recommendationCount} {request.recommendationCount === 1 ? "recommendation" : "recommendations"}
+                {` · first requested ${new Date(request.created_at).toLocaleDateString()}`}
               </small>
               <small>{request.isbn ? `ISBN ${request.isbn}` : request.asin ? `ASIN ${request.asin}` : "No identifier"}</small>
               <div className="spine-request-actions">
-                <button disabled={busyId === request.id} onClick={() => setStatus(request.id, "in_progress")}>Start</button>
-                <button disabled={busyId === request.id} onClick={() => setStatus(request.id, "completed")}>Complete</button>
-                <button disabled={busyId === request.id} onClick={() => setStatus(request.id, "declined")}>Decline</button>
+                <button disabled={busyId === request.id} onClick={() => setStatus(request.requestIds, "in_progress")}>Start</button>
+                <button disabled={busyId === request.id} onClick={() => setStatus(request.requestIds, "completed")}>Complete</button>
+                <button disabled={busyId === request.id} onClick={() => setStatus(request.requestIds, "declined")}>Decline</button>
               </div>
             </div>
           </article>

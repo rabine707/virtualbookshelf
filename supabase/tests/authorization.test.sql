@@ -67,10 +67,12 @@ select is(
   'authenticated user cannot read another users shelf scans'
 );
 
-select lives_ok(
+select throws_ok(
   $$ insert into public.spine_requests (requested_by, book_key, title, author)
      values ('11111111-1111-4111-8111-111111111111', 'isbn:9780000000001', 'Requested Test Book', 'Security Test') $$,
-  'authenticated user can request a spine for themselves'
+  '42501',
+  null,
+  'authenticated clients cannot bypass the server recommendation endpoint'
 );
 
 select throws_ok(
@@ -83,8 +85,8 @@ select throws_ok(
 
 select is(
   (select count(*) from public.spine_requests),
-  1::bigint,
-  'authenticated user sees only their own spine requests'
+  0::bigint,
+  'ordinary authenticated users cannot read the curator request queue'
 );
 
 select is(
