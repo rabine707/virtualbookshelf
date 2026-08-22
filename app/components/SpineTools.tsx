@@ -12,6 +12,7 @@ import {
 } from "../../lib/spines/client";
 
 const SESSION_KEY = "shelf-of-fame-supabase-session";
+const DEFAULT_CLOTH_PREFIX = "shelf-of-fame-default-cloth:";
 const DEFAULT_STATUS = "Use the default textured cloth spine for this book.";
 
 type GenerateSpineResponse = {
@@ -48,6 +49,18 @@ function accessToken() {
     return parsed.access_token || "";
   } catch {
     return "";
+  }
+}
+
+function defaultClothKey(title: string, author: string) {
+  return `${DEFAULT_CLOTH_PREFIX}${title.trim().toLowerCase()}::${author.trim().toLowerCase()}`;
+}
+
+function applyDefaultClothToShelf(title: string, author: string) {
+  const expectedLabel = `${title} by ${author}`;
+  for (const spine of document.querySelectorAll<HTMLButtonElement>("button[data-book-id]")) {
+    if (spine.getAttribute("aria-label") !== expectedLabel) continue;
+    spine.dataset.forceDefaultCloth = "true";
   }
 }
 
@@ -109,12 +122,15 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
     setAiPreview(null);
     setCropPosition(null);
     rejectedCrops.current.clear();
+    if (localStorage.getItem(defaultClothKey(title, author)) === "1") {
+      applyDefaultClothToShelf(title, author);
+    }
     if (!coverUrl) return () => { cancelled = true; };
     void getGeneratedSpine(coverUrl).then((image) => {
       if (!cancelled) setSaved(image);
     });
     return () => { cancelled = true; };
-  }, [coverUrl]);
+  }, [author, coverUrl, title]);
 
   if (!coverUrl) return null;
 
@@ -188,6 +204,7 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
     if (!aiPreview) return;
     setBusy("ai-save");
     try {
+      localStorage.removeItem(defaultClothKey(title, author));
       await saveGeneratedSpine(confirmedCoverUrl, aiPreview.image, "integrated");
       setSaved(aiPreview.image);
       emitSpine({ coverUrl: confirmedCoverUrl, image: aiPreview.image, renderMode: "integrated" });
@@ -236,6 +253,8 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
     setBusy("crop-save");
     setCropStatus("Restoring default spine…");
     try {
+      localStorage.setItem(defaultClothKey(title, author), "1");
+      applyDefaultClothToShelf(title, author);
       await saveGeneratedSpine(confirmedCoverUrl, "", "overlay");
       setSaved(undefined);
       setSharedInUse(false);
@@ -257,6 +276,7 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
     setBusy("crop-save");
     setCropStatus("Saving spine…");
     try {
+      localStorage.removeItem(defaultClothKey(title, author));
       await saveGeneratedSpine(confirmedCoverUrl, image, "overlay");
       setSaved(image);
       setSharedInUse(false);
