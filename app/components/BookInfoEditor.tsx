@@ -35,12 +35,15 @@ type BookInfoEditorProps = {
 };
 
 const inlineStyles = `
-.book-info-card{margin-top:18px;padding:14px;border:1px solid rgba(197,154,109,.18);border-radius:18px;background:rgba(255,255,255,.025)}
-.book-info-card-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:10px}.book-info-card-header>div{display:grid;gap:2px}.book-info-card-header small{font:800 9px/1 Arial,sans-serif;letter-spacing:.14em;opacity:.55}.book-info-card-header strong{font-size:14px}.book-info-card-header button{min-height:34px;padding:0 13px;border-radius:999px;border:1px solid rgba(197,154,109,.24);background:rgba(255,255,255,.045);color:inherit;font:inherit;font-size:12px;font-weight:800}
-.book-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.book-info-row{min-width:0;display:grid;gap:3px;padding:10px 11px;border-radius:12px;background:rgba(255,255,255,.025)}.book-info-row span{font:800 9px/1 Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;opacity:.48}.book-info-row b{min-width:0;overflow-wrap:anywhere;font-size:13px;line-height:1.25}.book-info-row em{font-style:normal;font-weight:500;opacity:.42}
-.identifier-edit-button{width:100%;margin-top:10px;padding:11px 12px;border-radius:14px;border:1px solid rgba(197,154,109,.18);background:rgba(255,255,255,.025);color:inherit;display:flex;align-items:center;gap:10px;text-align:left}.identifier-edit-button>span:first-child{font-size:20px}.identifier-edit-button span:last-child{display:grid;gap:2px}.identifier-edit-button small{opacity:.58;font-size:11px}
+.book-info-card{margin-top:16px}
+.identifier-edit-button{width:100%;padding:13px 14px;border-radius:16px;border:1px solid rgba(197,154,109,.22);background:rgba(255,255,255,.035);color:inherit;display:flex;align-items:center;gap:12px;text-align:left;box-shadow:inset 0 1px rgba(255,255,255,.22)}
+.identifier-edit-button>span:first-child{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:rgba(197,154,109,.10);font:700 18px/1 Arial,sans-serif}
+.identifier-edit-button span:last-child{min-width:0;display:grid;gap:3px}
+.identifier-edit-button strong{font-size:14px;line-height:1.2}
+.identifier-edit-button small{color:rgba(64,43,30,.62);font:600 11px/1.3 Arial,sans-serif}
+.identifier-edit-button:active{transform:scale(.99)}
 .identifier-proposal-grid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;margin:14px 0;font-size:13px}.identifier-proposal-grid span{opacity:.55}.identifier-proposal-grid b{overflow-wrap:anywhere}.identifier-fields{margin-top:12px}
-@media(max-width:560px){.book-info-grid{grid-template-columns:1fr}.identifier-sheet{padding:18px}}
+@media(max-width:560px){.identifier-sheet{padding:18px}}
 `;
 
 export function BookInfoEditor({ book, selectedIsbn, onSave }: BookInfoEditorProps) {
@@ -158,21 +161,14 @@ export function BookInfoEditor({ book, selectedIsbn, onSave }: BookInfoEditorPro
 
   return (
     <>
-      <section className="book-info-card" aria-label="Book information">
+      <section className="book-info-card" aria-label="Edit book information">
         <style>{inlineStyles}</style>
-        <header className="book-info-card-header">
-          <div><small>BOOK INFO</small><strong>Saved details</strong></div>
-          <button type="button" onClick={showEditor}>Edit</button>
-        </header>
-        <div className="book-info-grid">
-          <div className="book-info-row"><span>Title</span><b>{book.title || <em>Not set</em>}</b></div>
-          <div className="book-info-row"><span>Author</span><b>{book.author || <em>Not set</em>}</b></div>
-          <div className="book-info-row"><span>ISBN</span><b>{book.isbn || selectedIsbn || <em>Not set</em>}</b></div>
-          <div className="book-info-row"><span>ASIN</span><b>{book.asin || <em>Not set</em>}</b></div>
-        </div>
         <button type="button" className="identifier-edit-button" onClick={showEditor}>
-          <span>⌕</span>
-          <span><strong>Edit / autofill book info</strong><small>Correct the title, author, ISBN, or ASIN</small></span>
+          <span>✎</span>
+          <span>
+            <strong>Edit book details</strong>
+            <small>Fix title, author or IDs · autofill available</small>
+          </span>
         </button>
       </section>
 
