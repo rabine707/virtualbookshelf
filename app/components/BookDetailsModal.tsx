@@ -392,9 +392,8 @@ export function BookDetailsModal({
               </label>
 
               <dl>
-                {selected.rating ? <><dt>Your rating</dt><dd>{"★".repeat(Math.min(selected.rating, 5))}</dd></> : null}
                 {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
-                <dt>Reading status</dt><dd>{selected.shelf || "to-read"}</dd>
+                <dt>ISBN</dt><dd>{selectedIsbn || "Not available"}</dd>
                 {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
               </dl>
 
