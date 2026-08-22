@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import {
   AUTH_CHANGED_EVENT,
-  SUPABASE_KEY,
   SUPABASE_URL,
+  freshShelfSession,
   readStoredShelfSession,
+  shelfAuthenticatedFetch,
 } from "../spine-request-client";
 import { spineRequestBookKey } from "../../lib/spine-requests";
 
@@ -43,11 +44,10 @@ export function SpineRequestButton({ title, author, coverUrl, isbn, asin }: Spin
         limit: "1",
       });
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/spine_requests?${query}`, {
-          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}` },
+        const { response } = await shelfAuthenticatedFetch(`${SUPABASE_URL}/rest/v1/spine_requests?${query}`, {
           cache: "no-store",
         });
-        if (!response.ok) throw new Error("Could not check spine requests.");
+        if (!response?.ok) throw new Error("Could not check spine requests.");
         const rows = await response.json() as Array<{ status: string }>;
         if (!cancelled) {
           setState(rows.length ? "requested" : "idle");
@@ -71,9 +71,8 @@ export function SpineRequestButton({ title, author, coverUrl, isbn, asin }: Spin
   }, [bookKey]);
 
   async function requestSpine() {
-    const session = readStoredShelfSession();
-    const userId = session?.user?.id;
-    if (!session?.access_token || !userId) {
+    const storedSession = readStoredShelfSession();
+    if (!storedSession?.access_token) {
       setState("sign-in");
       setMessage("Sign in to send a request.");
       return;
@@ -82,16 +81,18 @@ export function SpineRequestButton({ title, author, coverUrl, isbn, asin }: Spin
     setState("sending");
     setMessage("");
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/spine_requests`, {
+      const freshSession = await freshShelfSession();
+      if (!freshSession?.access_token || !freshSession.user?.id) {
+        throw new Error("Sign in again to send a request.");
+      }
+      const { response, session } = await shelfAuthenticatedFetch(`${SUPABASE_URL}/rest/v1/spine_requests`, {
         method: "POST",
         headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
           Prefer: "return=minimal",
         },
         body: JSON.stringify({
-          requested_by: userId,
+          requested_by: freshSession.user.id,
           book_key: bookKey,
           title,
           author,
@@ -101,20 +102,24 @@ export function SpineRequestButton({ title, author, coverUrl, isbn, asin }: Spin
         }),
       });
 
+      if (!response || !session?.user?.id) {
+        throw new Error("Sign in again to send a request.");
+      }
+
       if (!response.ok) {
-        const error = await response.json().catch(() => null) as { code?: string } | null;
+        const error = await response.json().catch(() => null) as { code?: string; message?: string } | null;
         if (response.status === 409 || error?.code === "23505") {
           setState("requested");
           return;
         }
-        throw new Error("Request failed");
+        throw new Error(error?.message || "Request failed");
       }
 
       setState("requested");
       setMessage("Sent to the Shelf of Fame spine queue.");
-    } catch {
+    } catch (error) {
       setState("error");
-      setMessage("Could not send your request. Please try again.");
+      setMessage(error instanceof Error ? error.message : "Could not send your request. Please try again.");
     }
   }
 

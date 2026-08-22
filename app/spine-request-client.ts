@@ -1,20 +1,38 @@
-export const SUPABASE_URL = "https://vrkuimrfdkejfhpxlwlf.supabase.co";
-export const SUPABASE_KEY = "sb_publishable_mf0u925xGBkP4iNgxSCjuQ_H4Dp8r1S";
-export const AUTH_CHANGED_EVENT = "shelf-auth-changed";
+import {
+  AUTH_CHANGED_EVENT,
+  SUPABASE_KEY,
+  SUPABASE_URL,
+  readStoredShelfSession,
+  refreshShelfSession,
+  type ShelfSession,
+} from "./auth-client";
 
-const SESSION_KEY = "shelf-of-fame-supabase-session";
+export { AUTH_CHANGED_EVENT, SUPABASE_KEY, SUPABASE_URL, readStoredShelfSession };
 
-export type StoredShelfSession = {
-  access_token?: string;
-  user?: { id?: string };
-};
+export async function freshShelfSession() {
+  const session = readStoredShelfSession();
+  if (!session?.access_token) return null;
+  return session.refresh_token ? refreshShelfSession(session) : session;
+}
 
-export function readStoredShelfSession(): StoredShelfSession | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) as StoredShelfSession : null;
-  } catch {
-    return null;
+export async function shelfAuthenticatedFetch(input: string, init: RequestInit = {}) {
+  let session = readStoredShelfSession();
+  if (!session?.access_token) return { response: null, session: null };
+
+  const send = (current: ShelfSession) => fetch(input, {
+    ...init,
+    headers: {
+      ...init.headers,
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${current.access_token}`,
+    },
+  });
+
+  let response = await send(session);
+  if ((response.status === 401 || response.status === 403) && session.refresh_token) {
+    session = await refreshShelfSession(session);
+    response = await send(session);
   }
+
+  return { response, session };
 }
