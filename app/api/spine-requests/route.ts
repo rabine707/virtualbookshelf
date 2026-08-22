@@ -22,7 +22,8 @@ export async function POST(request: Request) {
   if (rateLimited) return rateLimited;
 
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "https://vrkuimrfdkejfhpxlwlf.supabase.co").trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const serviceRoleKey = process.env.SUPABASE_SECRET_KEY?.trim()
+    || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!serviceRoleKey) return Response.json({ error: "Spine recommendations are not configured yet." }, { status: 503 });
 
   let body: Record<string, unknown>;

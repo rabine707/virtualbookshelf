@@ -56,7 +56,8 @@ export async function enforceApiRateLimit(request: Request) {
   const policy = POLICIES[pathname];
   if (!policy) return null;
 
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const serviceRoleKey = process.env.SUPABASE_SECRET_KEY?.trim()
+    || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "https://vrkuimrfdkejfhpxlwlf.supabase.co").trim();
 
   // The paid AI endpoint still has its own authenticated, per-user generation
