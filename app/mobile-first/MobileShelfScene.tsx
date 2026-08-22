@@ -25,7 +25,18 @@ type MobileShelfSceneProps = {
   onAddBook: () => void;
 };
 
+type SortMode = "recent" | "title" | "author" | "rating" | "status" | "color";
+type SortDirection = "asc" | "desc";
+
 const BOOKS_PER_ROW = 6;
+const SORT_LABELS: Record<SortMode, string> = {
+  recent: "Recently added",
+  title: "Title",
+  author: "Author",
+  rating: "Rating",
+  status: "Reading status",
+  color: "Spine color",
+};
 
 function SearchIcon() {
   return (
@@ -45,6 +56,45 @@ function UserIcon() {
   );
 }
 
+function SortIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 15, height: 15, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" }}>
+      <path d="M4 7h11" />
+      <path d="M4 12h8" />
+      <path d="M4 17h5" />
+      <path d="m17 10 3-3 3 3" />
+      <path d="M20 7v10" />
+    </svg>
+  );
+}
+
+function colorSortValue(color?: string) {
+  const hex = color?.trim().match(/^#([0-9a-f]{6})$/i)?.[1];
+  if (!hex) return 999;
+  const r = Number.parseInt(hex.slice(0, 2), 16) / 255;
+  const g = Number.parseInt(hex.slice(2, 4), 16) / 255;
+  const b = Number.parseInt(hex.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  if (!delta) return 0;
+  let hue = max === r
+    ? ((g - b) / delta) % 6
+    : max === g
+      ? ((b - r) / delta) + 2
+      : ((r - g) / delta) + 4;
+  hue *= 60;
+  if (hue < 0) hue += 360;
+  return hue;
+}
+
+function statusSortValue(shelf?: string) {
+  if (shelf === "currently-reading") return 0;
+  if (shelf === "to-read") return 1;
+  if (shelf === "read") return 2;
+  return 3;
+}
+
 export default function MobileShelfScene({
   books,
   importMessage,
@@ -56,6 +106,9 @@ export default function MobileShelfScene({
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeShelf, setActiveShelf] = useState(books.length ? 1 : 0);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>("recent");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const shelfViewport = useRef<HTMLDivElement>(null);
   const activeLightPointer = useRef<number | null>(null);
   const lightFrame = useRef<number | null>(null);
@@ -105,9 +158,24 @@ export default function MobileShelfScene({
 
   const visibleBooks = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return books;
-    return books.filter((book) => `${book.title} ${book.author}`.toLowerCase().includes(needle));
-  }, [books, query]);
+    const filtered = needle
+      ? books.filter((book) => `${book.title} ${book.author}`.toLowerCase().includes(needle))
+      : [...books];
+
+    const indexed = filtered.map((book) => ({ book, originalIndex: books.indexOf(book) }));
+    indexed.sort((a, b) => {
+      let comparison = 0;
+      if (sortMode === "recent") comparison = a.originalIndex - b.originalIndex;
+      if (sortMode === "title") comparison = a.book.title.localeCompare(b.book.title, undefined, { sensitivity: "base" });
+      if (sortMode === "author") comparison = a.book.author.localeCompare(b.book.author, undefined, { sensitivity: "base" });
+      if (sortMode === "rating") comparison = (a.book.rating || 0) - (b.book.rating || 0);
+      if (sortMode === "status") comparison = statusSortValue(a.book.shelf) - statusSortValue(b.book.shelf);
+      if (sortMode === "color") comparison = colorSortValue(a.book.color) - colorSortValue(b.book.color);
+      if (comparison === 0) comparison = a.book.title.localeCompare(b.book.title, undefined, { sensitivity: "base" });
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+    return indexed.map(({ book }) => book);
+  }, [books, query, sortDirection, sortMode]);
 
   const rows = useMemo(() => {
     const next: Book[][] = [];
@@ -170,7 +238,7 @@ export default function MobileShelfScene({
     chooseActiveShelf();
 
     return () => observer.disconnect();
-  }, [books.length, query, shelfCount]);
+  }, [books.length, query, shelfCount, sortDirection, sortMode]);
 
   const sceneStyle = {
     "--shell-classic-image": `url("${SPINE_SHELL_TEXTURES.classic}")`,
@@ -240,10 +308,31 @@ export default function MobileShelfScene({
         <div
           className={styles.shelfStatus}
           aria-label={`${countLabel}, ${shelfCount ? `shelf ${activeShelf || 1} of ${shelfCount}` : "no shelves"}`}
+          style={{ display: "flex", alignItems: "center", gap: 8 }}
         >
           <span>{countLabel}</span>
           <i aria-hidden="true">·</i>
           <strong>{shelfCount ? `shelf ${activeShelf || 1} of ${shelfCount}` : "no shelves"}</strong>
+          <button
+            type="button"
+            onClick={() => setSortOpen(true)}
+            aria-label={`Sort shelf, currently ${SORT_LABELS[sortMode]}`}
+            title="Sort shelf"
+            style={{
+              marginLeft: 4,
+              width: 30,
+              height: 30,
+              display: "grid",
+              placeItems: "center",
+              padding: 0,
+              border: "1px solid rgba(255,255,255,.15)",
+              borderRadius: 999,
+              background: "rgba(49,33,22,.5)",
+              color: "inherit",
+            }}
+          >
+            <SortIcon />
+          </button>
         </div>
 
         <div ref={shelfViewport} className={`${styles.shelfViewport} ${polish.shelfViewport}`}>
@@ -283,6 +372,74 @@ export default function MobileShelfScene({
           </div>
         </div>
       </div>
+
+      {sortOpen ? (
+        <div
+          role="presentation"
+          onClick={() => setSortOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 95, background: "rgba(15,10,7,.36)", display: "flex", alignItems: "flex-end" }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Sort shelf"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "100%",
+              padding: "18px 16px calc(22px + env(safe-area-inset-bottom))",
+              borderRadius: "24px 24px 0 0",
+              background: "#f4ecdf",
+              color: "#2d2018",
+              boxShadow: "0 -18px 44px rgba(0,0,0,.28)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+              <div>
+                <div style={{ font: "800 11px/1 Arial, sans-serif", letterSpacing: ".1em", textTransform: "uppercase", opacity: .55 }}>Shelf order</div>
+                <h2 style={{ margin: "4px 0 0", fontSize: 24 }}>Sort shelf</h2>
+              </div>
+              <button type="button" onClick={() => setSortOpen(false)} aria-label="Close sort" style={{ width: 38, height: 38, borderRadius: 999, border: "1px solid rgba(72,48,34,.18)", background: "rgba(255,255,255,.5)", fontSize: 24 }}>×</button>
+            </div>
+
+            <div style={{ display: "grid", gap: 7 }}>
+              {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    setSortMode(mode);
+                    if (mode === "recent" || mode === "rating") setSortDirection("desc");
+                    else if (sortMode !== mode) setSortDirection("asc");
+                  }}
+                  style={{
+                    minHeight: 48,
+                    padding: "0 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    borderRadius: 14,
+                    border: sortMode === mode ? "1px solid rgba(76,52,36,.45)" : "1px solid rgba(76,52,36,.13)",
+                    background: sortMode === mode ? "rgba(99,69,45,.12)" : "rgba(255,255,255,.42)",
+                    color: "inherit",
+                    font: "700 15px/1.2 Arial, sans-serif",
+                  }}
+                >
+                  <span>{SORT_LABELS[mode]}</span>
+                  {sortMode === mode ? <span aria-hidden="true">✓</span> : null}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(72,48,34,.12)" }}>
+              <div style={{ font: "800 11px/1 Arial, sans-serif", letterSpacing: ".08em", textTransform: "uppercase", opacity: .55, marginBottom: 8 }}>Direction</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <button type="button" onClick={() => setSortDirection("asc")} style={{ minHeight: 44, borderRadius: 12, border: sortDirection === "asc" ? "1px solid rgba(76,52,36,.45)" : "1px solid rgba(76,52,36,.13)", background: sortDirection === "asc" ? "rgba(99,69,45,.12)" : "rgba(255,255,255,.42)", color: "inherit", fontWeight: 700 }}>Ascending</button>
+                <button type="button" onClick={() => setSortDirection("desc")} style={{ minHeight: 44, borderRadius: 12, border: sortDirection === "desc" ? "1px solid rgba(76,52,36,.45)" : "1px solid rgba(76,52,36,.13)", background: sortDirection === "desc" ? "rgba(99,69,45,.12)" : "rgba(255,255,255,.42)", color: "inherit", fontWeight: 700 }}>Descending</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {searchOpen ? (
         <div
