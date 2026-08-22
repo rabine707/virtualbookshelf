@@ -103,22 +103,22 @@
   mix-blend-mode: overlay;
 }
 
-.quietCover {
+.ghostCoverArt {
   z-index: 1;
-  opacity: .1;
-  filter: saturate(.36) brightness(.6) contrast(.94) blur(.35px);
+  opacity: .14;
+  filter: grayscale(1) sepia(.16) brightness(.68) contrast(.92) blur(.3px);
   transform: scale(1.11);
-  mix-blend-mode: luminosity;
+  mix-blend-mode: multiply;
 }
 
-.editorial .quietCover {
-  opacity: .12;
-  filter: saturate(.38) brightness(.63) contrast(.96) blur(.28px);
+.editorial .ghostCoverArt {
+  opacity: .15;
+  filter: grayscale(1) sepia(.12) brightness(.72) contrast(.94) blur(.24px);
 }
 
-.decorative .quietCover {
-  opacity: .07;
-  filter: saturate(.32) brightness(.52) contrast(.95) blur(.4px);
+.decorative .ghostCoverArt {
+  opacity: .11;
+  filter: grayscale(1) sepia(.2) brightness(.64) contrast(.93) blur(.34px);
 }
 
 .artCover {

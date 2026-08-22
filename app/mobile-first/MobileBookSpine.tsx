@@ -498,6 +498,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
 
   const showOverlayTypography = generatedMode !== "integrated";
   const publishedArt = design.layout.id === "published-art";
+  const showGhostedClothArt = Boolean(coverUrl) && !publishedArt && !generatedSpine;
   const showDecoration = fittedTitle.detailLevel !== "title-only";
   const showStructuralDetail = fittedTitle.detailLevel !== "title-only";
   const artworkImage = spineArtworkImage(design.artwork);
@@ -546,11 +547,30 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
       <span className={unifiedStyles.bindingDepth} aria-hidden="true" />
 
       <span className={`${unifiedStyles.printedDesign} ${unifiedStyles[printFinish]}`} data-face={printedFace}>
-        {coverUrl ? (
+        {showGhostedClothArt ? (
           <img
-            className={`${styles.spineCover} ${publishedArt ? designStyles.artCover : designStyles.quietCover}`}
+            className={`${styles.spineCover} ${designStyles.ghostCoverArt}`}
             src={coverUrl}
             alt=""
+            aria-hidden="true"
+            data-shelf-ghost-cover="true"
+            loading={eager ? "eager" : "lazy"}
+            decoding="async"
+            onError={() => {
+              if (!preferred) {
+                coverMemory.set(key, null);
+                setCover(null);
+              }
+            }}
+          />
+        ) : null}
+
+        {publishedArt && coverUrl ? (
+          <img
+            className={`${styles.spineCover} ${designStyles.artCover}`}
+            src={coverUrl}
+            alt=""
+            aria-hidden="true"
             data-shelf-cover="true"
             loading={eager ? "eager" : "lazy"}
             decoding="async"
