@@ -71,6 +71,8 @@ export function BookDetailsModal({
   onResetCoverChoices,
   onSaveBookMetadata,
 }: BookDetailsModalProps) {
+  void onUseSavedCover;
+  void onRejectCurrentCover;
   const modalRef = useRef<HTMLElement>(null);
   const deeperSearchStartedFor = useRef<string | null>(null);
   const webFallbackStartedFor = useRef<string | null>(null);
@@ -161,17 +163,17 @@ export function BookDetailsModal({
     <section className="cover-picker" aria-label="Choose a cover" style={{ marginTop: 0 }}>
       <div className="cover-picker-heading" style={{ alignItems: "center" }}>
         <div>
-          <strong>{totalCoverChoices ? "Find more covers" : "Finding cover options"}</strong>
-          <div style={{ fontSize: ".78em", opacity: .66, marginTop: 3 }}>Choose another edition or search the wider web.</div>
+          <strong>{totalCoverChoices ? "Choose a cover" : "Finding cover options"}</strong>
+          <div style={{ fontSize: ".78em", opacity: .66, marginTop: 3 }}>Swap editions, manage your saved covers, or search for more.</div>
         </div>
         {totalCoverChoices ? <span>{totalCoverChoices} {totalCoverChoices === 1 ? "match" : "matches"}</span> : null}
       </div>
 
       {savedCovers.length ? (
-        <section className="saved-cover-choices" aria-label="Saved covers">
+        <section className="saved-cover-choices" aria-label="Your saved covers">
           <div className="saved-cover-heading">
-            <strong>Saved covers</strong>
-            <span>tap a cover to crop or use it</span>
+            <strong>Your saved covers</strong>
+            <span>tap to use · × removes from your book</span>
           </div>
           <div className="saved-cover-grid">
             {savedCovers.map((saved) => {
@@ -191,8 +193,8 @@ export function BookDetailsModal({
                   <button
                     type="button"
                     className="saved-cover-remove"
-                    title="Remove this saved cover"
-                    aria-label={`Remove ${saved.source || "saved"} cover`}
+                    title="Remove this cover from your saved covers"
+                    aria-label={`Remove ${saved.source || "saved"} cover from your saved covers`}
                     onClick={() => onRemoveSavedCover(saved)}
                   >×</button>
                 </div>
@@ -203,28 +205,34 @@ export function BookDetailsModal({
       ) : null}
 
       {hasCoverOptions ? (
-        <div className="cover-options">
-          {coverOptions.map((option, index) => (
-            <button
-              key={`${option.url}-${index}`}
-              type="button"
-              className={`cover-option${cover?.url === option.url ? " selected-cover" : ""}`}
-              onClick={() => setCropTarget({ kind: "cover", option })}
-              aria-label={`Crop or use this ${coverSourceLabel(option.source)} cover`}
-              title={`Crop or use this ${coverSourceLabel(option.source)} cover`}
-            >
-              <img src={stripCoverCrop(option.url)} style={coverCropImageStyle(option.url)} alt="" loading="lazy" decoding="async" />
-              <span>{coverSourceLabel(option.source)}</span>
-            </button>
-          ))}
-        </div>
+        <section aria-label="Community and database covers" style={{ marginTop: 14 }}>
+          <div className="saved-cover-heading">
+            <strong>Community & database covers</strong>
+            <span>tap to switch · shared covers can’t be deleted</span>
+          </div>
+          <div className="cover-options">
+            {coverOptions.map((option, index) => (
+              <button
+                key={`${option.url}-${index}`}
+                type="button"
+                className={`cover-option${cover?.url === option.url ? " selected-cover" : ""}`}
+                onClick={() => setCropTarget({ kind: "cover", option })}
+                aria-label={`Crop or use this ${coverSourceLabel(option.source)} cover`}
+                title={`Use this ${coverSourceLabel(option.source)} cover`}
+              >
+                <img src={stripCoverCrop(option.url)} style={coverCropImageStyle(option.url)} alt="" loading="lazy" decoding="async" />
+                <span>{coverSourceLabel(option.source)}</span>
+              </button>
+            ))}
+          </div>
+        </section>
       ) : null}
 
       {webCoverResults.length ? (
         <section style={{ marginTop: 12 }} aria-label="Web cover results">
           <div className="web-cover-heading">
             <strong>Web results</strong>
-            <span>added automatically when book databases come up short</span>
+            <span>tap one to save it to your book</span>
           </div>
           <div className="web-cover-results">
             {webCoverResults.map((result, index) => (
@@ -255,7 +263,7 @@ export function BookDetailsModal({
       </button>
 
       <p className="cover-picker-note reader-technical-note">
-        Cover search checks book databases first, then searches the wider web when strong choices are limited.
+        Community and book-database covers stay available for everyone. Removing a saved cover only removes it from your copy of this book.
       </p>
 
       <button
@@ -333,13 +341,6 @@ export function BookDetailsModal({
                 <button type="button" className="primary" onClick={openCoverBrowser}>
                   Find more covers
                 </button>
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={!cover}
-                  onClick={() => onRejectCurrentCover("wrong")}
-                  style={{ opacity: cover ? 0.78 : 0.45 }}
-                >Not this one</button>
 
                 <SpineTools
                   title={selected.title}
