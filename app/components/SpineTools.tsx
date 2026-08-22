@@ -12,7 +12,7 @@ import {
 } from "../../lib/spines/client";
 
 const SESSION_KEY = "shelf-of-fame-supabase-session";
-const DEFAULT_STATUS = "Choose a cover crop, or revert to the default textured spine.";
+const DEFAULT_STATUS = "Use the default textured cloth spine for this book.";
 
 type GenerateSpineResponse = {
   image?: string;
@@ -130,11 +130,9 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
         : saved && !savedPosition
           ? "✨ Try a different AI spine"
           : "✨ Generate AI spine";
-  const cropButtonText = cropPosition
-    ? "▥ Close cover cropper"
-    : savedPosition
-      ? "▥ Change cover crop"
-      : "▥ Choose cover crop";
+  const cropButtonText = busy === "crop-save"
+    ? "↩ Restoring default cloth spine…"
+    : "↩ Use default cloth spine";
 
   async function generateAiPreview() {
     const token = accessToken();
@@ -243,9 +241,10 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
       setSharedInUse(false);
       emitSpine({ coverUrl: confirmedCoverUrl, image: "", renderMode: "overlay" });
       setCropPosition(null);
-      setStatus(`Default textured spine restored for ${title}.`);
+      setStatus(`Default textured cloth spine restored for ${title}.`);
       setCropStatus("× rejects • ↩ default • ✓ saves");
     } catch {
+      setStatus("Could not restore the default cloth spine on this device.");
       setCropStatus("Could not restore the default spine on this device.");
     } finally {
       setBusy(null);
@@ -286,9 +285,9 @@ export function SpineTools({ title, author, coverUrl, isbn, asin }: SpineToolsPr
     <button
       type="button"
       className="primary spine-crop-button"
-      title="Use a narrow detail crop from this cover without AI"
+      title="Restore this book to the default textured cloth spine"
       disabled={Boolean(busy)}
-      onClick={openOrCloseCrop}
+      onClick={() => void revertToDefaultSpine()}
     >
       {cropButtonText}
     </button>
