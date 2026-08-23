@@ -13,6 +13,7 @@ import { useCommunityCoverSync } from "./hooks/useCommunityCoverSync";
 import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
 import MobileShelfScene from "./mobile-first/MobileShelfScene";
+import ThemeEnricher from "./ThemeEnricher";
 import { Book, CoverResult, WebCoverResult } from "../lib/books/client-library";
 
 const DEFAULT_CLOTH_PREFIX = "shelf-of-fame-default-cloth:";
@@ -160,6 +161,7 @@ export default function Home() {
         onSelect={setSelected}
         onAddBook={() => window.dispatchEvent(new Event("shelf-open-book-search"))}
       />
+      <ThemeEnricher />
 
       <input
         ref={goodreadsInput}

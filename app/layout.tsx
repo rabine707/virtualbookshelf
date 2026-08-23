@@ -11,6 +11,7 @@ import "./spine-community.css";
 import "./identifier-editor.css";
 import "./book-hub.css";
 import "./cover-review.css";
+import "./theme-ui-polish.css";
 import "./auth.css";
 import "./account/account.css";
 import "./help-shelf-launcher.css";
