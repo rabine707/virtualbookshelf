@@ -15,6 +15,8 @@ import { coverCropImageStyle, stripCoverCrop } from "../../lib/books/cover-crop"
 import { BookInfoEditor } from "./BookInfoEditor";
 import { CoverCropSheet } from "./CoverCropSheet";
 import { SpineRequestButton } from "./SpineRequestButton";
+import { loadSharedSpineOptions, type SharedSpineEntry } from "../shared-spines";
+import { getGeneratedSpine, saveGeneratedSpine } from "../../lib/spines/client";
 
 type BookDetailsModalProps = {
   selected: Book;
@@ -80,6 +82,9 @@ export function BookDetailsModal({
   const webFallbackStartedFor = useRef<string | null>(null);
   const [selector, setSelector] = useState<"cover" | "spine" | null>(null);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
+  const [spineOptions, setSpineOptions] = useState<SharedSpineEntry[]>([]);
+  const [activeSpine, setActiveSpine] = useState("");
+  const [spineMessage, setSpineMessage] = useState("");
 
   useEffect(() => {
     setSelector(null);
@@ -145,8 +150,36 @@ export function BookDetailsModal({
 
   const openSpineBrowser = () => {
     setSelector("spine");
+    setSpineOptions([]);
+    setSpineMessage("Loading custom spines…");
     requestAnimationFrame(() => modalRef.current?.scrollTo({ top: 0, behavior: "smooth" }));
   };
+
+  useEffect(() => {
+    if (selector !== "spine" || !cover?.url) return;
+    let cancelled = false;
+    const coverUrl = stripCoverCrop(cover.url);
+    void Promise.all([
+      loadSharedSpineOptions({ title: selected.title, author: selected.author, isbn: selectedIsbn, asin: selected.asin }),
+      getGeneratedSpine(coverUrl),
+    ]).then(([options, current]) => {
+      if (cancelled) return;
+      setSpineOptions(options);
+      setActiveSpine(current || "");
+      setSpineMessage(options.length ? "" : "No custom curator spines have been published for this book yet.");
+    }).catch(() => { if (!cancelled) setSpineMessage("Custom spines could not be loaded. Please try again."); });
+    return () => { cancelled = true; };
+  }, [cover?.url, selected.asin, selected.author, selected.title, selectedIsbn, selector]);
+
+  async function chooseSpine(option?: SharedSpineEntry) {
+    if (!cover?.url) return;
+    const coverUrl = stripCoverCrop(cover.url);
+    const image = option?.url || "";
+    const renderMode = option?.renderMode || "overlay";
+    await saveGeneratedSpine(coverUrl, image, renderMode);
+    setActiveSpine(image);
+    window.dispatchEvent(new CustomEvent("shelf-spine-generated", { detail: { coverUrl, image, position: option?.position, renderMode, shared: Boolean(option) } }));
+  }
 
   function confirmCrop(url: string) {
     if (!cropTarget) return;
@@ -298,6 +331,15 @@ export function BookDetailsModal({
         </div>
       </div>
       <p className="cover-picker-note">Your selected spine appears on the shelf immediately. Custom curator spines will appear here automatically.</p>
+      <div className="saved-spine-grid" data-native-spine-selector="1">
+        <button type="button" className={`saved-spine-option${!activeSpine ? " active" : ""}`} onClick={() => void chooseSpine()}>
+          <div className="default-cloth-preview" aria-hidden="true" /><span>{!activeSpine ? "Active" : "Default Cloth"}</span>
+        </button>
+        {spineOptions.map((option) => <button key={option.id} type="button" className={`saved-spine-option${activeSpine === option.url ? " active" : ""}`} onClick={() => void chooseSpine(option)}>
+          <img src={option.url} alt="" loading="lazy" /><span>{activeSpine === option.url ? "Active" : "Custom Curator Spine"}</span>
+        </button>)}
+      </div>
+      {spineMessage ? <p className="saved-spine-empty" role="status">{spineMessage}</p> : null}
     </section>
   );
 

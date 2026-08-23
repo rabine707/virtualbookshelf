@@ -13,6 +13,7 @@ export type SharedSpineRenderMode = "integrated" | "overlay";
 export type SharedSpinePosition = "left" | "center" | "right";
 
 export type SharedSpineEntry = {
+  id: string;
   url: string;
   renderMode: SharedSpineRenderMode;
   position?: SharedSpinePosition;
@@ -28,6 +29,7 @@ type CuratorRow = {
 };
 
 type SharedSpineRow = {
+  id: string;
   storage_path: string;
   source_cover_url?: string | null;
   vote_score?: number | null;
@@ -148,10 +150,26 @@ function sharedEntry(row: SharedSpineRow): SharedSpineEntry {
     ? row.model
     : undefined;
   return {
+    id: row.id,
     url: publicSpineUrl(row.storage_path),
     renderMode: integrated ? "integrated" : "overlay",
     position,
   };
+}
+
+export async function loadSharedSpineOptions(identity: SharedBookIdentity) {
+  const wanted = titleAuthorKey(identity.title, identity.author);
+  const rows = await supabaseJson(
+    "/rest/v1/spines?select=id,storage_path,source_cover_url,vote_score,provider,model,books!inner(title,author,normalized_title,normalized_author,isbn,asin)&status=eq.approved&order=created_at.desc&limit=1000",
+    { cache: "no-store" },
+  ) as SharedSpineRow[];
+  return (rows || []).filter((row) => {
+    const book = row.books;
+    if (!book) return false;
+    if (identity.isbn && book.isbn?.trim() === identity.isbn.trim()) return true;
+    if (identity.asin && book.asin?.trim() === identity.asin.trim()) return true;
+    return titleAuthorKey(book.title || book.normalized_title || "", book.author || book.normalized_author || "") === wanted;
+  }).map(sharedEntry);
 }
 
 export async function publishSharedSpine(identity: SharedBookIdentity, image: string, sourceCoverUrl: string, provider?: string, model?: string) {
@@ -182,7 +200,7 @@ export async function publishSharedSpine(identity: SharedBookIdentity, image: st
     throw new Error(message || "Could not upload shared spine artwork");
   }
 
-  const inserted = await supabaseJson("/rest/v1/spines?select=id", {
+  const inserted = await supabaseJson("/rest/v1/spines?select=id,book_id,storage_path,status", {
     method: "POST",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify({
@@ -194,12 +212,14 @@ export async function publishSharedSpine(identity: SharedBookIdentity, image: st
       contributed_by: userId,
       status: "approved",
     }),
-  }, true) as Array<{ id: string }>;
-  const spineId = inserted?.[0]?.id;
-  if (!spineId) throw new Error("Could not save shared spine artwork");
+  }, true) as Array<{ id: string; book_id: string; storage_path: string; status: string }>;
+  const persisted = inserted?.[0];
+  if (!persisted?.id || persisted.book_id !== bookId || persisted.storage_path !== path || persisted.status !== "approved") {
+    throw new Error("Could not verify the uploaded spine's book association");
+  }
 
   catalogPromise = null;
-  return { shared: true as const, url: publicSpineUrl(path), spineId };
+  return { shared: true as const, url: publicSpineUrl(path), spineId: persisted.id };
 }
 
 let catalogPromise: Promise<SharedSpineCatalog> | null = null;
@@ -208,7 +228,7 @@ export function loadSharedSpineCatalog(force = false) {
   if (catalogPromise && !force) return catalogPromise;
   catalogPromise = (async () => {
     const rows = await supabaseJson(
-      "/rest/v1/spines?select=storage_path,source_cover_url,vote_score,provider,model,books(title,author,normalized_title,normalized_author,isbn,asin)&status=eq.approved&order=vote_score.desc,created_at.desc&limit=1000",
+      "/rest/v1/spines?select=id,storage_path,source_cover_url,vote_score,provider,model,books(title,author,normalized_title,normalized_author,isbn,asin)&status=eq.approved&order=vote_score.desc,created_at.desc&limit=1000",
       { cache: "no-store" },
     ) as SharedSpineRow[];
 

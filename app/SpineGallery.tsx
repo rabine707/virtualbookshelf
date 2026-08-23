@@ -335,6 +335,7 @@ async function renderGallery(modal: Element) {
   const picker = modal.querySelector<HTMLElement>(".cover-picker");
   const book = modalBook(modal);
   if (!picker || !book) return;
+  if (picker.querySelector("[data-native-spine-selector]")) return;
   const section = ensureSection(picker);
   const renderKey = `${book.key}::${book.coverUrl}`;
   section.dataset.renderKey = renderKey;

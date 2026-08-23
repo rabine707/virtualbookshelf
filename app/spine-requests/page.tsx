@@ -124,12 +124,13 @@ export default function SpineRequestsPage() {
         apikey: SUPABASE_KEY,
         Authorization: `Bearer ${session.access_token}`,
         "Content-Type": "application/json",
-        Prefer: "return=minimal",
+        Prefer: "return=representation",
       },
       body: JSON.stringify({ status, ...(fulfilledSpineId ? { fulfilled_spine_id: fulfilledSpineId } : {}) }),
     });
     setBusyId(undefined);
-    if (response.ok) {
+    const updated = response.ok ? await response.json() as Array<{ id?: string }> : [];
+    if (response.ok && ids.every((id) => updated.some((row) => row.id === id))) {
       await load();
       return true;
     }
