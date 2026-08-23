@@ -10,6 +10,7 @@ import {
   type SpinePosition,
   type SpineRenderMode,
 } from "../lib/spines/client";
+import { sharedSpineRenderMode } from "../lib/spines/shared-render-mode";
 
 const HISTORY_KEY_PREFIX = "history:v1:";
 const CANDIDATES_KEY = "shelf-of-fame-spine-candidates-v1";
@@ -212,11 +213,11 @@ function rowMatchesBook(row: SharedSpineRow, book: BookIdentity) {
 
 function sharedChoice(row: SharedSpineRow): SpineChoice | null {
   if (!row.storage_path) return null;
+  const renderMode = sharedSpineRenderMode(row.provider);
   const position = row.provider === "cover-crop" && (row.model === "left" || row.model === "center" || row.model === "right")
     ? row.model
     : undefined;
-  const integrated = row.provider === "AI-integrated";
-  const source = integrated
+  const source = renderMode === "integrated"
     ? "Community AI"
     : row.provider === "cover-crop"
       ? `${position ? `${position[0].toUpperCase()}${position.slice(1)} ` : ""}crop`
@@ -225,7 +226,7 @@ function sharedChoice(row: SharedSpineRow): SpineChoice | null {
         : "Community";
   return {
     image: publicSpineUrl(row.storage_path),
-    renderMode: integrated ? "integrated" : "overlay",
+    renderMode,
     position,
     source,
     createdAt: row.created_at ? Date.parse(row.created_at) || 0 : 0,

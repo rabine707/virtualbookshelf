@@ -1,3 +1,5 @@
+import { sharedSpineRenderMode } from "../lib/spines/shared-render-mode";
+
 const SUPABASE_URL = "https://vrkuimrfdkejfhpxlwlf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mf0u925xGBkP4iNgxSCjuQ_H4Dp8r1S";
 const SESSION_KEY = "shelf-of-fame-supabase-session";
@@ -145,14 +147,13 @@ function extensionFor(type: string) {
 }
 
 function sharedEntry(row: SharedSpineRow): SharedSpineEntry {
-  const integrated = row.provider === "AI-integrated";
   const position = row.provider === "cover-crop" && (row.model === "left" || row.model === "center" || row.model === "right")
     ? row.model
     : undefined;
   return {
     id: row.id,
     url: publicSpineUrl(row.storage_path),
-    renderMode: integrated ? "integrated" : "overlay",
+    renderMode: sharedSpineRenderMode(row.provider),
     position,
   };
 }
