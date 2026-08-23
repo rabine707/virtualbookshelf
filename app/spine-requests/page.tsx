@@ -41,6 +41,15 @@ function publishedSpineUrl(request: SpineRequest) {
   return path ? `${SUPABASE_URL}/storage/v1/object/public/spines/${path.split("/").map(encodeURIComponent).join("/")}` : "";
 }
 
+function coverDownloadUrl(request: SpineRequest) {
+  const params = new URLSearchParams({
+    url: request.cover_url || "",
+    title: request.title,
+    author: request.author,
+  });
+  return `/api/cover-download?${params.toString()}`;
+}
+
 export default function SpineRequestsPage() {
   const [requests, setRequests] = useState<SpineRequest[]>([]);
   const [message, setMessage] = useState("Loading spine requests…");
@@ -209,6 +218,11 @@ export default function SpineRequestsPage() {
                 {` · first requested ${new Date(request.created_at).toLocaleDateString()}`}
               </small>
               <small>{request.isbn ? `ISBN ${request.isbn}` : request.asin ? `ASIN ${request.asin}` : "No identifier"}</small>
+              {request.cover_url ? (
+                <a className="spine-request-download" href={coverDownloadUrl(request)} download>
+                  <span aria-hidden="true">↓</span> Download cover
+                </a>
+              ) : null}
               {request.status !== "completed" && request.status !== "declined" ? (
                 <section className="spine-request-submit" aria-label={`Submit spine for ${request.title}`}>
                   <label className="spine-request-file">
