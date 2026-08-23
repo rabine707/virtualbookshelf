@@ -523,7 +523,7 @@
   min-height: 64px;
   padding: 6px 4px;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   align-items: center;
   border: 1px solid rgba(239, 211, 169, .18);
   border-radius: 25px;

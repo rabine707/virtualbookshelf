@@ -68,6 +68,16 @@ function SortIcon() {
   );
 }
 
+function StyleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+      <path d="m5.6 5.6 2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+      <circle cx="12" cy="12" r="3.5" />
+    </svg>
+  );
+}
+
 function colorSortValue(color?: string) {
   const hex = color?.trim().match(/^#([0-9a-f]{6})$/i)?.[1];
   if (!hex) return 999;
@@ -547,6 +557,15 @@ export default function MobileShelfScene({
         <button type="button" className={styles.addButton} onClick={onAddBook} aria-label="Add a book">
           <span className={styles.addCircle} aria-hidden="true">+</span>
           <span className={styles.dockLabel}>Add Book</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event("shelf-open-personalization"))}
+          aria-label="Personalize your shelf"
+        >
+          <StyleIcon />
+          <span className={styles.dockLabel}>Style</span>
         </button>
 
         <Link href="/account" className={styles.dockLink}>

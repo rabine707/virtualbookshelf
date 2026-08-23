@@ -155,6 +155,12 @@ export default function ThemeEnricher() {
     };
   }, [pickerOpen]);
 
+  useEffect(() => {
+    const openPersonalization = () => setPickerOpen(true);
+    window.addEventListener("shelf-open-personalization", openPersonalization);
+    return () => window.removeEventListener("shelf-open-personalization", openPersonalization);
+  }, []);
+
   function choose(next: ShelfTheme) {
     setTheme(next);
     applyTheme(next);
@@ -174,9 +180,7 @@ export default function ThemeEnricher() {
     applySidewaysTitles(next);
   }
 
-  if (!toolbar) return null;
-
-  const controls = createPortal(
+  const controls = toolbar ? createPortal(
     <>
       <button type="button" className="theme-picker-trigger" onClick={() => setPickerOpen(true)}>
         Theme
@@ -186,7 +190,7 @@ export default function ThemeEnricher() {
       </button>
     </>,
     toolbar,
-  );
+  ) : null;
 
   const picker = pickerOpen
     ? createPortal(
