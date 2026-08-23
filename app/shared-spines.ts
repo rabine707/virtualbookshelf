@@ -182,9 +182,9 @@ export async function publishSharedSpine(identity: SharedBookIdentity, image: st
     throw new Error(message || "Could not upload shared spine artwork");
   }
 
-  await supabaseJson("/rest/v1/spines", {
+  const inserted = await supabaseJson("/rest/v1/spines?select=id", {
     method: "POST",
-    headers: { Prefer: "return=minimal" },
+    headers: { Prefer: "return=representation" },
     body: JSON.stringify({
       book_id: bookId,
       storage_path: path,
@@ -194,10 +194,12 @@ export async function publishSharedSpine(identity: SharedBookIdentity, image: st
       contributed_by: userId,
       status: "approved",
     }),
-  }, true);
+  }, true) as Array<{ id: string }>;
+  const spineId = inserted?.[0]?.id;
+  if (!spineId) throw new Error("Could not save shared spine artwork");
 
   catalogPromise = null;
-  return { shared: true as const, url: publicSpineUrl(path) };
+  return { shared: true as const, url: publicSpineUrl(path), spineId };
 }
 
 let catalogPromise: Promise<SharedSpineCatalog> | null = null;
