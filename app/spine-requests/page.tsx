@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AUTH_CHANGED_EVENT,
   SUPABASE_KEY,
@@ -21,6 +21,7 @@ type SpineRequest = {
   status: SpineRequestStatus;
   curator_note: string | null;
   created_at: string;
+  updated_at: string;
   requested_by: string | null;
   fulfilled_spine_id: string | null;
   spines?: { storage_path?: string | null } | null;
@@ -28,6 +29,8 @@ type SpineRequest = {
 
 type SpineRequestGroup = SpineRequest & { requestIds: string[]; recommendationCount: number };
 type SpineUpload = { image: string; name: string; mode: SharedSpineRenderMode };
+type CatalogBook = { id:string; title:string; author:string; isbn:string|null; asin:string|null };
+type SpineType = "clothbound" | "dust-jacket" | "special-edition";
 
 const STATUS_LABELS: Record<SpineRequestStatus, string> = {
   pending: "Requested",
@@ -50,11 +53,59 @@ function coverDownloadUrl(request: SpineRequest) {
   return `/api/cover-download?${params.toString()}`;
 }
 
+function GlobalSpineUpload({ initialBook, onClose }: { initialBook?: CatalogBook; onClose: () => void }) {
+  const [book, setBook] = useState<CatalogBook | undefined>(initialBook);
+  const [query, setQuery] = useState(initialBook?.title || "");
+  const [results, setResults] = useState<CatalogBook[]>([]);
+  const [spineType, setSpineType] = useState<SpineType>("clothbound");
+  const [upload, setUpload] = useState<SpineUpload>();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    if (book || query.trim().length < 2) { setResults([]); return; }
+    clearTimeout(timer.current);
+    timer.current = setTimeout(async () => {
+      const session = readStoredShelfSession();
+      if (!session?.access_token) return;
+      const term = query.trim().replace(/[,%()]/g, " ");
+      const params = new URLSearchParams({ select: "id,title,author,isbn,asin", or: `(title.ilike.*${term}*,author.ilike.*${term}*)`, order: "title.asc", limit: "12" });
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/books?${params}`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}` }, cache: "no-store" });
+      setResults(response.ok ? await response.json() : []);
+    }, 250);
+    return () => clearTimeout(timer.current);
+  }, [book, query]);
+
+  function chooseFile(file?: File) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === "string" && setUpload({ image: reader.result, name: file.name, mode: "integrated" });
+    reader.readAsDataURL(file);
+  }
+
+  async function publish() {
+    if (!book || !upload) return;
+    setBusy(true); setMessage("");
+    try {
+      const result = await publishSharedSpine({ title: book.title, author: book.author, isbn: book.isbn || undefined, asin: book.asin || undefined }, upload.image, "", `curator-${spineType}`, spineType);
+      if (!result.shared) throw new Error("This account cannot publish shared spines.");
+      setMessage("Published to the shared spine catalog.");
+      window.setTimeout(onClose, 700);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not publish that spine."); }
+    finally { setBusy(false); }
+  }
+
+  return <div className="curator-upload-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className="curator-upload-dialog" role="dialog" aria-modal="true" aria-labelledby="curator-upload-title"><header><div><span className="eyebrow">CURATOR UPLOAD</span><h2 id="curator-upload-title">Upload spine</h2><p>Publish artwork to any Shelf of Fame book.</p></div><button onClick={onClose} aria-label="Close">×</button></header><div className="curator-upload-form"><label><span>1 · Choose a book</span><input value={query} onChange={(event) => { setQuery(event.target.value); setBook(undefined); }} placeholder="Search by title or author" /></label>{book ? <div className="curator-selected-book"><div><strong>{book.title}</strong><small>{book.author || "Unknown author"}</small></div><button onClick={() => { setBook(undefined); setQuery(""); }}>Change</button></div> : null}{!book && results.length ? <div className="curator-book-results">{results.map((result) => <button key={result.id} onClick={() => { setBook(result); setQuery(result.title); }}><strong>{result.title}</strong><small>{result.author || "Unknown author"}</small></button>)}</div> : null}<label><span>2 · Spine type</span><select value={spineType} onChange={(event) => setSpineType(event.target.value as SpineType)}><option value="clothbound">Clothbound</option><option value="dust-jacket">Full-color dust jacket</option><option value="special-edition">Special edition</option></select></label><label className="curator-upload-file"><span>{upload ? upload.name : "3 · Choose spine image"}</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => chooseFile(event.target.files?.[0])} /></label></div>{message ? <p className="curator-upload-message" role="status">{message}</p> : null}<footer><button onClick={onClose}>Cancel</button><button className="primary" disabled={!book || !upload || busy} onClick={() => void publish()}>{busy ? "Publishing…" : "Publish spine"}</button></footer></section></div>;
+}
+
 export default function SpineRequestsPage() {
   const [requests, setRequests] = useState<SpineRequest[]>([]);
   const [message, setMessage] = useState("Loading spine requests…");
   const [busyId, setBusyId] = useState<string>();
   const [uploads, setUploads] = useState<Record<string, SpineUpload>>({});
+  const [finishedOpen, setFinishedOpen] = useState(false);
+  const [uploadBook, setUploadBook] = useState<CatalogBook | null | undefined>(undefined);
 
   const load = useCallback(async () => {
     const session = readStoredShelfSession();
@@ -76,7 +127,7 @@ export default function SpineRequestsPage() {
     }
 
     const query = new URLSearchParams({
-      select: "id,book_key,title,author,isbn,asin,cover_url,status,curator_note,created_at,requested_by,fulfilled_spine_id,spines(storage_path)",
+      select: "id,book_key,title,author,isbn,asin,cover_url,status,curator_note,created_at,updated_at,requested_by,fulfilled_spine_id,spines(storage_path)",
       order: "created_at.asc",
       limit: "200",
     });
@@ -106,6 +157,8 @@ export default function SpineRequestsPage() {
     }
     return [...groups.values()];
   }, [requests]);
+  const activeRequests = useMemo(() => groupedRequests.filter((request) => request.status === "pending" || request.status === "in_progress"), [groupedRequests]);
+  const finishedRequests = useMemo(() => groupedRequests.filter((request) => request.status === "completed" || request.status === "declined"), [groupedRequests]);
 
   useEffect(() => {
     void load();
@@ -196,14 +249,16 @@ export default function SpineRequestsPage() {
 
   return (
     <main className="spine-request-queue">
-      <header>
-        <p className="eyebrow">SHELF OF FAME · CURATOR</p>
+      <header className="spine-request-header">
+        <div><p className="eyebrow">SHELF OF FAME · CURATOR</p>
         <h1>Custom spine requests</h1>
-        <p>Books readers want turned into polished Shelf of Fame spines.</p>
+        <p>Books readers want turned into polished Shelf of Fame spines.</p></div>
+        <button className="curator-upload-launch" onClick={() => setUploadBook(null)}><span aria-hidden="true">＋</span><strong>Upload spine</strong><small>to any book</small></button>
       </header>
       {message ? <p role="status">{message}</p> : null}
+      <div className="spine-request-section-title"><span className="eyebrow">WORK QUEUE</span><h2>Active requests <b>{activeRequests.length}</b></h2></div>
       <div className="spine-request-list">
-        {groupedRequests.map((request) => {
+        {activeRequests.length ? activeRequests.map((request) => {
           const upload = uploads[request.id];
           const publishedImage = publishedSpineUrl(request);
           return (
@@ -260,8 +315,17 @@ export default function SpineRequestsPage() {
             </div>
           </article>
           );
-        })}
+        }) : !message ? <div className="spine-request-empty">No active requests. The queue is clear.</div> : null}
       </div>
+      <section className={`spine-finished-section${finishedOpen ? " is-open" : ""}`}>
+        <button className="spine-finished-toggle" aria-expanded={finishedOpen} onClick={() => setFinishedOpen((open) => !open)}><span><span className="eyebrow">ARCHIVE</span><strong>Finished ({finishedRequests.length})</strong></span><span aria-hidden="true">⌄</span></button>
+        {finishedOpen ? <div className="spine-finished-list">{finishedRequests.map((request) => {
+          const image = publishedSpineUrl(request);
+          const book = { id: request.book_key, title: request.title, author: request.author, isbn: request.isbn, asin: request.asin };
+          return <article className="spine-finished-row" key={request.id}><div className="spine-finished-images">{request.cover_url ? <img src={request.cover_url} alt="" /> : <div className="spine-request-cover-placeholder">No cover</div>}{image ? <img src={image} alt="" /> : null}</div><div className="spine-finished-copy"><span className={`spine-request-status status-${request.status}`}>{STATUS_LABELS[request.status]}</span><h3>{request.title}</h3><p>{request.author || "Unknown author"}</p><small>{request.status === "completed" ? "Completed" : "Closed"} {new Date(request.updated_at || request.created_at).toLocaleDateString()}</small></div><div className="spine-finished-actions">{image ? <a href={image} target="_blank" rel="noreferrer">View spines</a> : null}<button onClick={() => setUploadBook(book)}>＋ Add another spine</button></div></article>;
+        })}</div> : null}
+      </section>
+      {uploadBook !== undefined ? <GlobalSpineUpload initialBook={uploadBook || undefined} onClose={() => setUploadBook(undefined)} /> : null}
     </main>
   );
 }
