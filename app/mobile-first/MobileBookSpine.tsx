@@ -291,12 +291,13 @@ function sidewaysTitleLayout(
   design: SpineDesign,
   spineHeight: number,
   spineWidth: number,
+  forced = false,
 ) {
-  const topInset = 8;
-  const availableLength = Math.max(98, spineHeight - 44);
-  const verticalPadding = 12;
+  const topInset = forced ? 5 : 8;
+  const availableLength = Math.max(98, spineHeight - (forced ? 31 : 44));
+  const verticalPadding = forced ? 5 : 12;
   const printableLength = Math.max(74, availableLength - (verticalPadding * 2));
-  const laneHeight = Math.max(30, Math.min(44, spineWidth - 9));
+  const laneHeight = Math.max(30, Math.min(44, spineWidth - (forced ? 6 : 9)));
   const titleLength = Math.max(1, fit.title.length);
   const letterSpacingEm = titleLength >= 20
     ? -.04
@@ -305,9 +306,13 @@ function sidewaysTitleLayout(
       : Math.min(.018, design.layout.letterSpacingEm);
   const fontSize = Math.min(
     laneHeight * .78,
-    printableLength / (titleLength * Math.max(.67, .75 + letterSpacingEm)),
+    printableLength / (titleLength * (
+      forced
+        ? Math.max(.58, .64 + letterSpacingEm)
+        : Math.max(.67, .75 + letterSpacingEm)
+    )),
   );
-  if (fontSize < 11.5) return null;
+  if (fontSize < (forced ? 6.6 : 11.5)) return null;
   const titleFont = 'Rockwell, Georgia, "Times New Roman", serif';
 
   const containerStyle: CSSProperties = {
@@ -518,17 +523,19 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const showStructuralDetail = fittedTitle.detailLevel !== "title-only";
   const artworkImage = spineArtworkImage(design.artwork);
   const automaticSideways = stableSpineNumber(`${book.id}|${book.title}|${book.author}|title-orientation`) % 2 === 0;
+  const forceSideways = titleOrientation === "sideways";
   const sidewaysEligible = titleOrientation !== "upright"
-    && (titleOrientation === "sideways" || automaticSideways)
-    && fittedTitle.detailLevel !== "title-only"
-    && fittedTitle.title.length >= 8
-    && fittedTitle.title.length <= 22;
+    && (forceSideways || automaticSideways)
+    && (forceSideways || fittedTitle.detailLevel !== "title-only")
+    && fittedTitle.title.length >= (forceSideways ? 4 : 8)
+    && fittedTitle.title.length <= (forceSideways ? 44 : 22);
   const sidewaysLayout = sidewaysEligible
     ? sidewaysTitleLayout(
       fittedTitle,
       design,
       tokens.height,
       tokens.width,
+      forceSideways,
     )
     : null;
   const sidewaysTitle = Boolean(sidewaysLayout);
