@@ -28,9 +28,20 @@ type SpineRequest = {
 };
 
 type SpineRequestGroup = SpineRequest & { requestIds: string[]; recommendationCount: number };
-type SpineUpload = { image: string; name: string; mode: SharedSpineRenderMode };
+type SpineUpload = { image: string; name: string; mode: SharedSpineRenderMode; type: SpineType };
 type CatalogBook = { id:string; title:string; author:string; isbn:string|null; asin:string|null };
 type SpineType = "clothbound" | "dust-jacket" | "special-edition";
+const SPINE_TYPES: Array<{ value: SpineType; label: string }> = [{ value: "clothbound", label: "Clothbound" }, { value: "dust-jacket", label: "Full-color dust jacket" }, { value: "special-edition", label: "Special edition" }];
+
+function readSpineFiles(files: FileList | File[]) {
+  const valid = [...files].filter((file) => /^image\/(?:png|jpe?g|webp)$/i.test(file.type) && file.size <= 12 * 1024 * 1024).slice(0, 12);
+  return Promise.all(valid.map((file, index) => new Promise<SpineUpload>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === "string" ? resolve({ image: reader.result, name: file.name, mode: "integrated", type: SPINE_TYPES[index % SPINE_TYPES.length].value }) : reject(new Error("Could not read image"));
+    reader.onerror = () => reject(new Error(`Could not read ${file.name}`));
+    reader.readAsDataURL(file);
+  })));
+}
 
 const STATUS_LABELS: Record<SpineRequestStatus, string> = {
   pending: "Requested",
@@ -57,8 +68,7 @@ function GlobalSpineUpload({ initialBook, onClose }: { initialBook?: CatalogBook
   const [book, setBook] = useState<CatalogBook | undefined>(initialBook);
   const [query, setQuery] = useState(initialBook?.title || "");
   const [results, setResults] = useState<CatalogBook[]>([]);
-  const [spineType, setSpineType] = useState<SpineType>("clothbound");
-  const [upload, setUpload] = useState<SpineUpload>();
+  const [uploads, setUploads] = useState<SpineUpload[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -77,33 +87,37 @@ function GlobalSpineUpload({ initialBook, onClose }: { initialBook?: CatalogBook
     return () => clearTimeout(timer.current);
   }, [book, query]);
 
-  function chooseFile(file?: File) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => typeof reader.result === "string" && setUpload({ image: reader.result, name: file.name, mode: "integrated" });
-    reader.readAsDataURL(file);
+  async function chooseFiles(files?: FileList | null) {
+    if (!files?.length) return;
+    const next = await readSpineFiles(files);
+    setUploads(next);
+    setMessage(next.length === files.length ? "" : "Some files were skipped. Use PNG, JPEG, or WebP images under 12 MB.");
   }
 
   async function publish() {
-    if (!book || !upload) return;
+    if (!book || !uploads.length) return;
     setBusy(true); setMessage("");
     try {
-      const result = await publishSharedSpine({ title: book.title, author: book.author, isbn: book.isbn || undefined, asin: book.asin || undefined }, upload.image, "", `curator-${spineType}`, spineType);
-      if (!result.shared) throw new Error("This account cannot publish shared spines.");
-      setMessage("Published to the shared spine catalog.");
+      for (let index = 0; index < uploads.length; index += 1) {
+        setMessage(`Publishing ${index + 1} of ${uploads.length}…`);
+        const upload = uploads[index];
+        const result = await publishSharedSpine({ title: book.title, author: book.author, isbn: book.isbn || undefined, asin: book.asin || undefined }, upload.image, "", `curator-${upload.type}`, upload.type);
+        if (!result.shared) throw new Error("This account cannot publish shared spines.");
+      }
+      setMessage(`Published ${uploads.length} spine${uploads.length === 1 ? "" : "s"} to the shared catalog.`);
       window.setTimeout(onClose, 700);
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not publish that spine."); }
     finally { setBusy(false); }
   }
 
-  return <div className="curator-upload-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className="curator-upload-dialog" role="dialog" aria-modal="true" aria-labelledby="curator-upload-title"><header><div><span className="eyebrow">CURATOR UPLOAD</span><h2 id="curator-upload-title">Upload spine</h2><p>Publish artwork to any Shelf of Fame book.</p></div><button onClick={onClose} aria-label="Close">×</button></header><div className="curator-upload-form"><label><span>1 · Choose a book</span><input value={query} onChange={(event) => { setQuery(event.target.value); setBook(undefined); }} placeholder="Search by title or author" /></label>{book ? <div className="curator-selected-book"><div><strong>{book.title}</strong><small>{book.author || "Unknown author"}</small></div><button onClick={() => { setBook(undefined); setQuery(""); }}>Change</button></div> : null}{!book && results.length ? <div className="curator-book-results">{results.map((result) => <button key={result.id} onClick={() => { setBook(result); setQuery(result.title); }}><strong>{result.title}</strong><small>{result.author || "Unknown author"}</small></button>)}</div> : null}<label><span>2 · Spine type</span><select value={spineType} onChange={(event) => setSpineType(event.target.value as SpineType)}><option value="clothbound">Clothbound</option><option value="dust-jacket">Full-color dust jacket</option><option value="special-edition">Special edition</option></select></label><label className="curator-upload-file"><span>{upload ? upload.name : "3 · Choose spine image"}</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => chooseFile(event.target.files?.[0])} /></label></div>{message ? <p className="curator-upload-message" role="status">{message}</p> : null}<footer><button onClick={onClose}>Cancel</button><button className="primary" disabled={!book || !upload || busy} onClick={() => void publish()}>{busy ? "Publishing…" : "Publish spine"}</button></footer></section></div>;
+  return <div className="curator-upload-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className="curator-upload-dialog" role="dialog" aria-modal="true" aria-labelledby="curator-upload-title"><header><div><span className="eyebrow">CURATOR UPLOAD</span><h2 id="curator-upload-title">Upload spines</h2><p>Publish one image or a complete spine set to any Shelf of Fame book.</p></div><button onClick={onClose} aria-label="Close">×</button></header><div className="curator-upload-form"><label><span>1 · Choose a book</span><input value={query} onChange={(event) => { setQuery(event.target.value); setBook(undefined); }} placeholder="Search by title or author" /></label>{book ? <div className="curator-selected-book"><div><strong>{book.title}</strong><small>{book.author || "Unknown author"}</small></div><button onClick={() => { setBook(undefined); setQuery(""); }}>Change</button></div> : null}{!book && results.length ? <div className="curator-book-results">{results.map((result) => <button key={result.id} onClick={() => { setBook(result); setQuery(result.title); }}><strong>{result.title}</strong><small>{result.author || "Unknown author"}</small></button>)}</div> : null}<label className="curator-upload-file"><span>{uploads.length ? `Replace ${uploads.length} selected image${uploads.length === 1 ? "" : "s"}` : "2 · Choose one or more spine images"}</span><input type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={(event) => void chooseFiles(event.target.files)} /></label>{uploads.length ? <div className="curator-upload-batch">{uploads.map((upload, index) => <div className="curator-upload-item" key={`${upload.name}-${index}`}><img src={upload.image} alt="" /><div><strong>{upload.name}</strong><select value={upload.type} onChange={(event) => setUploads((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, type: event.target.value as SpineType } : item))}>{SPINE_TYPES.map((type) => <option value={type.value} key={type.value}>{type.label}</option>)}</select></div><button aria-label={`Remove ${upload.name}`} onClick={() => setUploads((current) => current.filter((_, itemIndex) => itemIndex !== index))}>×</button></div>)}</div> : null}</div>{message ? <p className="curator-upload-message" role="status">{message}</p> : null}<footer><button onClick={onClose}>Cancel</button><button className="primary" disabled={!book || !uploads.length || busy} onClick={() => void publish()}>{busy ? "Publishing…" : `Publish ${uploads.length || ""} spine${uploads.length === 1 ? "" : "s"}`}</button></footer></section></div>;
 }
 
 export default function SpineRequestsPage() {
   const [requests, setRequests] = useState<SpineRequest[]>([]);
   const [message, setMessage] = useState("Loading spine requests…");
   const [busyId, setBusyId] = useState<string>();
-  const [uploads, setUploads] = useState<Record<string, SpineUpload>>({});
+  const [uploads, setUploads] = useState<Record<string, SpineUpload[]>>({});
   const [finishedOpen, setFinishedOpen] = useState(false);
   const [uploadBook, setUploadBook] = useState<CatalogBook | null | undefined>(undefined);
 
@@ -191,47 +205,37 @@ export default function SpineRequestsPage() {
     return false;
   }
 
-  function selectSpineImage(requestId: string, file?: File) {
-    if (!file) return;
-    if (!/^image\/(?:png|jpe?g|webp)$/i.test(file.type)) {
-      setMessage("Choose a PNG, JPEG, or WebP spine image.");
-      return;
-    }
-    if (file.size > 12 * 1024 * 1024) {
-      setMessage("That spine image is larger than 12 MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result !== "string") return;
-      setUploads((current) => ({
-        ...current,
-        [requestId]: { image: reader.result as string, name: file.name, mode: current[requestId]?.mode || "integrated" },
-      }));
-      setMessage("");
-    };
-    reader.onerror = () => setMessage("Could not read that spine image.");
-    reader.readAsDataURL(file);
+  async function selectSpineImages(requestId: string, files?: FileList | null) {
+    if (!files?.length) return;
+    const next = await readSpineFiles(files);
+    setUploads((current) => ({ ...current, [requestId]: next }));
+    setMessage(next.length === files.length ? "" : "Some files were skipped. Use PNG, JPEG, or WebP images under 12 MB.");
   }
 
   async function submitSpine(request: SpineRequestGroup) {
-    const upload = uploads[request.id];
-    if (!upload) {
-      setMessage(`Choose the finished spine image for ${request.title} first.`);
+    const selected = uploads[request.id] || [];
+    if (!selected.length) {
+      setMessage(`Choose the finished spine images for ${request.title} first.`);
       return;
     }
     setBusyId(request.id);
     setMessage(`Publishing the spine for ${request.title}…`);
     try {
-      const published = await publishSharedSpine(
-        { title: request.title, author: request.author, isbn: request.isbn || undefined, asin: request.asin || undefined },
-        upload.image,
-        request.cover_url || "",
-        upload.mode === "integrated" ? "AI-integrated" : "AI-overlay",
-        "curator-request",
-      );
-      if (!published.shared) throw new Error("This account cannot publish shared spines.");
-      const completed = await setStatus(request.requestIds, "completed", published.spineId);
+      let fulfilledSpineId: string | undefined;
+      for (let index = 0; index < selected.length; index += 1) {
+        setMessage(`Publishing ${index + 1} of ${selected.length} for ${request.title}…`);
+        const upload = selected[index];
+        const published = await publishSharedSpine(
+          { title: request.title, author: request.author, isbn: request.isbn || undefined, asin: request.asin || undefined },
+          upload.image,
+          request.cover_url || "",
+          upload.mode === "integrated" ? "AI-integrated" : "AI-overlay",
+          upload.type,
+        );
+        if (!published.shared) throw new Error("This account cannot publish shared spines.");
+        fulfilledSpineId ||= published.spineId;
+      }
+      const completed = await setStatus(request.requestIds, "completed", fulfilledSpineId);
       if (!completed) throw new Error("The spine was published, but the request could not be marked complete. Try completing it again.");
       setUploads((current) => {
         const next = { ...current };
@@ -239,7 +243,7 @@ export default function SpineRequestsPage() {
         return next;
       });
       setMessage(completed
-        ? `✓ Added to ${request.title}’s Spine Selector.`
+        ? `✓ Added ${selected.length} spine${selected.length === 1 ? "" : "s"} to ${request.title}’s Spine Selector.`
         : "Spine published, but the request status could not be updated.");
     } catch (error) {
       setBusyId(undefined);
@@ -259,13 +263,13 @@ export default function SpineRequestsPage() {
       <div className="spine-request-section-title"><span className="eyebrow">WORK QUEUE</span><h2>Active requests <b>{activeRequests.length}</b></h2></div>
       <div className="spine-request-list">
         {activeRequests.length ? activeRequests.map((request) => {
-          const upload = uploads[request.id];
+          const selected = uploads[request.id] || [];
           const publishedImage = publishedSpineUrl(request);
           return (
           <article key={request.id} className="spine-request-card">
             <div className="spine-request-images">
               {request.cover_url ? <img src={request.cover_url} alt="" /> : <div className="spine-request-cover-placeholder">No cover</div>}
-              {upload || publishedImage ? <img className="spine-request-upload-preview" src={upload?.image || publishedImage} alt={`Finished spine preview for ${request.title}`} /> : null}
+              {selected[0] || publishedImage ? <img className="spine-request-upload-preview" src={selected[0]?.image || publishedImage} alt={`Finished spine preview for ${request.title}`} /> : null}
             </div>
             <div>
               <span className={`spine-request-status status-${request.status}`}>{STATUS_LABELS[request.status]}</span>
@@ -284,31 +288,15 @@ export default function SpineRequestsPage() {
               {request.status !== "completed" && request.status !== "declined" ? (
                 <section className="spine-request-submit" aria-label={`Submit spine for ${request.title}`}>
                   <label className="spine-request-file">
-                    <span>{upload ? "Replace spine image" : "Choose AI spine image"}</span>
-                    <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => selectSpineImage(request.id, event.target.files?.[0])} />
+                    <span>{selected.length ? `Replace ${selected.length} selected images` : "Choose one or more spine images"}</span>
+                    <input type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={(event) => void selectSpineImages(request.id, event.target.files)} />
                   </label>
-                  {upload ? (
-                    <>
-                      <small className="spine-request-filename">{upload.name}</small>
-                      <label className="spine-request-mode">Typography
-                        <select
-                          value={upload.mode}
-                          onChange={(event) => setUploads((current) => ({
-                            ...current,
-                            [request.id]: { ...upload, mode: event.target.value as SharedSpineRenderMode },
-                          }))}
-                        >
-                          <option value="integrated">Included in the image</option>
-                          <option value="overlay">Add shelf title over it</option>
-                        </select>
-                      </label>
-                    </>
-                  ) : null}
+                  {selected.length ? <div className="spine-request-upload-batch">{selected.map((upload, index) => <div className="spine-request-upload-item" key={`${upload.name}-${index}`}><img src={upload.image} alt="" /><div><small className="spine-request-filename">{upload.name}</small><select value={upload.type} onChange={(event) => setUploads((current) => ({ ...current, [request.id]: selected.map((item, itemIndex) => itemIndex === index ? { ...item, type: event.target.value as SpineType } : item) }))}>{SPINE_TYPES.map((type) => <option value={type.value} key={type.value}>{type.label}</option>)}</select><select value={upload.mode} onChange={(event) => setUploads((current) => ({ ...current, [request.id]: selected.map((item, itemIndex) => itemIndex === index ? { ...item, mode: event.target.value as SharedSpineRenderMode } : item) }))}><option value="integrated">Typography included</option><option value="overlay">Add shelf title</option></select></div><button aria-label={`Remove ${upload.name}`} onClick={() => setUploads((current) => ({ ...current, [request.id]: selected.filter((_, itemIndex) => itemIndex !== index) }))}>×</button></div>)}</div> : null}
                 </section>
               ) : null}
               <div className="spine-request-actions">
                 {request.status !== "completed" ? <button disabled={busyId === request.id} onClick={() => setStatus(request.requestIds, "in_progress")}>Start</button> : null}
-                {request.status !== "completed" && request.status !== "declined" ? <button disabled={busyId === request.id || !upload} onClick={() => void submitSpine(request)}>{busyId === request.id ? "Publishing…" : "Publish & complete"}</button> : null}
+                {request.status !== "completed" && request.status !== "declined" ? <button disabled={busyId === request.id || !selected.length} onClick={() => void submitSpine(request)}>{busyId === request.id ? "Publishing…" : `Publish ${selected.length || ""} & complete`}</button> : null}
                 {request.status !== "completed" ? <button disabled={busyId === request.id} onClick={() => setStatus(request.requestIds, "declined")}>Decline</button> : null}
                 {request.status === "completed" && publishedImage ? <small>Published to the shared spine catalog.</small> : null}
               </div>
