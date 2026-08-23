@@ -7,6 +7,7 @@ type ShelfTheme = "classic" | "dark-academia" | "botanical" | "fantasy" | "cozy"
 
 const THEME_KEY = "shelf-of-fame-theme-v1";
 const SPINE_LABELS_KEY = "shelf-of-fame-spine-labels-v1";
+const SIDEWAYS_TITLES_KEY = "shelf-of-fame-sideways-titles-v1";
 
 const THEMES: { id: ShelfTheme; label: string; subtitle: string; icon: string }[] = [
   { id: "classic", label: "Classic", subtitle: "Clean warm wood", icon: "▤" },
@@ -42,6 +43,12 @@ function applyTheme(theme: ShelfTheme) {
 function applySpineLabels(enabled: boolean) {
   document.documentElement.dataset.spineLabels = enabled ? "on" : "off";
   window.localStorage.setItem(SPINE_LABELS_KEY, enabled ? "on" : "off");
+}
+
+function applySidewaysTitles(enabled: boolean) {
+  document.documentElement.dataset.sidewaysTitles = enabled ? "on" : "off";
+  window.localStorage.setItem(SIDEWAYS_TITLES_KEY, enabled ? "on" : "off");
+  window.dispatchEvent(new CustomEvent<boolean>("shelf-sideways-titles-changed", { detail: enabled }));
 }
 
 function syncDecor(theme: ShelfTheme, force = false) {
@@ -90,6 +97,7 @@ function syncDecor(theme: ShelfTheme, force = false) {
 export default function ThemeEnricher() {
   const [theme, setTheme] = useState<ShelfTheme>("classic");
   const [spineLabels, setSpineLabels] = useState(true);
+  const [sidewaysTitles, setSidewaysTitles] = useState(true);
   const [toolbar, setToolbar] = useState<Element | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -103,6 +111,15 @@ export default function ThemeEnricher() {
     const labelsEnabled = savedLabels !== "off";
     setSpineLabels(labelsEnabled);
     applySpineLabels(labelsEnabled);
+
+    const sidewaysEnabled = window.localStorage.getItem(SIDEWAYS_TITLES_KEY) !== "off";
+    setSidewaysTitles(sidewaysEnabled);
+    applySidewaysTitles(sidewaysEnabled);
+
+    const onSidewaysTitlesChanged = (event: Event) => {
+      setSidewaysTitles((event as CustomEvent<boolean>).detail !== false);
+    };
+    window.addEventListener("shelf-sideways-titles-changed", onSidewaysTitlesChanged);
 
     let scheduled = false;
     const sync = () => {
@@ -119,7 +136,10 @@ export default function ThemeEnricher() {
     sync();
     const observer = new MutationObserver(sync);
     observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("shelf-sideways-titles-changed", onSidewaysTitlesChanged);
+    };
   }, []);
 
   useEffect(() => {
@@ -148,6 +168,12 @@ export default function ThemeEnricher() {
     applySpineLabels(next);
   }
 
+  function toggleSidewaysTitles() {
+    const next = !sidewaysTitles;
+    setSidewaysTitles(next);
+    applySidewaysTitles(next);
+  }
+
   if (!toolbar) return null;
 
   const controls = createPortal(
@@ -169,11 +195,11 @@ export default function ThemeEnricher() {
             className="theme-picker"
             role="dialog"
             aria-modal="true"
-            aria-label="Choose bookshelf theme"
+            aria-label="Personalize your shelf"
             onClick={(event) => event.stopPropagation()}
           >
             <button type="button" className="theme-picker-close" onClick={() => setPickerOpen(false)} aria-label="Close theme picker">×</button>
-            <h2>Choose a shelf theme</h2>
+            <h2>Personalize your shelf</h2>
             <button
               type="button"
               className="theme-picker-spine-setting"
@@ -185,6 +211,18 @@ export default function ThemeEnricher() {
                 <small>Show book title and author labels on the shelf</small>
               </span>
               <b>{spineLabels ? "On" : "Off"}</b>
+            </button>
+            <button
+              type="button"
+              className="theme-picker-spine-setting"
+              onClick={toggleSidewaysTitles}
+              aria-pressed={sidewaysTitles}
+            >
+              <span>
+                <strong>Sideways spine titles</strong>
+                <small>Use vertical titles when they fit, or keep every title upright</small>
+              </span>
+              <b>{sidewaysTitles ? "On" : "Off"}</b>
             </button>
             <div className="theme-picker-grid">
               {THEMES.map((option) => (

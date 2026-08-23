@@ -12,6 +12,7 @@ import { CloudSettings, loadMyShelf, readShelfSession, syncMyShelf } from "../cl
 
 const THEME_KEY = "shelf-of-fame-theme-v1";
 const SPINE_LABELS_KEY = "shelf-of-fame-spine-labels-v1";
+const SIDEWAYS_TITLES_KEY = "shelf-of-fame-sideways-titles-v1";
 const OWNED_KEY = "shelf-of-fame-decor-owned-v1";
 const ACTIVE_KEY = "shelf-of-fame-decor-active-v1";
 const POINTS_KEY = "shelf-of-fame-community-points-v1";
@@ -50,6 +51,7 @@ function currentSettings(fallbackPublic = false): CloudSettings {
   return {
     theme: window.localStorage.getItem(THEME_KEY) || "classic",
     spine_labels: window.localStorage.getItem(SPINE_LABELS_KEY) !== "off",
+    sideways_titles: window.localStorage.getItem(SIDEWAYS_TITLES_KEY) !== "off",
     decor_owned: decorOwned,
     decor_active: decorActive,
     community_stars: points,
@@ -64,12 +66,16 @@ function applyCloudFavorites(cloudBooks: Array<Record<string, unknown>>) {
 function applyCloudSettings(settings: CloudSettings) {
   if (settings.theme) window.localStorage.setItem(THEME_KEY, settings.theme);
   window.localStorage.setItem(SPINE_LABELS_KEY, settings.spine_labels === false ? "off" : "on");
+  const sidewaysTitles = settings.sideways_titles !== false;
+  window.localStorage.setItem(SIDEWAYS_TITLES_KEY, sidewaysTitles ? "on" : "off");
   window.localStorage.setItem(OWNED_KEY, JSON.stringify(Array.isArray(settings.decor_owned) ? settings.decor_owned : []));
   window.localStorage.setItem(ACTIVE_KEY, JSON.stringify(settings.decor_active && typeof settings.decor_active === "object" ? settings.decor_active : {}));
   window.localStorage.setItem(POINTS_KEY, String(Math.max(0, Number(settings.community_stars || 0))));
   window.localStorage.setItem(PUBLIC_KEY, settings.shelf_public ? "on" : "off");
   if (settings.theme) document.documentElement.dataset.shelfTheme = settings.theme;
   document.documentElement.dataset.spineLabels = settings.spine_labels === false ? "off" : "on";
+  document.documentElement.dataset.sidewaysTitles = sidewaysTitles ? "on" : "off";
+  window.dispatchEvent(new CustomEvent<boolean>("shelf-sideways-titles-changed", { detail: sidewaysTitles }));
 }
 
 function fingerprint(books: Book[], publicFallback = false) {

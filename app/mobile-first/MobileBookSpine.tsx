@@ -358,6 +358,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const [generatedSpine, setGeneratedSpine] = useState<string>();
   const [generatedMode, setGeneratedMode] = useState<SpineRenderMode>("overlay");
   const [spineCrop, setSpineCrop] = useState<string>();
+  const [sidewaysTitlesEnabled, setSidewaysTitlesEnabled] = useState(true);
   const displayedCover = preferred || cover;
   const coverUrl = displayedCover?.url;
   const [coverSpineColor, setCoverSpineColor] = useState<string | undefined>(() => (
@@ -376,6 +377,16 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
     : displayAuthor.length >= 8
       ? "condensed"
       : "normal";
+
+  useEffect(() => {
+    const applyPreference = (event?: Event) => {
+      const eventPreference = event ? (event as CustomEvent<boolean>).detail : undefined;
+      setSidewaysTitlesEnabled(eventPreference ?? window.localStorage.getItem("shelf-of-fame-sideways-titles-v1") !== "off");
+    };
+    applyPreference();
+    window.addEventListener("shelf-sideways-titles-changed", applyPreference);
+    return () => window.removeEventListener("shelf-sideways-titles-changed", applyPreference);
+  }, []);
 
   useEffect(() => {
     if (preferred) {
@@ -502,7 +513,8 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const showDecoration = fittedTitle.detailLevel !== "title-only";
   const showStructuralDetail = fittedTitle.detailLevel !== "title-only";
   const artworkImage = spineArtworkImage(design.artwork);
-  const sidewaysEligible = fittedTitle.detailLevel !== "title-only"
+  const sidewaysEligible = sidewaysTitlesEnabled
+    && fittedTitle.detailLevel !== "title-only"
     && fittedTitle.title.length >= 8
     && fittedTitle.title.length <= 22;
   const sidewaysLayout = sidewaysEligible

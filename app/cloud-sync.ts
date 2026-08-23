@@ -5,6 +5,7 @@ const SESSION_KEY = "shelf-of-fame-supabase-session";
 export type CloudSettings = {
   theme?: string;
   spine_labels?: boolean;
+  sideways_titles?: boolean;
   decor_owned?: unknown[];
   decor_active?: Record<string, string>;
   community_stars?: number;
