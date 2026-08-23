@@ -521,10 +521,11 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   } as CSSProperties;
 
   const showOverlayTypography = generatedMode !== "integrated" || generatedSpineFailed;
+  const customSpineArt = Boolean(generatedSpine && !generatedSpineFailed);
   const publishedArt = design.layout.id === "published-art";
   const showGhostedClothArt = Boolean(coverUrl) && !publishedArt && !generatedSpine;
-  const showDecoration = fittedTitle.detailLevel !== "title-only";
-  const showStructuralDetail = fittedTitle.detailLevel !== "title-only";
+  const showDecoration = fittedTitle.detailLevel !== "title-only" && !customSpineArt;
+  const showStructuralDetail = fittedTitle.detailLevel !== "title-only" && !customSpineArt;
   const artworkImage = spineArtworkImage(design.artwork);
   const automaticSideways = stableSpineNumber(`${book.id}|${book.title}|${book.author}|title-orientation`) % 2 === 0;
   const forceSideways = titleOrientation === "sideways";
@@ -564,8 +565,8 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
       data-material={tokens.material}
       data-detail-level={fittedTitle.detailLevel}
       data-title-lines={fittedTitle.lines.length}
-      data-top-rule={tokens.topRule}
-      data-bottom-rule={tokens.bottomRule}
+      data-top-rule={customSpineArt ? false : tokens.topRule}
+      data-bottom-rule={customSpineArt ? false : tokens.bottomRule}
       data-color-source={coverSpineColor ? "cover" : "fallback"}
       data-ornament-motif={design.motif || undefined}
       data-spine-artwork={design.artwork || undefined}
