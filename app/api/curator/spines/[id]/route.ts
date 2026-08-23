@@ -1,4 +1,4 @@
-import { isExplicitCuratorUpload, type DeletableSpine } from "../../../../../lib/curator-spine-delete";
+import { isDeletableCatalogSpine, type DeletableSpine } from "../../../../../lib/curator-spine-delete";
 
 const config = () => ({
   url: process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || "https://vrkuimrfdkejfhpxlwlf.supabase.co",
@@ -26,11 +26,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
   const spine = spines[0];
   if (!spine) return Response.json({ error: "That spine no longer exists." }, { status: 404 });
 
-  const contributorResponse = spine.contributed_by ? await fetch(`${url}/rest/v1/profiles?select=trusted_curator&id=eq.${encodeURIComponent(spine.contributed_by)}&limit=1`, { headers: serviceHeaders(key), cache: "no-store" }) : null;
-  const contributors = contributorResponse?.ok ? await contributorResponse.json() as Array<{ trusted_curator?: boolean }> : [];
-  if (!isExplicitCuratorUpload(spine, contributors[0]?.trusted_curator === true)) {
-    return Response.json({ error: "Default, generated, and fallback spine assets are protected." }, { status: 409 });
-  }
+  if (!isDeletableCatalogSpine(spine)) return Response.json({ error: "This spine has no deletable stored asset." }, { status: 409 });
 
   const recordResponse = await fetch(`${url}/rest/v1/spines?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", headers: { ...serviceHeaders(key), Prefer: "return=representation" } });
   const deleted = recordResponse.ok ? await recordResponse.json() as DeletableSpine[] : [];
@@ -40,4 +36,3 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
   if (!assetResponse.ok && assetResponse.status !== 404) return Response.json({ error: "The record was deleted, but its stored image could not be removed." }, { status: 502 });
   return Response.json({ deleted: true, id });
 }
-
