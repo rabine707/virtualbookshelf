@@ -43,6 +43,7 @@ export default function AccountPage() {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [favoriteGenres, setFavoriteGenres] = useState("");
 
   useEffect(() => {
     let stopped = false;
@@ -58,6 +59,7 @@ export default function AccountPage() {
         setDisplayName(next.profile?.display_name || next.user.user_metadata?.display_name || "");
         setBio(next.profile?.bio || "");
         setAvatarUrl(next.profile?.avatar_url || "");
+        setFavoriteGenres((next.profile?.favorite_genres || []).join(", "));
       }
       setLoading(false);
     }
@@ -234,6 +236,7 @@ export default function AccountPage() {
       if (formatError) throw new Error(formatError);
       if (bio.length > 240) throw new Error("Bio must be 240 characters or fewer.");
       if (displayName.trim().length > 50) throw new Error("Display name must be 50 characters or fewer.");
+      const genres = [...new Set(favoriteGenres.split(",").map((genre) => genre.trim()).filter(Boolean))].slice(0, 8);
       if (clean !== cleanUsername(originalUsername) && !(await usernameAvailable(clean))) {
         throw new Error("That username is unavailable or not allowed.");
       }
@@ -253,6 +256,7 @@ export default function AccountPage() {
             display_name: displayName.trim() || clean,
             bio: bio.trim() || null,
             avatar_url: avatarUrl.trim() || null,
+            favorite_genres: genres,
             updated_at: new Date().toISOString(),
           }),
         },
@@ -269,6 +273,7 @@ export default function AccountPage() {
         display_name: displayName.trim() || clean,
         bio: bio.trim() || null,
         avatar_url: avatarUrl.trim() || null,
+        favorite_genres: genres,
       };
 
       const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
@@ -454,6 +459,10 @@ export default function AccountPage() {
             <label className="sof-account-full">Avatar image URL <span>(optional)</span>
               <input value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} type="url" inputMode="url" placeholder="https://…" />
               <small>For now you can paste an image URL. Direct photo uploads can be added next.</small>
+            </label>
+            <label className="sof-account-full">Favorite genres <span>(optional)</span>
+              <input value={favoriteGenres} onChange={(e) => setFavoriteGenres(e.target.value)} placeholder="Fantasy, romance, mystery" />
+              <small>Separate up to 8 genres with commas. They’ll appear on your public profile.</small>
             </label>
           </div>
         </section>
