@@ -15,6 +15,7 @@ export type ShelfProfile = {
   display_name?: string | null;
   avatar_url?: string | null;
   bio?: string | null;
+  trusted_curator?: boolean;
 };
 
 export type ShelfSession = {
@@ -54,7 +55,7 @@ export async function getShelfUser(accessToken: string, fetcher: Fetcher = fetch
 
 export async function getShelfProfile(userId: string, accessToken: string, fetcher: Fetcher = fetch): Promise<ShelfProfile | undefined> {
   const response = await fetcher(
-    `${SUPABASE_URL}/rest/v1/profiles?select=username,display_name,avatar_url,bio&id=eq.${encodeURIComponent(userId)}&limit=1`,
+    `${SUPABASE_URL}/rest/v1/profiles?select=username,display_name,avatar_url,bio,trusted_curator&id=eq.${encodeURIComponent(userId)}&limit=1`,
     {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${accessToken}` },
       cache: "no-store",

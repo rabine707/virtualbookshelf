@@ -423,6 +423,13 @@ export default function AccountPage() {
           <h2>{displayName || username || "Reader"}</h2>
           <p>{username ? `@${username}` : "Choose a username"}</p>
         </div>
+        {session.profile?.trusted_curator ? (
+          <Link className="sof-curator-link" href="/spine-requests">
+            <span aria-hidden="true">✦</span>
+            <span><small>Curator tools</small><strong>Open curator queue</strong></span>
+            <b aria-hidden="true">→</b>
+          </Link>
+        ) : null}
       </section>
 
       <form className="sof-account-form" onSubmit={saveProfile}>
