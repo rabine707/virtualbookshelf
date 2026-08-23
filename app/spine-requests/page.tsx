@@ -30,6 +30,7 @@ type SpineRequest = {
 type SpineRequestGroup = SpineRequest & { requestIds: string[]; recommendationCount: number };
 type SpineUpload = { image: string; name: string; mode: SharedSpineRenderMode; type: SpineType };
 type CatalogBook = { id:string; title:string; author:string; isbn:string|null; asin:string|null };
+type CatalogSpine = { id:string; storage_path:string; provider?:string|null; model?:string|null; created_at:string };
 type SpineType = "clothbound" | "dust-jacket" | "special-edition";
 const SPINE_TYPES: Array<{ value: SpineType; label: string }> = [{ value: "clothbound", label: "Clothbound" }, { value: "dust-jacket", label: "Full-color dust jacket" }, { value: "special-edition", label: "Special edition" }];
 
@@ -113,6 +114,43 @@ function GlobalSpineUpload({ initialBook, onClose }: { initialBook?: CatalogBook
   return <div className="curator-upload-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className="curator-upload-dialog" role="dialog" aria-modal="true" aria-labelledby="curator-upload-title"><header><div><span className="eyebrow">CURATOR UPLOAD</span><h2 id="curator-upload-title">Upload spines</h2><p>Publish one image or a complete spine set to any Shelf of Fame book.</p></div><button onClick={onClose} aria-label="Close">×</button></header><div className="curator-upload-form"><label><span>1 · Choose a book</span><input value={query} onChange={(event) => { setQuery(event.target.value); setBook(undefined); }} placeholder="Search by title or author" /></label>{book ? <div className="curator-selected-book"><div><strong>{book.title}</strong><small>{book.author || "Unknown author"}</small></div><button onClick={() => { setBook(undefined); setQuery(""); }}>Change</button></div> : null}{!book && results.length ? <div className="curator-book-results">{results.map((result) => <button key={result.id} onClick={() => { setBook(result); setQuery(result.title); }}><strong>{result.title}</strong><small>{result.author || "Unknown author"}</small></button>)}</div> : null}<label className="curator-upload-file"><span>{uploads.length ? `Replace ${uploads.length} selected image${uploads.length === 1 ? "" : "s"}` : "2 · Choose one or more spine images"}</span><input type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={(event) => void chooseFiles(event.target.files)} /></label>{uploads.length ? <div className="curator-upload-batch">{uploads.map((upload, index) => <div className="curator-upload-item" key={`${upload.name}-${index}`}><img src={upload.image} alt="" /><div><strong>{upload.name}</strong><select value={upload.type} onChange={(event) => setUploads((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, type: event.target.value as SpineType } : item))}>{SPINE_TYPES.map((type) => <option value={type.value} key={type.value}>{type.label}</option>)}</select></div><button aria-label={`Remove ${upload.name}`} onClick={() => setUploads((current) => current.filter((_, itemIndex) => itemIndex !== index))}>×</button></div>)}</div> : null}</div>{message ? <p className="curator-upload-message" role="status">{message}</p> : null}<footer><button onClick={onClose}>Cancel</button><button className="primary" disabled={!book || !uploads.length || busy} onClick={() => void publish()}>{busy ? "Publishing…" : `Publish ${uploads.length || ""} spine${uploads.length === 1 ? "" : "s"}`}</button></footer></section></div>;
 }
 
+function SpineGalleryDialog({ book, onClose, onAdd, onDeleted }: { book: CatalogBook; onClose: () => void; onAdd: () => void; onDeleted: () => void }) {
+  const [rows, setRows] = useState<CatalogSpine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [confirmId, setConfirmId] = useState<string>();
+  const [busyId, setBusyId] = useState<string>();
+  const [message, setMessage] = useState("");
+
+  const loadSpines = useCallback(async () => {
+    const session = readStoredShelfSession();
+    if (!session?.access_token) return;
+    setLoading(true);
+    const identity = book.isbn ? `isbn=eq.${encodeURIComponent(book.isbn)}` : book.asin ? `asin=eq.${encodeURIComponent(book.asin)}` : `title=eq.${encodeURIComponent(book.title)}&author=eq.${encodeURIComponent(book.author)}`;
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/books?select=spines(id,storage_path,provider,model,created_at)&${identity}&limit=1`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}` }, cache: "no-store" });
+    const books = response.ok ? await response.json() as Array<{ spines?: CatalogSpine[] }> : [];
+    setRows((books[0]?.spines || []).sort((a, b) => b.created_at.localeCompare(a.created_at)));
+    setLoading(false);
+  }, [book]);
+
+  useEffect(() => { void loadSpines(); }, [loadSpines]);
+
+  async function deleteSpine(spine: CatalogSpine) {
+    const session = readStoredShelfSession();
+    if (!session?.access_token) return;
+    setBusyId(spine.id); setMessage("Deleting spine…");
+    const response = await fetch(`/api/curator/spines/${encodeURIComponent(spine.id)}`, { method: "DELETE", headers: { Authorization: `Bearer ${session.access_token}` } });
+    const result = await response.json().catch(() => null) as { error?: string } | null;
+    setBusyId(undefined); setConfirmId(undefined);
+    if (!response.ok) { setMessage(result?.error || "Could not delete that spine."); return; }
+    setRows((current) => current.filter((row) => row.id !== spine.id));
+    setMessage("Spine deleted from the system.");
+    window.dispatchEvent(new CustomEvent("shelf-spine-gallery-changed"));
+    onDeleted();
+  }
+
+  return <div className="curator-upload-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className="curator-upload-dialog curator-gallery-dialog" role="dialog" aria-modal="true" aria-labelledby="curator-gallery-title"><header><div><span className="eyebrow">PUBLISHED SPINES</span><h2 id="curator-gallery-title">{book.title}</h2><p>{book.author || "Unknown author"}</p></div><button onClick={onClose} aria-label="Close">×</button></header>{message ? <p className="curator-upload-message" role="status">{message}</p> : null}<div className="curator-spine-gallery">{loading ? <p>Loading spines…</p> : rows.length ? rows.map((spine) => { const deletable = spine.model === "clothbound" || spine.model === "dust-jacket" || spine.model === "special-edition"; return <figure key={spine.id}><img src={`${SUPABASE_URL}/storage/v1/object/public/spines/${spine.storage_path.split("/").map(encodeURIComponent).join("/")}`} alt={`${book.title} spine`} /><figcaption><span>{(spine.provider || "Published").replace("curator-", "").replaceAll("-", " ")}</span>{deletable ? confirmId === spine.id ? <span className="curator-delete-confirm"><strong>Delete permanently?</strong><button disabled={busyId === spine.id} onClick={() => void deleteSpine(spine)}>{busyId === spine.id ? "Deleting…" : "Yes, delete"}</button><button disabled={busyId === spine.id} onClick={() => setConfirmId(undefined)}>Cancel</button></span> : <button className="curator-delete-spine" onClick={() => setConfirmId(spine.id)}>Delete spine</button> : <small>Protected system spine</small>}</figcaption></figure>; }) : <p>No published spines found for this book yet.</p>}</div><footer><button onClick={onClose}>Close</button><button className="primary" onClick={onAdd}>Add another spine</button></footer></section></div>;
+}
+
 export default function SpineRequestsPage() {
   const [requests, setRequests] = useState<SpineRequest[]>([]);
   const [message, setMessage] = useState("Loading spine requests…");
@@ -120,6 +158,7 @@ export default function SpineRequestsPage() {
   const [uploads, setUploads] = useState<Record<string, SpineUpload[]>>({});
   const [finishedOpen, setFinishedOpen] = useState(false);
   const [uploadBook, setUploadBook] = useState<CatalogBook | null | undefined>(undefined);
+  const [galleryBook, setGalleryBook] = useState<CatalogBook | null>(null);
 
   const load = useCallback(async () => {
     const session = readStoredShelfSession();
@@ -310,10 +349,11 @@ export default function SpineRequestsPage() {
         {finishedOpen ? <div className="spine-finished-list">{finishedRequests.map((request) => {
           const image = publishedSpineUrl(request);
           const book = { id: request.book_key, title: request.title, author: request.author, isbn: request.isbn, asin: request.asin };
-          return <article className="spine-finished-row" key={request.id}><div className="spine-finished-images">{request.cover_url ? <img src={request.cover_url} alt="" /> : <div className="spine-request-cover-placeholder">No cover</div>}{image ? <img src={image} alt="" /> : null}</div><div className="spine-finished-copy"><span className={`spine-request-status status-${request.status}`}>{STATUS_LABELS[request.status]}</span><h3>{request.title}</h3><p>{request.author || "Unknown author"}</p><small>{request.status === "completed" ? "Completed" : "Closed"} {new Date(request.updated_at || request.created_at).toLocaleDateString()}</small></div><div className="spine-finished-actions">{image ? <a href={image} target="_blank" rel="noreferrer">View spines</a> : null}<button onClick={() => setUploadBook(book)}>＋ Add another spine</button></div></article>;
+          return <article className="spine-finished-row" key={request.id}><div className="spine-finished-images">{request.cover_url ? <img src={request.cover_url} alt="" /> : <div className="spine-request-cover-placeholder">No cover</div>}{image ? <img src={image} alt="" /> : null}</div><div className="spine-finished-copy"><span className={`spine-request-status status-${request.status}`}>{STATUS_LABELS[request.status]}</span><h3>{request.title}</h3><p>{request.author || "Unknown author"}</p><small>{request.status === "completed" ? "Completed" : "Closed"} {new Date(request.updated_at || request.created_at).toLocaleDateString()}</small></div><div className="spine-finished-actions">{request.status === "completed" ? <button onClick={() => setGalleryBook(book)}>View spines</button> : null}<button onClick={() => setUploadBook(book)}>＋ Add another spine</button></div></article>;
         })}</div> : null}
       </section>
       {uploadBook !== undefined ? <GlobalSpineUpload initialBook={uploadBook || undefined} onClose={() => setUploadBook(undefined)} /> : null}
+      {galleryBook ? <SpineGalleryDialog book={galleryBook} onClose={() => setGalleryBook(null)} onAdd={() => { setUploadBook(galleryBook); setGalleryBook(null); }} onDeleted={() => void load()} /> : null}
     </main>
   );
 }
