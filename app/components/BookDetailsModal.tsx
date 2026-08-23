@@ -14,7 +14,6 @@ import {
 import { coverCropImageStyle, stripCoverCrop } from "../../lib/books/cover-crop";
 import { BookInfoEditor } from "./BookInfoEditor";
 import { CoverCropSheet } from "./CoverCropSheet";
-import { SpineTools } from "./SpineTools";
 import { SpineRequestButton } from "./SpineRequestButton";
 
 type BookDetailsModalProps = {
@@ -79,11 +78,11 @@ export function BookDetailsModal({
   const modalRef = useRef<HTMLElement>(null);
   const deeperSearchStartedFor = useRef<string | null>(null);
   const webFallbackStartedFor = useRef<string | null>(null);
-  const [showCoverBrowser, setShowCoverBrowser] = useState(false);
+  const [selector, setSelector] = useState<"cover" | "spine" | null>(null);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
 
   useEffect(() => {
-    setShowCoverBrowser(false);
+    setSelector(null);
     setCropTarget(null);
     deeperSearchStartedFor.current = null;
     webFallbackStartedFor.current = null;
@@ -138,10 +137,15 @@ export function BookDetailsModal({
   const currentShelf = selected.shelf || "to-read";
 
   const openCoverBrowser = () => {
-    setShowCoverBrowser(true);
+    setSelector("cover");
     requestAnimationFrame(() => {
       modalRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     });
+  };
+
+  const openSpineBrowser = () => {
+    setSelector("spine");
+    requestAnimationFrame(() => modalRef.current?.scrollTo({ top: 0, behavior: "smooth" }));
   };
 
   function confirmCrop(url: string) {
@@ -285,24 +289,41 @@ export function BookDetailsModal({
     </section>
   );
 
+  const spineBrowser = (
+    <section className="cover-picker spine-selector" aria-label="Choose a spine" style={{ marginTop: 0 }}>
+      <div className="cover-picker-heading" style={{ alignItems: "center" }}>
+        <div>
+          <strong>Choose a spine</strong>
+          <div style={{ fontSize: ".78em", opacity: .66, marginTop: 3 }}>Select the default cloth spine or custom artwork made for this book.</div>
+        </div>
+      </div>
+      <p className="cover-picker-note">Your selected spine appears on the shelf immediately. Custom curator spines will appear here automatically.</p>
+    </section>
+  );
+
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <article
         ref={modalRef}
         className="modal reader-modal book-hub-view book-hub-editing"
         data-book-hub="1"
+        data-book-title={selected.title}
+        data-book-author={selected.author}
+        data-book-isbn={selectedIsbn || ""}
+        data-book-asin={selected.asin || ""}
+        data-book-cover={cover?.url ? stripCoverCrop(cover.url) : ""}
         role="dialog"
         aria-modal="true"
         aria-label={selected.title}
         onClick={(event) => event.stopPropagation()}
       >
-        <button className="close" onClick={showCoverBrowser ? () => setShowCoverBrowser(false) : onClose} aria-label={showCoverBrowser ? "Back to book" : "Close"}>
-          {showCoverBrowser ? "‹" : "×"}
+        <button className="close" onClick={selector ? () => setSelector(null) : onClose} aria-label={selector ? "Back to book" : "Close"}>
+          {selector ? "‹" : "×"}
         </button>
 
-        {showCoverBrowser ? (
+        {selector ? (
           <div className="details" style={{ gridColumn: "1 / -1", width: "100%", paddingTop: 8 }}>
-            {coverBrowser}
+            {selector === "cover" ? coverBrowser : spineBrowser}
           </div>
         ) : (
           <>
@@ -325,25 +346,13 @@ export function BookDetailsModal({
                 ) : null}
               </div>
 
-              <div style={{ display: "grid", gap: 8, marginTop: 12 }} aria-label="Cover feedback">
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={!cover}
-                  onClick={() => cover && setCropTarget({ kind: "cover", option: cover })}
-                  title="Save this as the correct cover"
-                >✓ Use this cover</button>
+              <div className="book-detail-actions" style={{ display: "grid", gap: 8, marginTop: 12 }} aria-label="Book artwork actions">
                 <button type="button" className="primary" onClick={openCoverBrowser}>
-                  Find more covers
+                  Cover Selector
                 </button>
-
-                <SpineTools
-                  title={selected.title}
-                  author={selected.author}
-                  coverUrl={cover?.url ? stripCoverCrop(cover.url) : undefined}
-                  isbn={selectedIsbn}
-                  asin={selected.asin}
-                />
+                <button type="button" className="primary" onClick={openSpineBrowser} disabled={!cover}>
+                  Spine Selector
+                </button>
                 <SpineRequestButton
                   title={selected.title}
                   author={selected.author}

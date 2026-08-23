@@ -13,6 +13,7 @@ import {
 
 const HISTORY_KEY_PREFIX = "history:v1:";
 const CANDIDATES_KEY = "shelf-of-fame-spine-candidates-v1";
+const DEFAULT_CLOTH_IMAGE = "__default_cloth__";
 const SUPABASE_URL = "https://vrkuimrfdkejfhpxlwlf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mf0u925xGBkP4iNgxSCjuQ_H4Dp8r1S";
 
@@ -94,15 +95,16 @@ function modalDetail(modal: Element, label: string) {
 }
 
 function modalBook(modal: Element): BookIdentity | null {
-  const title = modal.querySelector<HTMLElement>(".details h2")?.textContent?.trim() || "";
-  const author = (modal.querySelector<HTMLElement>(".details .author")?.textContent || "")
+  const host = modal as HTMLElement;
+  const title = host.dataset.bookTitle || modal.querySelector<HTMLElement>(".details h2")?.textContent?.trim() || "";
+  const author = (host.dataset.bookAuthor || modal.querySelector<HTMLElement>(".details .author")?.textContent || "")
     .replace(/^by\s+/i, "")
     .trim();
   const cover = modal.querySelector<HTMLImageElement>(".cover-image");
-  const coverUrl = cover?.currentSrc || cover?.src || "";
+  const coverUrl = host.dataset.bookCover || cover?.currentSrc || cover?.src || "";
   if (!title || !coverUrl) return null;
-  const isbnRaw = modalDetail(modal, "ISBN");
-  const asinRaw = modalDetail(modal, "Audible ASIN");
+  const isbnRaw = host.dataset.bookIsbn || modalDetail(modal, "ISBN");
+  const asinRaw = host.dataset.bookAsin || modalDetail(modal, "Audible ASIN");
   return {
     title,
     author,
@@ -122,7 +124,7 @@ async function activeMode(coverUrl: string): Promise<SpineRenderMode> {
 }
 
 async function saveActiveSpine(book: BookIdentity, choice: SpineChoice) {
-  await saveGeneratedSpine(book.coverUrl, choice.image, choice.renderMode);
+  await saveGeneratedSpine(book.coverUrl, choice.image === DEFAULT_CLOTH_IMAGE ? "" : choice.image, choice.renderMode);
 }
 
 function historyKey(book: BookIdentity) {
@@ -295,12 +297,13 @@ async function galleryEntries(book: BookIdentity) {
   const current: SpineChoice[] = active
     ? [{ image: active, renderMode: mode, source: "Current spine", createdAt: Number.MAX_SAFE_INTEGER, shared: true }]
     : [];
-  const choices = uniqueChoices([...current, ...local, ...uploaded, ...shared]);
+  const defaultCloth: SpineChoice = { image: DEFAULT_CLOTH_IMAGE, renderMode: "overlay", source: "Default Cloth", createdAt: 0, shared: true };
+  const choices = uniqueChoices([defaultCloth, ...current, ...local, ...uploaded, ...shared]);
   return {
     active,
     choices: choices.sort((left, right) => {
-      if (left.image === active) return -1;
-      if (right.image === active) return 1;
+      if ((left.image === DEFAULT_CLOTH_IMAGE && !active) || left.image === active) return -1;
+      if ((right.image === DEFAULT_CLOTH_IMAGE && !active) || right.image === active) return 1;
       return right.createdAt - left.createdAt;
     }),
   };
@@ -352,17 +355,23 @@ async function renderGallery(modal: Element) {
 
   for (const choice of choices) {
     const button = document.createElement("button");
-    const isActive = choice.image === active;
+    const isDefault = choice.image === DEFAULT_CLOTH_IMAGE;
+    const isActive = isDefault ? !active : choice.image === active;
     button.type = "button";
     button.className = `saved-spine-option${isActive ? " active" : ""}`;
     button.title = isActive ? "Currently on your shelf" : `Use ${choice.source}`;
     button.setAttribute("aria-label", button.title);
 
-    const image = document.createElement("img");
-    image.src = choice.image;
-    image.alt = "";
-    image.loading = "lazy";
-    image.decoding = "async";
+    const image = isDefault ? document.createElement("div") : document.createElement("img");
+    if (image instanceof HTMLImageElement) {
+      image.src = choice.image;
+      image.alt = "";
+      image.loading = "lazy";
+      image.decoding = "async";
+    } else {
+      image.className = "default-cloth-preview";
+      image.setAttribute("aria-hidden", "true");
+    }
 
     const label = document.createElement("span");
     label.textContent = isActive ? "Active" : choice.source;
@@ -373,12 +382,12 @@ async function renderGallery(modal: Element) {
         button.disabled = true;
         try {
           await saveActiveSpine(book, choice);
-          await rememberHistory(book, { ...choice, createdAt: choice.createdAt || Date.now() });
+          if (!isDefault) await rememberHistory(book, { ...choice, createdAt: choice.createdAt || Date.now() });
           modal.querySelector<HTMLElement>(".spine-crop-editor")?.remove();
           window.dispatchEvent(new CustomEvent("shelf-spine-generated", {
             detail: {
               coverUrl: book.coverUrl,
-              image: choice.image,
+              image: isDefault ? "" : choice.image,
               position: choice.position,
               renderMode: choice.renderMode,
               shared: Boolean(choice.shared),

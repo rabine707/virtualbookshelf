@@ -243,6 +243,17 @@ button[data-force-default-cloth="true"][data-spine-layout="published-art"] [data
   box-shadow: 0 6px 14px rgba(0,0,0,.30), inset 1px 0 rgba(255,255,255,.08), inset -1px 0 rgba(0,0,0,.25);
 }
 
+.saved-spine-option .default-cloth-preview {
+  width: 44px;
+  height: 176px;
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.12), transparent 16%, transparent 82%, rgba(0,0,0,.2)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px),
+    #654a38;
+  box-shadow: 0 6px 14px rgba(0,0,0,.3), inset 1px 0 rgba(255,255,255,.1), inset -1px 0 rgba(0,0,0,.25);
+}
+
 .saved-spine-option span {
   width: 100%;
   overflow: hidden;

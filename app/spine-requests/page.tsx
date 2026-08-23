@@ -184,7 +184,9 @@ export default function SpineRequestsPage() {
         delete next[request.id];
         return next;
       });
-      setMessage(`Published the spine for ${request.title} and completed ${request.recommendationCount} request${request.recommendationCount === 1 ? "" : "s"}.`);
+      setMessage(completed
+        ? `✓ Added to ${request.title}’s Spine Selector.`
+        : "Spine published, but the request status could not be updated.");
     } catch (error) {
       setBusyId(undefined);
       setMessage(error instanceof Error ? error.message : "Could not publish that spine.");
@@ -195,7 +197,7 @@ export default function SpineRequestsPage() {
     <main className="spine-request-queue">
       <header>
         <p className="eyebrow">SHELF OF FAME · CURATOR</p>
-        <h1>AI spine requests</h1>
+        <h1>Custom spine requests</h1>
         <p>Books readers want turned into polished Shelf of Fame spines.</p>
       </header>
       {message ? <p role="status">{message}</p> : null}

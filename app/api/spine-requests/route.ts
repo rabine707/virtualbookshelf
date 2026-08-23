@@ -17,13 +17,35 @@ function requestAddress(request: Request) {
     || "unknown";
 }
 
+function configuration() {
+  return {
+    supabaseUrl: (process.env.NEXT_PUBLIC_SUPABASE_URL || "https://vrkuimrfdkejfhpxlwlf.supabase.co").trim(),
+    serviceRoleKey: process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || "",
+  };
+}
+
+export async function GET(request: Request) {
+  const { supabaseUrl, serviceRoleKey } = configuration();
+  if (!serviceRoleKey) return Response.json({ status: null });
+  const url = new URL(request.url);
+  const title = cleanText(url.searchParams.get("title"), 500);
+  const author = cleanText(url.searchParams.get("author"), 500);
+  const isbn = cleanText(url.searchParams.get("isbn"), 40);
+  const asin = cleanText(url.searchParams.get("asin"), 40);
+  if (!title) return Response.json({ status: null });
+  const bookKey = spineRequestBookKey({ title, author, isbn, asin });
+  const addressHash = createHmac("sha256", serviceRoleKey).update(`spine-request:${requestAddress(request)}`).digest("hex");
+  const query = new URLSearchParams({ select: "status", book_key: `eq.${bookKey}`, requester_ip_hash: `eq.${addressHash}`, order: "created_at.desc", limit: "1" });
+  const response = await fetch(`${supabaseUrl}/rest/v1/spine_requests?${query}`, { cache: "no-store", headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` } });
+  const rows = response.ok ? await response.json() as Array<{ status?: string }> : [];
+  return Response.json({ status: rows[0]?.status || null });
+}
+
 export async function POST(request: Request) {
   const rateLimited = await enforceApiRateLimit(request);
   if (rateLimited) return rateLimited;
 
-  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "https://vrkuimrfdkejfhpxlwlf.supabase.co").trim();
-  const serviceRoleKey = process.env.SUPABASE_SECRET_KEY?.trim()
-    || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const { supabaseUrl, serviceRoleKey } = configuration();
   if (!serviceRoleKey) return Response.json({ error: "Spine recommendations are not configured yet." }, { status: 503 });
 
   let body: Record<string, unknown>;

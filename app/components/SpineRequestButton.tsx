@@ -11,7 +11,7 @@ type SpineRequestButtonProps = {
   asin?: string;
 };
 
-type RequestState = "idle" | "sending" | "requested" | "duplicate" | "error";
+type RequestState = "idle" | "checking" | "sending" | "requested" | "completed" | "duplicate" | "error";
 
 export function SpineRequestButton({ title, author, coverUrl, isbn, asin }: SpineRequestButtonProps) {
   const [state, setState] = useState<RequestState>("idle");
@@ -19,9 +19,25 @@ export function SpineRequestButton({ title, author, coverUrl, isbn, asin }: Spin
   const bookKey = spineRequestBookKey({ title, author, isbn, asin });
 
   useEffect(() => {
-    setState("idle");
+    let cancelled = false;
+    setState("checking");
     setMessage("");
-  }, [bookKey]);
+    const query = new URLSearchParams({ title, author, ...(isbn ? { isbn } : {}), ...(asin ? { asin } : {}) });
+    void fetch(`/api/spine-requests?${query}`, { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data: { status?: string | null }) => {
+        if (cancelled) return;
+        if (data.status === "completed") {
+          setState("completed");
+          setMessage("Your custom spine is ready in the Spine Selector.");
+        } else if (data.status === "pending" || data.status === "in_progress") {
+          setState("requested");
+          setMessage(data.status === "in_progress" ? "A curator is working on this spine." : "Sent to the curator queue.");
+        } else setState("idle");
+      })
+      .catch(() => { if (!cancelled) setState("idle"); });
+    return () => { cancelled = true; };
+  }, [asin, author, bookKey, isbn, title]);
 
   async function requestSpine() {
     setState("sending");
@@ -37,10 +53,10 @@ export function SpineRequestButton({ title, author, coverUrl, isbn, asin }: Spin
 
       if (data?.duplicate) {
         setState("duplicate");
-        setMessage("This connection already recommended this book.");
+        setMessage("This custom spine has already been requested.");
       } else {
         setState("requested");
-        setMessage("Added to the Shelf of Fame spine list.");
+        setMessage("Custom spine requested and sent to the curator queue.");
       }
     } catch (error) {
       setState("error");
@@ -48,18 +64,18 @@ export function SpineRequestButton({ title, author, coverUrl, isbn, asin }: Spin
     }
   }
 
-  const complete = state === "requested" || state === "duplicate";
+  const complete = state === "requested" || state === "completed" || state === "duplicate";
   return (
     <div className="spine-request-control">
       <button
         type="button"
         className="primary spine-request-button"
-        disabled={state === "sending" || complete}
+        disabled={state === "sending" || state === "checking" || complete}
         onClick={requestSpine}
       >
-        {state === "sending" ? "Sending…" : complete ? "✓ Spine recommended" : "✦ Recommend an AI spine"}
+        {state === "checking" ? "Checking request…" : state === "sending" ? "Sending…" : state === "completed" ? "✓ Custom Spine Ready" : complete ? "✓ Custom Spine Requested" : "✦ Request a Custom Spine"}
       </button>
-      <small role="status">{message || "Send this book to the curator’s spine list."}</small>
+      <small role="status">{message || "Ask a curator to create a spine for this book."}</small>
     </div>
   );
 }
