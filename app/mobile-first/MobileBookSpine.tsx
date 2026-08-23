@@ -358,7 +358,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const [generatedSpine, setGeneratedSpine] = useState<string>();
   const [generatedMode, setGeneratedMode] = useState<SpineRenderMode>("overlay");
   const [spineCrop, setSpineCrop] = useState<string>();
-  const [sidewaysTitlesEnabled, setSidewaysTitlesEnabled] = useState(true);
+  const [titleOrientation, setTitleOrientation] = useState<"auto" | "upright" | "sideways">("auto");
   const displayedCover = preferred || cover;
   const coverUrl = displayedCover?.url;
   const [coverSpineColor, setCoverSpineColor] = useState<string | undefined>(() => (
@@ -380,12 +380,16 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
 
   useEffect(() => {
     const applyPreference = (event?: Event) => {
-      const eventPreference = event ? (event as CustomEvent<boolean>).detail : undefined;
-      setSidewaysTitlesEnabled(eventPreference ?? window.localStorage.getItem("shelf-of-fame-sideways-titles-v1") !== "off");
+      const eventPreference = event ? (event as CustomEvent<string>).detail : undefined;
+      const stored = eventPreference || window.localStorage.getItem("shelf-of-fame-title-orientation-v1");
+      const legacy = window.localStorage.getItem("shelf-of-fame-sideways-titles-v1");
+      setTitleOrientation(stored === "upright" || stored === "sideways" || stored === "auto"
+        ? stored
+        : legacy === "off" ? "upright" : legacy === "on" ? "sideways" : "auto");
     };
     applyPreference();
-    window.addEventListener("shelf-sideways-titles-changed", applyPreference);
-    return () => window.removeEventListener("shelf-sideways-titles-changed", applyPreference);
+    window.addEventListener("shelf-title-orientation-changed", applyPreference);
+    return () => window.removeEventListener("shelf-title-orientation-changed", applyPreference);
   }, []);
 
   useEffect(() => {
@@ -513,7 +517,9 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const showDecoration = fittedTitle.detailLevel !== "title-only";
   const showStructuralDetail = fittedTitle.detailLevel !== "title-only";
   const artworkImage = spineArtworkImage(design.artwork);
-  const sidewaysEligible = sidewaysTitlesEnabled
+  const automaticSideways = stableSpineNumber(`${book.id}|${book.title}|${book.author}|title-orientation`) % 2 === 0;
+  const sidewaysEligible = titleOrientation !== "upright"
+    && (titleOrientation === "sideways" || automaticSideways)
     && fittedTitle.detailLevel !== "title-only"
     && fittedTitle.title.length >= 8
     && fittedTitle.title.length <= 22;

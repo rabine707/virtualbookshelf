@@ -8,6 +8,8 @@ type ShelfTheme = "classic" | "dark-academia" | "botanical" | "fantasy" | "cozy"
 const THEME_KEY = "shelf-of-fame-theme-v1";
 const SPINE_LABELS_KEY = "shelf-of-fame-spine-labels-v1";
 const SIDEWAYS_TITLES_KEY = "shelf-of-fame-sideways-titles-v1";
+const TITLE_ORIENTATION_KEY = "shelf-of-fame-title-orientation-v1";
+type TitleOrientation = "auto" | "upright" | "sideways";
 
 const THEMES: { id: ShelfTheme; label: string; subtitle: string; icon: string }[] = [
   { id: "classic", label: "Classic", subtitle: "Clean warm wood", icon: "▤" },
@@ -45,10 +47,11 @@ function applySpineLabels(enabled: boolean) {
   window.localStorage.setItem(SPINE_LABELS_KEY, enabled ? "on" : "off");
 }
 
-function applySidewaysTitles(enabled: boolean) {
-  document.documentElement.dataset.sidewaysTitles = enabled ? "on" : "off";
-  window.localStorage.setItem(SIDEWAYS_TITLES_KEY, enabled ? "on" : "off");
-  window.dispatchEvent(new CustomEvent<boolean>("shelf-sideways-titles-changed", { detail: enabled }));
+function applyTitleOrientation(orientation: TitleOrientation) {
+  document.documentElement.dataset.titleOrientation = orientation;
+  window.localStorage.setItem(TITLE_ORIENTATION_KEY, orientation);
+  window.localStorage.setItem(SIDEWAYS_TITLES_KEY, orientation === "upright" ? "off" : "on");
+  window.dispatchEvent(new CustomEvent<TitleOrientation>("shelf-title-orientation-changed", { detail: orientation }));
 }
 
 function syncDecor(theme: ShelfTheme, force = false) {
@@ -97,7 +100,7 @@ function syncDecor(theme: ShelfTheme, force = false) {
 export default function ThemeEnricher() {
   const [theme, setTheme] = useState<ShelfTheme>("classic");
   const [spineLabels, setSpineLabels] = useState(true);
-  const [sidewaysTitles, setSidewaysTitles] = useState(true);
+  const [titleOrientation, setTitleOrientation] = useState<TitleOrientation>("auto");
   const [toolbar, setToolbar] = useState<Element | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -112,14 +115,23 @@ export default function ThemeEnricher() {
     setSpineLabels(labelsEnabled);
     applySpineLabels(labelsEnabled);
 
-    const sidewaysEnabled = window.localStorage.getItem(SIDEWAYS_TITLES_KEY) !== "off";
-    setSidewaysTitles(sidewaysEnabled);
-    applySidewaysTitles(sidewaysEnabled);
+    const storedOrientation = window.localStorage.getItem(TITLE_ORIENTATION_KEY);
+    const legacySideways = window.localStorage.getItem(SIDEWAYS_TITLES_KEY);
+    const initialOrientation: TitleOrientation = storedOrientation === "upright" || storedOrientation === "sideways" || storedOrientation === "auto"
+      ? storedOrientation
+      : legacySideways === "off"
+        ? "upright"
+        : legacySideways === "on"
+          ? "sideways"
+          : "auto";
+    setTitleOrientation(initialOrientation);
+    applyTitleOrientation(initialOrientation);
 
-    const onSidewaysTitlesChanged = (event: Event) => {
-      setSidewaysTitles((event as CustomEvent<boolean>).detail !== false);
+    const onTitleOrientationChanged = (event: Event) => {
+      const next = (event as CustomEvent<TitleOrientation>).detail;
+      if (next === "auto" || next === "upright" || next === "sideways") setTitleOrientation(next);
     };
-    window.addEventListener("shelf-sideways-titles-changed", onSidewaysTitlesChanged);
+    window.addEventListener("shelf-title-orientation-changed", onTitleOrientationChanged);
 
     let scheduled = false;
     const sync = () => {
@@ -138,7 +150,7 @@ export default function ThemeEnricher() {
     observer.observe(document.body, { childList: true, subtree: true });
     return () => {
       observer.disconnect();
-      window.removeEventListener("shelf-sideways-titles-changed", onSidewaysTitlesChanged);
+      window.removeEventListener("shelf-title-orientation-changed", onTitleOrientationChanged);
     };
   }, []);
 
@@ -174,10 +186,9 @@ export default function ThemeEnricher() {
     applySpineLabels(next);
   }
 
-  function toggleSidewaysTitles() {
-    const next = !sidewaysTitles;
-    setSidewaysTitles(next);
-    applySidewaysTitles(next);
+  function chooseTitleOrientation(next: TitleOrientation) {
+    setTitleOrientation(next);
+    applyTitleOrientation(next);
   }
 
   const controls = toolbar ? createPortal(
@@ -216,18 +227,25 @@ export default function ThemeEnricher() {
               </span>
               <b>{spineLabels ? "On" : "Off"}</b>
             </button>
-            <button
-              type="button"
-              className="theme-picker-spine-setting"
-              onClick={toggleSidewaysTitles}
-              aria-pressed={sidewaysTitles}
-            >
+            <section className="theme-picker-spine-setting theme-picker-orientation" aria-label="Spine title orientation">
               <span>
-                <strong>Sideways spine titles</strong>
-                <small>Use vertical titles when they fit, or keep every title upright</small>
+                <strong>Spine title direction</strong>
+                <small>Choose a varied shelf or force one direction when titles fit</small>
               </span>
-              <b>{sidewaysTitles ? "On" : "Off"}</b>
-            </button>
+              <span className="theme-picker-orientation-options">
+                {(["auto", "upright", "sideways"] as TitleOrientation[]).map((option) => (
+                  <button
+                    type="button"
+                    key={option}
+                    className={titleOrientation === option ? "active" : ""}
+                    onClick={() => chooseTitleOrientation(option)}
+                    aria-pressed={titleOrientation === option}
+                  >
+                    {option === "auto" ? "Automatic" : option === "upright" ? "Upright" : "Sideways"}
+                  </button>
+                ))}
+              </span>
+            </section>
             <div className="theme-picker-grid">
               {THEMES.map((option) => (
                 <button

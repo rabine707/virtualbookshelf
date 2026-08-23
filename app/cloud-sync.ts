@@ -6,6 +6,7 @@ export type CloudSettings = {
   theme?: string;
   spine_labels?: boolean;
   sideways_titles?: boolean;
+  title_orientation?: "auto" | "upright" | "sideways";
   decor_owned?: unknown[];
   decor_active?: Record<string, string>;
   community_stars?: number;

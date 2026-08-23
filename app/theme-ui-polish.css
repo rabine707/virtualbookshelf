@@ -301,6 +301,23 @@ html[data-shelf-theme] .theme-picker-spine-setting b {
   font: 800 10px/1 Arial, sans-serif;
   text-align: center;
 }
+html[data-shelf-theme] .theme-picker-orientation { align-items: flex-start; flex-direction: column; }
+html[data-shelf-theme] .theme-picker-orientation-options { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+html[data-shelf-theme] .theme-picker-orientation-options button {
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--sof-ui-border);
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  font: 750 10px/1 Arial, sans-serif;
+  cursor: pointer;
+}
+html[data-shelf-theme] .theme-picker-orientation-options button.active {
+  border-color: var(--sof-ui-accent);
+  background: var(--sof-ui-accent-soft);
+  color: var(--sof-ui-accent);
+}
 
 @media (max-width: 760px) {
   .theme-picker-backdrop { align-items: end; padding: 0; }
