@@ -361,6 +361,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const [cover, setCover] = useState<CoverResult | null>(() => preferred || coverMemory.get(key) || null);
   const [shouldLoad, setShouldLoad] = useState(() => eager || coverMemory.has(key));
   const [generatedSpine, setGeneratedSpine] = useState<string>();
+  const [generatedSpineFailed, setGeneratedSpineFailed] = useState(false);
   const [generatedMode, setGeneratedMode] = useState<SpineRenderMode>("overlay");
   const [spineCrop, setSpineCrop] = useState<string>();
   const [titleOrientation, setTitleOrientation] = useState<"auto" | "upright" | "sideways">("auto");
@@ -475,6 +476,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   useEffect(() => {
     let cancelled = false;
     setGeneratedSpine(undefined);
+    setGeneratedSpineFailed(false);
     setGeneratedMode("overlay");
     setSpineCrop(undefined);
     if (!coverUrl) return () => { cancelled = true; };
@@ -482,6 +484,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
     void Promise.all([getGeneratedSpine(coverUrl), getGeneratedSpineMode(coverUrl)]).then(([image, mode]) => {
       if (cancelled || !image) return;
       setGeneratedSpine(image);
+      setGeneratedSpineFailed(false);
       setGeneratedMode(mode);
       setSpineCrop(storedSpineCrop(image));
     });
@@ -490,6 +493,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
       const detail = (event as CustomEvent<SpineGeneratedEventDetail>).detail;
       if (!detail || detail.coverUrl !== coverUrl) return;
       setGeneratedSpine(detail.image);
+      setGeneratedSpineFailed(false);
       setGeneratedMode(detail.renderMode || "overlay");
       setSpineCrop(detail.position || storedSpineCrop(detail.image));
     };
@@ -516,7 +520,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
     "--spine-wear-opacity": tokens.wearOpacity,
   } as CSSProperties;
 
-  const showOverlayTypography = generatedMode !== "integrated";
+  const showOverlayTypography = generatedMode !== "integrated" || generatedSpineFailed;
   const publishedArt = design.layout.id === "published-art";
   const showGhostedClothArt = Boolean(coverUrl) && !publishedArt && !generatedSpine;
   const showDecoration = fittedTitle.detailLevel !== "title-only";
@@ -610,13 +614,14 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
 
         {publishedArt && coverUrl ? <span className={designStyles.artWash} aria-hidden="true" /> : null}
 
-        {generatedSpine ? (
+        {generatedSpine && !generatedSpineFailed ? (
           <img
             className={`${styles.spineCover} ${designStyles.generatedArt}`}
             src={generatedSpine}
             alt=""
             data-shelf-generated-spine="true"
             decoding="async"
+            onError={() => setGeneratedSpineFailed(true)}
           />
         ) : null}
 

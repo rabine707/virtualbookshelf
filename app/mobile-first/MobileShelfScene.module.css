@@ -69,6 +69,22 @@
   box-sizing: border-box;
 }
 
+/* Cover and selected-spine artwork must fill the narrow printed face. Without
+   this positioning, the browser paints the image at its natural width and the
+   shelf's overflow window shows only a thin, often blank edge of the asset. */
+.spineCover {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+}
+
 .wallTexture {
   position: absolute;
   inset: 0;
