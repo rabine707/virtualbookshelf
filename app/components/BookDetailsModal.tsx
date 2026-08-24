@@ -18,9 +18,13 @@ import { SpineRequestButton } from "./SpineRequestButton";
 import { loadSharedSpineOptions, type SharedSpineEntry } from "../shared-spines";
 import { getGeneratedSpine, saveGeneratedSpine } from "../../lib/spines/client";
 import { storyTagsForBook } from "../../lib/books/story-tags";
+import { relatedShelfBooks, seriesInfoForBook } from "../../lib/books/reader-experience";
+
+type ReaderLifeUpdates = Partial<Pick<Book, "readerReactions" | "readerNote" | "favoriteQuote" | "readerReview" | "shelfAwards" | "dateStarted" | "dateFinished" | "rereadCount">>;
 
 type BookDetailsModalProps = {
   selected: Book;
+  libraryBooks: Book[];
   selectedIsbn?: string;
   cover: CoverResult | null;
   coverOptions: CoverResult[];
@@ -44,14 +48,24 @@ type BookDetailsModalProps = {
   onResetCoverChoices: () => void;
   onSaveBookMetadata: (input: BookMetadataUpdateInput) => SaveBookMetadataResult;
   onChangeReadStatus: (shelf: string) => void;
+  onUpdateReaderMemory: (updates: ReaderLifeUpdates) => void;
+  onSelectBook: (book: Book) => void;
+  onUpdateSeriesBook: (bookId: string, updates: Pick<Book, "seriesName" | "seriesNumber" | "seriesExcluded">) => void;
+  onAddMissingSeriesBook: () => void;
 };
 
 type CropTarget =
   | { kind: "cover"; option: CoverResult }
   | { kind: "web"; result: WebCoverResult };
 
+const READER_REACTIONS = [
+  "Couldn’t put it down", "Made me cry", "Comfort read", "Unhinged", "Great banter", "Would reread",
+];
+const SHELF_AWARDS = ["Best banter", "Most chaotic", "Biggest surprise", "Best couple", "Stayed with me", "Five-star favorite"];
+
 export function BookDetailsModal({
   selected,
+  libraryBooks,
   selectedIsbn,
   cover,
   coverOptions,
@@ -75,6 +89,10 @@ export function BookDetailsModal({
   onResetCoverChoices,
   onSaveBookMetadata,
   onChangeReadStatus,
+  onUpdateReaderMemory,
+  onSelectBook,
+  onUpdateSeriesBook,
+  onAddMissingSeriesBook,
 }: BookDetailsModalProps) {
   void onUseSavedCover;
   void onRejectCurrentCover;
@@ -86,12 +104,22 @@ export function BookDetailsModal({
   const [spineOptions, setSpineOptions] = useState<SharedSpineEntry[]>([]);
   const [activeSpine, setActiveSpine] = useState("");
   const [spineMessage, setSpineMessage] = useState("");
+  const [noteDraft, setNoteDraft] = useState(selected.readerNote || "");
+  const [quoteDraft, setQuoteDraft] = useState(selected.favoriteQuote || "");
+  const [reviewDraft, setReviewDraft] = useState(selected.readerReview || "");
+  const [seriesEditing, setSeriesEditing] = useState(false);
+  const [seriesNameDraft, setSeriesNameDraft] = useState("");
+  const [seriesNumberDraft, setSeriesNumberDraft] = useState("");
 
   useEffect(() => {
     setSelector(null);
     setCropTarget(null);
     deeperSearchStartedFor.current = null;
     webFallbackStartedFor.current = null;
+    setNoteDraft(selected.readerNote || "");
+    setQuoteDraft(selected.favoriteQuote || "");
+    setReviewDraft(selected.readerReview || "");
+    setSeriesEditing(false);
   }, [selected.id]);
 
   useEffect(() => {
@@ -137,7 +165,65 @@ export function BookDetailsModal({
     selected.year ? ["◷", selected.year] : null,
   ].filter((item): item is [string, string] => Boolean(item));
   const storyTags = storyTagsForBook(selected);
-  const hasStoryTags = storyTags.tropes.length > 0 || storyTags.genres.length > 0 || storyTags.moods.length > 0;
+  const hasStoryTags = storyTags.tropes.length > 0 || storyTags.genres.length > 0 || storyTags.moods.length > 0 || storyTags.themes.length > 0 || storyTags.goodreads.length > 0;
+  const personalityParts = [storyTags.moods[0], storyTags.genres[0], storyTags.tropes[0]].filter(Boolean);
+  const personality = personalityParts.length
+    ? `${personalityParts.slice(0, 2).join(", ")} — ${personalityParts[2] || "a memorable shelf pick"}.`
+    : "A book with a place in your reading story.";
+  const activeReactions = selected.readerReactions || [];
+  const activeAwards = selected.shelfAwards || [];
+  const currentSeries = seriesInfoForBook(selected);
+  const seriesBooks = currentSeries
+    ? libraryBooks
+      .map((book) => ({ book, info: seriesInfoForBook(book) }))
+      .filter(({ info }) => info?.name.toLowerCase() === currentSeries.name.toLowerCase())
+      .sort((a, b) => (a.info?.number || 999) - (b.info?.number || 999))
+    : [];
+  const relatedBooks = relatedShelfBooks(selected, libraryBooks);
+
+  function openSeriesEditor() {
+    setSeriesNameDraft(currentSeries?.name || "");
+    setSeriesNumberDraft(currentSeries?.number ? String(currentSeries.number) : "");
+    setSeriesEditing(true);
+  }
+
+  function saveSeriesCorrection() {
+    const seriesName = seriesNameDraft.replace(/\s+/g, " ").trim().slice(0, 100);
+    if (!seriesName) return;
+    const parsedNumber = Number(seriesNumberDraft);
+    onUpdateSeriesBook(selected.id, { seriesName, seriesNumber: parsedNumber > 0 ? parsedNumber : undefined, seriesExcluded: false });
+    setSeriesEditing(false);
+  }
+
+  function toggleReaction(reaction: string) {
+    const readerReactions = activeReactions.includes(reaction)
+      ? activeReactions.filter((value) => value !== reaction)
+      : [...activeReactions, reaction];
+    onUpdateReaderMemory({ readerReactions, readerNote: selected.readerNote });
+  }
+
+  function saveNote() {
+    const readerNote = noteDraft.replace(/\s+/g, " ").trim().slice(0, 180);
+    setNoteDraft(readerNote);
+    if (readerNote !== (selected.readerNote || "")) {
+      onUpdateReaderMemory({ readerReactions: activeReactions, readerNote });
+    }
+  }
+
+  function toggleAward(award: string) {
+    const shelfAwards = activeAwards.includes(award)
+      ? activeAwards.filter((value) => value !== award)
+      : [...activeAwards, award].slice(0, 3);
+    onUpdateReaderMemory({ shelfAwards });
+  }
+
+  function saveLongMemories() {
+    const favoriteQuote = quoteDraft.trim().slice(0, 400);
+    const readerReview = reviewDraft.trim().slice(0, 1200);
+    setQuoteDraft(favoriteQuote);
+    setReviewDraft(readerReview);
+    onUpdateReaderMemory({ favoriteQuote, readerReview });
+  }
 
   const hasCoverOptions = coverOptions.length > 0;
   const totalCoverChoices = coverOptions.length + webCoverResults.length;
@@ -391,21 +477,14 @@ export function BookDetailsModal({
                 ) : null}
               </div>
 
-              <div className="book-detail-actions" style={{ display: "grid", gap: 8, marginTop: 12 }} aria-label="Book artwork actions">
-                <button type="button" className="primary" onClick={openCoverBrowser}>
-                  Cover Selector
-                </button>
-                <button type="button" className="primary" onClick={openSpineBrowser} disabled={!cover}>
-                  Spine Selector
-                </button>
-                <SpineRequestButton
-                  title={selected.title}
-                  author={selected.author}
-                  coverUrl={cover?.url ? stripCoverCrop(cover.url) : undefined}
-                  isbn={selectedIsbn}
-                  asin={selected.asin}
-                />
-              </div>
+              <details className="book-detail-drawer artwork-drawer">
+                <summary>Customize artwork</summary>
+                <div className="book-detail-actions" aria-label="Book artwork actions">
+                  <button type="button" className="primary" onClick={openCoverBrowser}>Cover Selector</button>
+                  <button type="button" className="primary" onClick={openSpineBrowser} disabled={!cover}>Spine Selector</button>
+                  <SpineRequestButton title={selected.title} author={selected.author} coverUrl={cover?.url ? stripCoverCrop(cover.url) : undefined} isbn={selectedIsbn} asin={selected.asin} />
+                </div>
+              </details>
             </div>
 
             <div className="details">
@@ -419,19 +498,85 @@ export function BookDetailsModal({
                 ))}
               </div>
 
+              <section className="book-personality" aria-label="Book personality">
+                <span>Your shelf read</span>
+                <p>{personality}</p>
+                <div>
+                  {[...storyTags.tropes.slice(0, 3), ...storyTags.moods.slice(0, 1)].map((tag) => <b key={tag}>{tag}</b>)}
+                </div>
+              </section>
+
+              <section className="reader-memory" aria-label="Your reading memory">
+                <div className="reader-memory-heading"><span>Make it yours</span><strong>How did this one feel?</strong></div>
+                <div className="reader-reactions">
+                  {READER_REACTIONS.map((reaction) => <button key={reaction} type="button" className={activeReactions.includes(reaction) ? "is-active" : ""} onClick={() => toggleReaction(reaction)}>{reaction}</button>)}
+                </div>
+                <label className="reader-note">
+                  <span>One-line memory <small>private on your shelf</small></span>
+                  <input value={noteDraft} maxLength={180} onChange={(event) => setNoteDraft(event.target.value)} onBlur={saveNote} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} placeholder="What do you want to remember about this book?" />
+                </label>
+              </section>
+
+              {currentSeries ? (
+                <section className="book-series-card" aria-label="Series on your shelf">
+                  <div className="book-series-heading"><div><span>Series journey</span><strong>{currentSeries.name}</strong></div><button type="button" onClick={openSeriesEditor}>Fix series</button></div>
+                  <div className="book-series-books">
+                    {seriesBooks.map(({ book, info }) => <button type="button" key={book.id} className={book.id === selected.id ? "is-current" : ""} disabled={book.id === selected.id} onClick={() => onSelectBook(book)}><small>Book {info?.number || "•"}</small>{book.title.replace(/\s*\([^()]+\)\s*$/, "")}</button>)}
+                  </div>
+                  <button type="button" className="series-add-book" onClick={onAddMissingSeriesBook}>＋ Add a missing book</button>
+                </section>
+              ) : <button type="button" className="series-create-button" onClick={openSeriesEditor}>＋ Connect this book to a series</button>}
+
+              {seriesEditing ? (
+                <section className="series-editor" aria-label="Fix series connection">
+                  <header><div><span>Personal correction</span><strong>Fix series connection</strong></div><button type="button" onClick={() => setSeriesEditing(false)} aria-label="Close series editor">×</button></header>
+                  <label><span>Series name</span><input value={seriesNameDraft} onChange={(event) => setSeriesNameDraft(event.target.value)} placeholder="Maple Hills" /></label>
+                  <label><span>Book number</span><input type="number" min="0.1" step="0.1" value={seriesNumberDraft} onChange={(event) => setSeriesNumberDraft(event.target.value)} placeholder="1" /></label>
+                  <label><span>Link another shelf book</span><select defaultValue="" onChange={(event) => { const book = libraryBooks.find((item) => item.id === event.target.value); if (!book || !seriesNameDraft.trim()) return; onUpdateSeriesBook(book.id, { seriesName: seriesNameDraft.trim(), seriesNumber: undefined, seriesExcluded: false }); event.currentTarget.value = ""; }}><option value="">Choose a book…</option>{libraryBooks.filter((book) => book.id !== selected.id && seriesInfoForBook(book)?.name.toLowerCase() !== seriesNameDraft.trim().toLowerCase()).map((book) => <option value={book.id} key={book.id}>{book.title} — {book.author}</option>)}</select></label>
+                  <div className="series-editor-actions"><button type="button" onClick={() => { onUpdateSeriesBook(selected.id, { seriesName: undefined, seriesNumber: undefined, seriesExcluded: true }); setSeriesEditing(false); }}>Remove from series</button><button type="button" className="primary" disabled={!seriesNameDraft.trim()} onClick={saveSeriesCorrection}>Save correction</button></div>
+                  <small>This changes only your library and survives future imports.</small>
+                </section>
+              ) : null}
+
+              {relatedBooks.length ? (
+                <section className="related-shelf-books" aria-label="Similar books on your shelf">
+                  <div><span>Already on your shelf</span><strong>More with this energy</strong></div>
+                  <div>{relatedBooks.map((book) => <button type="button" key={book.id} onClick={() => onSelectBook(book)}>{book.title.replace(/\s*\([^()]+\)\s*$/, "")}<small>{book.author}</small></button>)}</div>
+                </section>
+              ) : null}
+
+              <details className="book-detail-drawer reading-journal">
+                <summary>Reading journal</summary>
+                <div className="reading-journal-body">
+                  <div className="reading-dates">
+                    <label><span>Started</span><input type="date" value={selected.dateStarted || ""} onChange={(event) => onUpdateReaderMemory({ dateStarted: event.target.value })} /></label>
+                    <label><span>Finished</span><input type="date" value={selected.dateFinished || ""} onChange={(event) => onUpdateReaderMemory({ dateFinished: event.target.value })} /></label>
+                    <label><span>Times reread</span><input type="number" min="0" max="99" value={selected.rereadCount || 0} onChange={(event) => onUpdateReaderMemory({ rereadCount: Math.max(0, Math.min(99, Number(event.target.value) || 0)) })} /></label>
+                  </div>
+                  <div className="shelf-awards"><span>Shelf awards <small>choose up to three</small></span><div>{SHELF_AWARDS.map((award) => <button type="button" key={award} className={activeAwards.includes(award) ? "is-active" : ""} onClick={() => toggleAward(award)}>✦ {award}</button>)}</div></div>
+                  <label className="journal-field"><span>Favorite quote</span><textarea rows={2} maxLength={400} value={quoteDraft} onChange={(event) => setQuoteDraft(event.target.value)} onBlur={saveLongMemories} placeholder="A line you want to keep…" /></label>
+                  <label className="journal-field"><span>My review</span><textarea rows={4} maxLength={1200} value={reviewDraft} onChange={(event) => setReviewDraft(event.target.value)} onBlur={saveLongMemories} placeholder="What worked, what didn’t, and how it made you feel…" /></label>
+                </div>
+              </details>
+
               {hasStoryTags ? (
-                <section className="book-story-tags" aria-label="Story tags">
+                <details className="book-story-tags book-detail-drawer" aria-label="Story tags">
+                  <summary>Explore all story tags</summary>
                   <div className="book-story-tags-heading">
                     <div>
                       <span>Inside this book</span>
                       <h3>Story tags</h3>
                     </div>
-                    {storyTags.inferred ? <small title="Suggested from the title until richer book metadata is available">Shelf suggested</small> : <small>Book metadata</small>}
+                    <small title={storyTags.source === "suggested" ? "Suggested from the title until richer book metadata is available" : undefined}>
+                      {storyTags.source === "stored" ? "Book metadata" : storyTags.source === "curated" ? "Curated tags" : "Shelf suggested"}
+                    </small>
                   </div>
                   {storyTags.tropes.length ? <div className="book-story-tag-group"><strong>Tropes</strong><div>{storyTags.tropes.map((tag) => <span key={tag}>♡ {tag}</span>)}</div></div> : null}
                   {storyTags.genres.length ? <div className="book-story-tag-group"><strong>Genres</strong><div>{storyTags.genres.map((tag) => <span key={tag}>✦ {tag}</span>)}</div></div> : null}
                   {storyTags.moods.length ? <div className="book-story-tag-group"><strong>Vibe</strong><div>{storyTags.moods.map((tag) => <span key={tag}>☾ {tag}</span>)}</div></div> : null}
-                </section>
+                  {storyTags.themes.length ? <div className="book-story-tag-group"><strong>Themes</strong><div>{storyTags.themes.map((tag) => <span key={tag}>⌁ {tag}</span>)}</div></div> : null}
+                  {storyTags.goodreads.length ? <div className="book-story-tag-group"><strong>Your Goodreads shelves</strong><div>{storyTags.goodreads.map((tag) => <span key={tag}># {tag}</span>)}</div></div> : null}
+                </details>
               ) : null}
 
               <label
@@ -468,14 +613,16 @@ export function BookDetailsModal({
                 </select>
               </label>
 
-              <dl>
-                {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
-                {selected.pageCount ? <><dt>Length</dt><dd>{selected.pageCount} pages</dd></> : null}
-                <dt>ISBN</dt><dd>{selectedIsbn || "Not available"}</dd>
-                {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
-              </dl>
-
-              <BookInfoEditor book={selected} selectedIsbn={selectedIsbn} onSave={onSaveBookMetadata} />
+              <details className="book-detail-drawer information-drawer">
+                <summary>Book information</summary>
+                <dl>
+                  {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
+                  {selected.pageCount ? <><dt>Length</dt><dd>{selected.pageCount} pages</dd></> : null}
+                  <dt>ISBN</dt><dd>{selectedIsbn || "Not available"}</dd>
+                  {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
+                </dl>
+                <BookInfoEditor book={selected} selectedIsbn={selectedIsbn} onSave={onSaveBookMetadata} />
+              </details>
             </div>
           </>
         )}

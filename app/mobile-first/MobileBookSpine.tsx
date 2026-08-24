@@ -272,29 +272,45 @@ function titleLineStyle(fit: FittedSpineTitle, design: SpineDesign, lineIndex: n
   };
 }
 
+export function fitSpineAuthor(
+  author: string,
+  spineWidth: number,
+  sidewaysTitle: boolean,
+  authorSize = 6.15,
+) {
+  const maxFontSize = sidewaysTitle ? Math.min(6.8, authorSize) : Math.min(8.2, authorSize + 1.4);
+  const minimumFontSize = 4.7;
+  const availableWidth = Math.max(20, spineWidth - 12);
+  const trackingEm = author.length >= 10
+    ? 0
+    : author.length >= 8
+      ? .025
+      : .075;
+  const fittedFontSize = Math.max(
+    minimumFontSize,
+    Math.min(maxFontSize, availableWidth / Math.max(1, author.length * (.69 + trackingEm))),
+  );
+  const estimatedWidth = author.length * fittedFontSize * (.69 + trackingEm);
+  const scaleX = Math.max(.68, Math.min(1, availableWidth / Math.max(1, estimatedWidth)));
+
+  return { fontSize: fittedFontSize, trackingEm, scaleX, availableWidth };
+}
+
 function authorStyle(
   design: SpineDesign,
   author: string,
   spineWidth: number,
   sidewaysTitle: boolean,
 ): CSSProperties {
-  const maxFontSize = sidewaysTitle ? 7 : 9;
-  const availableWidth = Math.max(24, spineWidth - 8);
-  const trackingEm = author.length >= 10
-    ? .015
-    : author.length >= 8
-      ? .045
-      : .075;
-  const fittedFontSize = Math.max(
-    5.8,
-    Math.min(maxFontSize, availableWidth / Math.max(1, author.length * (.6 + trackingEm))),
-  );
+  const fit = fitSpineAuthor(author, spineWidth, sidewaysTitle, design.layout.authorSize);
 
   return {
     fontFamily: design.fonts.authorFont,
     fontWeight: design.layout.id === "contemporary-editorial" ? 650 : 600,
-    "--spine-author-size": `${fittedFontSize.toFixed(2)}px`,
-    "--spine-author-tracking": `${trackingEm}em`,
+    maxWidth: `${fit.availableWidth}px`,
+    "--spine-author-size": `${fit.fontSize.toFixed(2)}px`,
+    "--spine-author-tracking": `${fit.trackingEm}em`,
+    "--spine-author-scale": fit.scaleX.toFixed(3),
   } as CSSProperties;
 }
 

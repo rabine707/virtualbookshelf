@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { fitSpineAuthor } from "../../app/mobile-first/MobileBookSpine";
 import { fitSpineTitle, pickSpineDesign } from "../../app/mobile-first/spineTemplates";
 
 describe("mobile spine title fitting", () => {
@@ -88,4 +89,17 @@ describe("mobile spine artwork assignment", () => {
     )));
     expect(artwork.size).toBe(3);
   });
+});
+
+describe("mobile spine author fitting", () => {
+  test.each(["MICHAELIDES", "KENSINGTON", "BROADBENT", "CHRISTINA-LAUREN"]) (
+    "keeps long surnames inside a narrow phone spine: %s",
+    (author) => {
+      const fit = fitSpineAuthor(author, 52, false);
+      const estimatedWidth = author.length * fit.fontSize * (.69 + fit.trackingEm) * fit.scaleX;
+      expect(estimatedWidth).toBeLessThanOrEqual(fit.availableWidth + .01);
+      expect(fit.fontSize).toBeGreaterThanOrEqual(4.7);
+      expect(fit.scaleX).toBeGreaterThanOrEqual(.68);
+    },
+  );
 });

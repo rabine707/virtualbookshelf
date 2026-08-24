@@ -344,7 +344,9 @@
   left: 4px;
   right: 4px;
   bottom: 10px;
-  overflow: visible;
+  display: block;
+  margin-inline: auto;
+  overflow: hidden;
   white-space: nowrap;
   text-overflow: clip;
   color: var(--spine-author-ink, rgba(243, 229, 204, .79));
@@ -353,16 +355,17 @@
   text-align: center;
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
-  transform-origin: center;
+  transform: scaleX(var(--spine-author-scale, 1));
+  transform-origin: center bottom;
   pointer-events: none;
 }
 
 .author[data-author-fit="condensed"] {
-  transform: none;
+  transform: scaleX(var(--spine-author-scale, 1));
 }
 
 .author[data-author-fit="tight"] {
-  transform: none;
+  transform: scaleX(var(--spine-author-scale, 1));
 }
 
 .frame {

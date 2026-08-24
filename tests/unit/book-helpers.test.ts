@@ -19,6 +19,7 @@ import {
   mergeGoodreadsFeedback,
   normalizeAudibleRow,
   normalizeGoodreadsRow,
+  normalizeGoodreadsTags,
 } from "../../lib/books/client-library";
 
 describe("book matching helpers", () => {
@@ -72,6 +73,7 @@ describe("library import and cover helpers", () => {
       "Year Published": "2023",
       "Exclusive Shelf": "read",
       ISBN13: '="978-1-64937-404-2"',
+      Bookshelves: "read, enemies-to-lovers, grumpy_sunshine, favorites",
     }, 0);
 
     expect(book).toMatchObject({
@@ -84,7 +86,13 @@ describe("library import and cover helpers", () => {
       isbnSource: "Goodreads export",
       isbnConfidence: "high",
       importSource: "Goodreads",
+      goodreadsTags: ["Enemies to lovers", "Grumpy sunshine", "Favorites"],
     });
+  });
+
+  test("cleans Goodreads custom shelves and removes reading statuses", () => {
+    expect(normalizeGoodreadsTags("to-read, currently-reading, found-family, FOUND_family, cozy"))
+      .toEqual(["Found family", "Cozy"]);
   });
 
   test("normalizes audible-cli rows including BOM headers and cover URLs", () => {
@@ -149,6 +157,11 @@ describe("library import and cover helpers", () => {
       color: "#000",
       preferredCover: { url: "https://example.com/chosen.jpg", source: "Google Books" },
       coverFeedback: { rejected: ["https://example.com/wrong.jpg"] },
+      goodreadsTags: ["Dark romance"],
+      tropes: ["Hidden identity"],
+      seriesName: "Into Darkness",
+      seriesNumber: 1,
+      readerNote: "Loved the tension.",
     }];
     const imported: Book[] = [{
       id: "9781638931478",
@@ -171,6 +184,11 @@ describe("library import and cover helpers", () => {
       importSource: "Goodreads + Audible",
       preferredCover: { url: "https://example.com/chosen.jpg", source: "Google Books" },
       coverFeedback: { rejected: ["https://example.com/wrong.jpg"] },
+      goodreadsTags: ["Dark romance"],
+      tropes: ["Hidden identity"],
+      seriesName: "Into Darkness",
+      seriesNumber: 1,
+      readerNote: "Loved the tension.",
     });
   });
 

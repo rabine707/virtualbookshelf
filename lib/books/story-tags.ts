@@ -4,7 +4,56 @@ export type BookStoryTags = {
   tropes: string[];
   genres: string[];
   moods: string[];
+  themes: string[];
+  goodreads: string[];
+  source: "stored" | "curated" | "suggested";
   inferred: boolean;
+};
+
+type CuratedStoryTags = Pick<BookStoryTags, "tropes" | "genres" | "moods" | "themes">;
+
+const CURATED_STORY_TAGS: Record<string, CuratedStoryTags> = {
+  "beach read": {
+    tropes: ["Enemies to lovers", "Grumpy/sunshine", "Slow burn", "Forced proximity", "Friends to lovers", "Second chance"],
+    genres: ["Contemporary romance", "New adult"],
+    moods: ["Funny & witty", "Angsty", "Emotional"],
+    themes: ["Writers & creative process", "Grief & loss", "Small-town summer"],
+  },
+  "people we meet on vacation": {
+    tropes: ["Friends to lovers", "Slow burn", "Second chance", "Opposites attract"],
+    genres: ["Contemporary romance"], moods: ["Warm & escapist", "Funny & witty", "Emotional"],
+    themes: ["Travel", "Long-term friendship", "Finding home"],
+  },
+  "red white royal blue": {
+    tropes: ["Enemies to lovers", "Secret relationship", "Forbidden romance", "Long distance"],
+    genres: ["Contemporary romance", "LGBTQ+ romance"], moods: ["Funny & witty", "Hopeful", "Romantic"],
+    themes: ["Royalty", "Politics", "Identity"],
+  },
+  "ugly love": {
+    tropes: ["Friends with benefits", "No strings attached", "Forbidden feelings"],
+    genres: ["Contemporary romance", "New adult"], moods: ["Angsty", "Emotional", "Heartbreaking"],
+    themes: ["Grief", "Healing", "Fear of commitment"],
+  },
+  "the silent patient": {
+    tropes: ["Unreliable narrator", "Hidden past", "Obsessive investigation"],
+    genres: ["Psychological thriller", "Mystery"], moods: ["Suspenseful", "Dark & twisty"],
+    themes: ["Trauma", "Silence", "Truth & deception"],
+  },
+  "the guest list": {
+    tropes: ["Closed-circle mystery", "Multiple POV", "Everyone has a secret"],
+    genres: ["Mystery", "Thriller"], moods: ["Atmospheric", "Suspenseful", "Dark & twisty"],
+    themes: ["Isolation", "Revenge", "Buried secrets"],
+  },
+  "the paris apartment": {
+    tropes: ["Locked-room mystery", "Missing person", "Everyone has a secret"],
+    genres: ["Mystery", "Thriller"], moods: ["Atmospheric", "Suspenseful", "Claustrophobic"],
+    themes: ["Paris", "Family secrets", "Hidden lives"],
+  },
+  "icebreaker": {
+    tropes: ["Sports romance", "Forced proximity", "He falls first", "College romance"],
+    genres: ["Contemporary romance", "New adult"], moods: ["Playful", "Steamy", "Comforting"],
+    themes: ["Hockey", "Figure skating", "Team & friendship"],
+  },
 };
 
 function unique(values: string[]) {
@@ -15,12 +64,31 @@ function has(text: string, words: string[]) {
   return words.some((word) => text.includes(word));
 }
 
+function titleKey(title: string) {
+  return title.toLowerCase().replace(/\s*[([][^\])]+[\])]\s*$/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 export function storyTagsForBook(book: Book): BookStoryTags {
   const storedTropes = unique(book.tropes || []);
-  const storedGenres = unique(book.genres || []);
+  const storedGenres = unique([...(book.genres || []), ...(book.publicGenres || [])]);
   const storedMoods = unique(book.moods || []);
-  if (storedTropes.length || storedGenres.length || storedMoods.length) {
-    return { tropes: storedTropes, genres: storedGenres, moods: storedMoods, inferred: false };
+  const storedThemes = unique([...(book.themes || []), ...(book.publicSubjects || [])]);
+  const goodreads = unique(book.goodreadsTags || []);
+  const curated = CURATED_STORY_TAGS[titleKey(book.title)];
+  if (storedTropes.length || storedGenres.length || storedMoods.length || storedThemes.length) {
+    return {
+      tropes: unique([...storedTropes, ...(curated?.tropes || [])]),
+      genres: unique([...storedGenres, ...(curated?.genres || [])]),
+      moods: unique([...storedMoods, ...(curated?.moods || [])]),
+      themes: unique([...storedThemes, ...(curated?.themes || [])]),
+      goodreads,
+      source: "stored",
+      inferred: false,
+    };
+  }
+
+  if (curated) {
+    return { ...curated, goodreads, source: "curated", inferred: false };
   }
 
   const text = `${book.title} ${book.shelf || ""}`.toLowerCase();
@@ -55,6 +123,9 @@ export function storyTagsForBook(book: Book): BookStoryTags {
     tropes: unique(tropes),
     genres: unique(genres),
     moods: unique(moods),
+    themes: [],
+    goodreads,
+    source: "suggested",
     inferred: true,
   };
 }

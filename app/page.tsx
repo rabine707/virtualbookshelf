@@ -8,6 +8,7 @@ import { CoverReviewQueue } from "./components/CoverReviewQueue";
 import { useAudibleCoverFallback } from "./hooks/useAudibleCoverFallback";
 import { useBookCoverManager } from "./hooks/useBookCoverManager";
 import { useBookMetadataEditor } from "./hooks/useBookMetadataEditor";
+import { useBookTagEnrichment } from "./hooks/useBookTagEnrichment";
 import { useCloudShelfSync } from "./hooks/useCloudShelfSync";
 import { useCommunityCoverSync } from "./hooks/useCommunityCoverSync";
 import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
@@ -47,6 +48,7 @@ export default function Home() {
   } = useBookCoverManager({ setBooks, showToast });
 
   const { saveBookMetadata } = useBookMetadataEditor({ selected, setSelected, setBooks, showToast });
+  useBookTagEnrichment({ selected, setSelected, setBooks });
 
   useAudibleCoverFallback({ selected, cover, coverLoading, setBooks, setSelected, setCover });
 
@@ -130,6 +132,23 @@ export default function Home() {
     showToast("Every book has a cover or has already been reviewed.");
   }
 
+  function updateReaderMemory(updates: Partial<Pick<Book, "readerReactions" | "readerNote" | "favoriteQuote" | "readerReview" | "shelfAwards" | "dateStarted" | "dateFinished" | "rereadCount">>) {
+    if (!selected) return;
+    const updated = { ...selected, ...updates };
+    setSelected(updated);
+    setBooks((current) => current.map((book) => book.id === selected.id ? { ...book, ...updates } : book));
+  }
+
+  function updateSeriesBook(bookId: string, updates: Pick<Book, "seriesName" | "seriesNumber" | "seriesExcluded">) {
+    setBooks((current) => current.map((book) => book.id === bookId ? { ...book, ...updates } : book));
+    setSelected((current) => current?.id === bookId ? { ...current, ...updates } : current);
+  }
+
+  function addMissingSeriesBook() {
+    setSelected(null);
+    window.setTimeout(() => window.dispatchEvent(new Event("shelf-open-book-search")), 0);
+  }
+
   function finishReviewAndAdvance(approved: CoverResult[], primary?: CoverResult, status?: "skipped" | "no-match") {
     if (!selected) return;
     const reviewedId = selected.id;
@@ -206,6 +225,7 @@ export default function Home() {
       ) : selected && (
         <BookDetailsModal
           selected={selected}
+          libraryBooks={books}
           selectedIsbn={selectedIsbn}
           cover={cover}
           coverOptions={coverOptions}
@@ -229,6 +249,10 @@ export default function Home() {
           onResetCoverChoices={resetCoverChoices}
           onSaveBookMetadata={saveBookMetadata}
           onChangeReadStatus={changeReadStatus}
+          onUpdateReaderMemory={updateReaderMemory}
+          onSelectBook={setSelected}
+          onUpdateSeriesBook={updateSeriesBook}
+          onAddMissingSeriesBook={addMissingSeriesBook}
         />
       )}
     </>

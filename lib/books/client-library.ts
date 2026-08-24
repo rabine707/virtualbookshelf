@@ -38,6 +38,22 @@ export type Book = {
   tropes?: string[];
   genres?: string[];
   moods?: string[];
+  themes?: string[];
+  goodreadsTags?: string[];
+  publicGenres?: string[];
+  publicSubjects?: string[];
+  publicTagsCheckedAt?: number;
+  readerReactions?: string[];
+  readerNote?: string;
+  favoriteQuote?: string;
+  readerReview?: string;
+  shelfAwards?: string[];
+  dateStarted?: string;
+  dateFinished?: string;
+  rereadCount?: number;
+  seriesName?: string;
+  seriesNumber?: number;
+  seriesExcluded?: boolean;
   pageCount?: number;
   isbn?: string;
   isbnSource?: string;
@@ -143,6 +159,7 @@ export function normalizeGoodreadsRow(row: Record<string, string>, index: number
   const year = row["Year Published"]?.trim() || row["Original Publication Year"]?.trim() || undefined;
   const shelf = row["Exclusive Shelf"]?.trim() || undefined;
   const isbn = cleanIsbn(row.ISBN13) || cleanIsbn(row.ISBN);
+  const goodreadsTags = normalizeGoodreadsTags(row.Bookshelves);
 
   return {
     id: isbn || `${title}-${author}-${index}`,
@@ -151,12 +168,32 @@ export function normalizeGoodreadsRow(row: Record<string, string>, index: number
     rating,
     year,
     shelf,
+    goodreadsTags: goodreadsTags.length ? goodreadsTags : undefined,
     isbn,
     isbnSource: isbn ? "Goodreads export" : undefined,
     isbnConfidence: isbn ? "high" : undefined,
     importSource: "Goodreads",
     color: palette[index % palette.length],
   };
+}
+
+const GOODREADS_STATUS_SHELVES = new Set(["read", "currently reading", "to read", "owned"]);
+
+export function normalizeGoodreadsTags(value?: string) {
+  if (!value) return [];
+  const seen = new Set<string>();
+  return value
+    .split(",")
+    .map((tag) => tag.trim().replace(/[_-]+/g, " ").replace(/\s+/g, " "))
+    .filter((tag) => tag && !GOODREADS_STATUS_SHELVES.has(tag.toLowerCase()))
+    .map((tag) => tag.charAt(0).toUpperCase() + tag.slice(1))
+    .filter((tag) => {
+      const key = tag.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 12);
 }
 
 function audibleValue(row: Record<string, string>, wantedKey: string) {
@@ -271,6 +308,23 @@ export function mergeGoodreadsFeedback(current: Book[], imported: Book[]) {
       romanceioId: existing.romanceioId,
       webCoverPageUrl: existing.webCoverPageUrl,
       webCoverTitle: existing.webCoverTitle,
+      goodreadsTags: book.goodreadsTags?.length ? book.goodreadsTags : existing.goodreadsTags,
+      tropes: book.tropes?.length ? book.tropes : existing.tropes,
+      genres: book.genres?.length ? book.genres : existing.genres,
+      moods: book.moods?.length ? book.moods : existing.moods,
+      themes: book.themes?.length ? book.themes : existing.themes,
+      pageCount: book.pageCount || existing.pageCount,
+      readerReactions: existing.readerReactions,
+      readerNote: existing.readerNote,
+      favoriteQuote: existing.favoriteQuote,
+      readerReview: existing.readerReview,
+      shelfAwards: existing.shelfAwards,
+      dateStarted: existing.dateStarted,
+      dateFinished: existing.dateFinished,
+      rereadCount: existing.rereadCount,
+      seriesName: existing.seriesName,
+      seriesNumber: existing.seriesNumber,
+      seriesExcluded: existing.seriesExcluded,
       importSource: existing.importSource?.includes("Audible") ? "Goodreads + Audible" : book.importSource,
     };
   });
