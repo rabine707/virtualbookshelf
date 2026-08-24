@@ -24,7 +24,7 @@ export default function CloudAccountSettings() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const syncHost = () => setHost(document.querySelector(".sof-account-shell"));
+    const syncHost = () => setHost(document.querySelector(".sof-cloud-settings-host") || document.querySelector(".sof-account-shell"));
     syncHost();
     const observer = new MutationObserver(syncHost);
     observer.observe(document.body, { childList: true, subtree: true });

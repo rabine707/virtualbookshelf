@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { fitSpineAuthor } from "../../app/mobile-first/MobileBookSpine";
+import { displayedTitleFontSize, displayedTitleLineScale, fitSpineAuthor } from "../../app/mobile-first/MobileBookSpine";
 import { fitSpineTitle, pickSpineDesign } from "../../app/mobile-first/spineTemplates";
 
 describe("mobile spine title fitting", () => {
@@ -22,6 +22,24 @@ describe("mobile spine title fitting", () => {
 
     expect(fitted.lines).toContain("Unfortunately");
     expect(Math.min(...fitted.lineScales)).toBeLessThanOrEqual(.62);
+    expect(displayedTitleFontSize(fitted, design)).toBeGreaterThanOrEqual(9.8);
+  });
+
+  test("does not double-shrink an ornamented three-line title", () => {
+    const title = "The Paris Apartment";
+    const design = pickSpineDesign(title, "Lucy Foley", "#46627f", false);
+    const fitted = fitSpineTitle(title, 54, design);
+    expect(fitted.lines).toHaveLength(3);
+    expect(displayedTitleFontSize(fitted, design)).toBeGreaterThanOrEqual(9.6);
+  });
+
+  test("does not make a condensed single-word title unnaturally skinny", () => {
+    const title = "Unbirthday";
+    const design = pickSpineDesign(title, "Liz Braswell", "#46627f", false);
+    const fitted = fitSpineTitle(title, 54, design);
+    expect(fitted.lines).toEqual(["Unbirthday"]);
+    expect(displayedTitleFontSize(fitted, design)).toBeGreaterThanOrEqual(15);
+    expect(displayedTitleLineScale(fitted, design, 0)).toBeGreaterThanOrEqual(.57);
   });
 });
 

@@ -158,15 +158,18 @@ function displayAuthorLastName(author: string) {
   return last.replace(/^[^A-Za-z0-9À-ÖØ-öø-ÿ'’-]+|[^A-Za-z0-9À-ÖØ-öø-ÿ'’-]+$/g, "").toUpperCase();
 }
 
-function displayedTitleFontSize(fit: FittedSpineTitle, design: SpineDesign) {
+export function displayedTitleFontSize(fit: FittedSpineTitle, design: SpineDesign) {
+  const compactLength = fit.title.replace(/\s+/g, "").length;
   const denseArtworkTitle = Boolean(design.motif)
-    && fit.detailLevel === "reduced"
     && fit.lines.length >= 4;
   const ornamentedThreeLineTitle = Boolean(design.motif)
-    && fit.detailLevel === "full"
     && fit.lines.length === 3;
-  if (denseArtworkTitle) return Math.max(8.6, Math.min(11.4, fit.fontSize * .86));
-  if (ornamentedThreeLineTitle) return Math.max(8.6, Math.min(13.2, fit.fontSize * .92));
+  if (fit.lines.length === 1 && !fit.title.includes(" ") && compactLength <= 14) {
+    return Math.max(15, Math.min(16, fit.fontSize * 1.45));
+  }
+  if (fit.lines.length <= 2 && compactLength <= 22) return Math.max(9.8, Math.min(13.2, fit.fontSize));
+  if (denseArtworkTitle) return Math.max(9.1, Math.min(11.4, fit.fontSize * .94));
+  if (ornamentedThreeLineTitle) return Math.max(9.6, Math.min(13.2, fit.fontSize));
   return fit.fontSize;
 }
 
@@ -241,31 +244,40 @@ function titleAreaStyle(
   };
 }
 
-function titleLineStyle(fit: FittedSpineTitle, design: SpineDesign, lineIndex: number): CSSProperties {
+export function displayedTitleLineScale(fit: FittedSpineTitle, design: SpineDesign, lineIndex: number) {
   const accent = lineIndex === fit.accentLine && Boolean(design.fonts.accentFont);
   const longSingleWord = fit.lines.length === 1 && !fit.title.includes(" ") && fit.title.length >= 10;
   const unbreakableLongLine = !fit.lines[lineIndex].includes(" ") && fit.lines[lineIndex].length >= 12;
   const displayFontSize = displayedTitleFontSize(fit, design);
   const fittedLineScale = fit.lineScales[lineIndex] ?? 1;
   const horizontalFit = unbreakableLongLine ? .86 : fittedLineScale < .84 ? .9 : .98;
-  const baseScale = Math.max(.54, Math.min(1, fittedLineScale * horizontalFit));
-  const scale = accent ? Math.min(baseScale, .86) : baseScale;
+  const sizeCompensation = Math.min(1, fit.fontSize / displayFontSize);
+  const baseScale = Math.max(.5, Math.min(1, fittedLineScale * horizontalFit * sizeCompensation));
+  if (accent) return Math.min(baseScale, .86);
+  return longSingleWord ? Math.max(baseScale, .57) : baseScale;
+}
+
+function titleLineStyle(fit: FittedSpineTitle, design: SpineDesign, lineIndex: number): CSSProperties {
+  const accent = lineIndex === fit.accentLine && Boolean(design.fonts.accentFont);
+  const longSingleWord = fit.lines.length === 1 && !fit.title.includes(" ") && fit.title.length >= 10;
+  const displayFontSize = displayedTitleFontSize(fit, design);
+  const scale = displayedTitleLineScale(fit, design, lineIndex);
 
   return {
     fontFamily: accent
       ? design.fonts.accentFont
       : longSingleWord
-        ? '"Bodoni MT Condensed", "Arial Narrow", "Times New Roman", serif'
+        ? '"Arial Narrow", "Roboto Condensed", Arial, sans-serif'
         : undefined,
     fontSize: accent
       ? `${Math.min(design.layout.maxTitleSize + .7, displayFontSize * 1.12)}px`
       : longSingleWord
         ? `${Math.max(10.2, displayFontSize)}px`
         : undefined,
-    fontWeight: accent ? 500 : undefined,
+    fontWeight: accent ? 500 : longSingleWord ? 800 : undefined,
     fontStyle: accent ? "italic" : undefined,
     fontStretch: longSingleWord ? "condensed" : undefined,
-    letterSpacing: accent ? "0" : undefined,
+    letterSpacing: accent ? "0" : longSingleWord ? "-.025em" : undefined,
     textTransform: accent ? "none" : undefined,
     transform: `scaleX(${scale})`,
     transformOrigin: design.titleAlign === "left" ? "left center" : "center",
