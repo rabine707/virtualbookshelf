@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { spineColorFromPixels } from "../../lib/books/cover-palette";
+import { balanceDefaultSpineColor, spineColorFromPixels } from "../../lib/books/cover-palette";
 
 function pixels(colors: Array<[number, number, number]>) {
   return new Uint8Array(colors.flat());
@@ -21,5 +21,22 @@ describe("cover-derived spine colors", () => {
 
   test("returns null when no usable pixels are present", () => {
     expect(spineColorFromPixels(new Uint8Array(), 4)).toBeNull();
+  });
+
+  test("preserves a tasteful cool cover-derived color", () => {
+    expect(balanceDefaultSpineColor("#294f69", "blue-book")).toBe("#294f69");
+  });
+
+  test("redirects muddy warm colors deterministically", () => {
+    const first = balanceDefaultSpineColor("#754a28", "same-book");
+    expect(first).toBe(balanceDefaultSpineColor("#754a28", "same-book"));
+    expect(first).not.toBe("#754a28");
+  });
+
+  test("distributes warm-heavy books across multiple tasteful families", () => {
+    const colors = new Set(Array.from({ length: 24 }, (_, index) => (
+      balanceDefaultSpineColor("#8a552d", `book-${index}`)
+    )));
+    expect(colors.size).toBeGreaterThanOrEqual(6);
   });
 });

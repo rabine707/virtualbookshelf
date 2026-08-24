@@ -64,6 +64,43 @@ function componentHex(value: number) {
   return clamp(Math.round(value), 0, 255).toString(16).padStart(2, "0");
 }
 
+const BALANCED_CLOTH_PALETTE = [
+  "#294b48", // petrol teal
+  "#314665", // ink blue
+  "#405b4a", // forest green
+  "#5a4565", // plum
+  "#6a3946", // burgundy
+  "#716779", // smoky lavender
+  "#545553", // charcoal
+  "#76513d", // restrained warm leather
+] as const;
+
+function stableColorIndex(seed: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % BALANCED_CLOTH_PALETTE.length;
+}
+
+/**
+ * Preserve genuinely useful cover hues, but keep the default shelf from
+ * collapsing into the brown/orange range produced by sepia-heavy covers.
+ * The replacement is deterministic per book and includes only one restrained
+ * warm option, so rerenders stay stable while the shelf gains color breadth.
+ */
+export function balanceDefaultSpineColor(color: string, seed: string) {
+  const match = /^#([0-9a-f]{6})$/i.exec(color.trim());
+  if (!match) return color;
+  const value = Number.parseInt(match[1], 16);
+  const hsl = rgbToHsl((value >> 16) & 255, (value >> 8) & 255, value & 255);
+  const muddyWarm = hsl.hue >= 18 && hsl.hue <= 72
+    && hsl.saturation >= .12
+    && hsl.lightness <= .5;
+  return muddyWarm ? BALANCED_CLOTH_PALETTE[stableColorIndex(seed)] : color;
+}
+
 function clothColor(red: number, green: number, blue: number) {
   const hsl = rgbToHsl(red, green, blue);
   const adjusted = hslToRgb({

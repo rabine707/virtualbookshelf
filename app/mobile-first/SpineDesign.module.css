@@ -103,23 +103,148 @@
   mix-blend-mode: overlay;
 }
 
-.ghostCoverArt {
-  z-index: 1;
-  opacity: .14;
-  filter: grayscale(1) sepia(.16) brightness(.68) contrast(.92) blur(.3px);
-  transform: scale(1.11);
-  mix-blend-mode: multiply;
+.ghostArtwork {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--spine-ink) 78%, var(--mobile-spine-color));
+  opacity: .35;
+  pointer-events: none;
+  overflow: hidden;
+  mix-blend-mode: normal;
+  filter: grayscale(1) contrast(.9);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0 35%, transparent 44% 61%, #000 70% 100%);
+  mask-image: linear-gradient(to bottom, #000 0 35%, transparent 44% 61%, #000 70% 100%);
 }
 
-.editorial .ghostCoverArt {
-  opacity: .15;
-  filter: grayscale(1) sepia(.12) brightness(.72) contrast(.94) blur(.24px);
+.ghostArtwork img,
+.ghostEngraving {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 
-.decorative .ghostCoverArt {
-  opacity: .11;
-  filter: grayscale(1) sepia(.2) brightness(.64) contrast(.93) blur(.34px);
+.ghostArtwork img {
+  object-fit: contain;
+  filter: grayscale(1) sepia(.12) saturate(.3) contrast(.9);
 }
+
+.ghostEngraving {
+  position: relative;
+  display: block;
+}
+
+.ghostArtworkVector {
+  position: absolute;
+  inset: 14% 5% 13%;
+  width: 90%;
+  height: 73%;
+  display: block;
+  overflow: visible;
+  stroke-width: .58px;
+}
+
+.ghostArtworkDetail {
+  position: absolute;
+  left: 12%;
+  width: 76%;
+  height: 25%;
+  display: block;
+  overflow: visible;
+  stroke-width: .48px;
+  opacity: .56;
+}
+
+.ghostArtworkDetailTop {
+  top: 1%;
+  transform: scaleX(-1) rotate(-4deg);
+}
+
+.ghostArtworkDetailBottom {
+  bottom: 0;
+  transform: rotate(180deg) rotate(-4deg);
+}
+
+.editorial .ghostArtwork { opacity: .32; }
+.decorative .ghostArtwork { opacity: .37; }
+
+.publisherSpine[data-spine-artwork="gothic-castle"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="skull-botanicals"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="ornate-key"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="moth-moon"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="heart-dagger"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="raven-moon"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="letter-roses"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="hockey-heritage"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="western-wildflowers"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="coastal-sun"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="broken-heart-roses"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="travel-postcards"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="apartment-window"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="mistletoe-bells"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="medical-herbarium"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="wine-vines"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="lace-mask"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="wildflowers"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="crossed-axes"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="serpent-rose"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="thorn-heart"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="mountain-pines"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="playing-cards"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="hockey-heart"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="fox-moon"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="sealed-letter"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="wedding-rings"] .ghostArtwork,
+.publisherSpine[data-spine-artwork="moth-bloom"] .ghostArtwork {
+  opacity: .45;
+}
+
+.publisherSpine[data-spine-artwork="gothic-castle"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="skull-botanicals"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="ornate-key"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="moth-moon"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="heart-dagger"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="raven-moon"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="letter-roses"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="hockey-heritage"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="western-wildflowers"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="coastal-sun"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="broken-heart-roses"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="travel-postcards"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="apartment-window"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="mistletoe-bells"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="medical-herbarium"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="wine-vines"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="lace-mask"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="wildflowers"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="crossed-axes"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="serpent-rose"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="thorn-heart"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="mountain-pines"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="playing-cards"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="hockey-heart"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="fox-moon"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="sealed-letter"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="wedding-rings"] .ghostArtwork img,
+.publisherSpine[data-spine-artwork="moth-bloom"] .ghostArtwork img {
+  object-fit: cover;
+}
+
+/* The same motif can recur without producing the same repeated stamp. These
+   seeded compositions preserve readability while varying scale and placement. */
+.ghostArtwork[data-ghost-composition="1"] > * { transform: none; }
+.ghostArtwork[data-ghost-composition="2"] > * { transform: scaleX(-1); }
+.ghostArtwork[data-ghost-composition="3"] { opacity: .3; }
+.ghostArtwork[data-ghost-composition="3"] > * { transform: scaleX(-1); }
+.ghostArtwork[data-ghost-composition="4"] > * { transform: none; }
+.ghostArtwork[data-ghost-composition="5"] { opacity: .33; }
+.ghostArtwork[data-ghost-composition="5"] > * { transform: scaleX(-1); }
+.ghostArtwork[data-ghost-composition="6"] { opacity: .3; }
+.ghostArtwork[data-ghost-composition="6"] > * { transform: none; }
+.ghostArtwork[data-ghost-composition="7"] > * { transform: scaleX(-1); }
 
 .artCover {
   z-index: 1;

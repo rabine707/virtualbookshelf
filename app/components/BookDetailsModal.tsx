@@ -17,6 +17,7 @@ import { CoverCropSheet } from "./CoverCropSheet";
 import { SpineRequestButton } from "./SpineRequestButton";
 import { loadSharedSpineOptions, type SharedSpineEntry } from "../shared-spines";
 import { getGeneratedSpine, saveGeneratedSpine } from "../../lib/spines/client";
+import { storyTagsForBook } from "../../lib/books/story-tags";
 
 type BookDetailsModalProps = {
   selected: Book;
@@ -135,6 +136,8 @@ export function BookDetailsModal({
     selected.rating ? ["★", "★".repeat(Math.min(selected.rating, 5))] : null,
     selected.year ? ["◷", selected.year] : null,
   ].filter((item): item is [string, string] => Boolean(item));
+  const storyTags = storyTagsForBook(selected);
+  const hasStoryTags = storyTags.tropes.length > 0 || storyTags.genres.length > 0 || storyTags.moods.length > 0;
 
   const hasCoverOptions = coverOptions.length > 0;
   const totalCoverChoices = coverOptions.length + webCoverResults.length;
@@ -416,6 +419,21 @@ export function BookDetailsModal({
                 ))}
               </div>
 
+              {hasStoryTags ? (
+                <section className="book-story-tags" aria-label="Story tags">
+                  <div className="book-story-tags-heading">
+                    <div>
+                      <span>Inside this book</span>
+                      <h3>Story tags</h3>
+                    </div>
+                    {storyTags.inferred ? <small title="Suggested from the title until richer book metadata is available">Shelf suggested</small> : <small>Book metadata</small>}
+                  </div>
+                  {storyTags.tropes.length ? <div className="book-story-tag-group"><strong>Tropes</strong><div>{storyTags.tropes.map((tag) => <span key={tag}>♡ {tag}</span>)}</div></div> : null}
+                  {storyTags.genres.length ? <div className="book-story-tag-group"><strong>Genres</strong><div>{storyTags.genres.map((tag) => <span key={tag}>✦ {tag}</span>)}</div></div> : null}
+                  {storyTags.moods.length ? <div className="book-story-tag-group"><strong>Vibe</strong><div>{storyTags.moods.map((tag) => <span key={tag}>☾ {tag}</span>)}</div></div> : null}
+                </section>
+              ) : null}
+
               <label
                 style={{
                   display: "grid",
@@ -452,6 +470,7 @@ export function BookDetailsModal({
 
               <dl>
                 {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
+                {selected.pageCount ? <><dt>Length</dt><dd>{selected.pageCount} pages</dd></> : null}
                 <dt>ISBN</dt><dd>{selectedIsbn || "Not available"}</dd>
                 {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
               </dl>

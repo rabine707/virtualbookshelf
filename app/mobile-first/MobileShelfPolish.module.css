@@ -1,11 +1,15 @@
 .topBar {
   z-index: 0;
   top: max(24px, 5vh, env(safe-area-inset-top));
-  left: 36%;
+  left: 50%;
   right: auto;
+  width: max-content;
+  transform: translateX(-50%);
 }
 
 .brand {
+  justify-items: center;
+  text-align: center;
   color: rgba(239, 221, 184, .91);
   font-size: clamp(16px, 4.4vw, 23px);
   font-weight: 500;

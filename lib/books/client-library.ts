@@ -35,6 +35,10 @@ export type Book = {
   rating?: number;
   year?: string;
   shelf?: string;
+  tropes?: string[];
+  genres?: string[];
+  moods?: string[];
+  pageCount?: number;
   isbn?: string;
   isbnSource?: string;
   isbnConfidence?: IdentifierConfidence;

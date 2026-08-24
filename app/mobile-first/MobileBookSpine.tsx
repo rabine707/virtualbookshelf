@@ -20,6 +20,7 @@ import {
   type SpineRenderMode,
 } from "../../lib/spines/client";
 import { coverPaletteMemory, loadCoverSpineColor } from "../../lib/books/client-cover-palette";
+import { balanceDefaultSpineColor } from "../../lib/books/cover-palette";
 import {
   fitSpineTitle,
   pickSpineDesign,
@@ -206,6 +207,17 @@ function titleAreaStyle(
     height = Math.min(46, height);
   }
 
+  // The illustrated layout narrows the title zone, but it must never become
+  // shorter than the fitted line stack. Otherwise glyph ascenders on the first
+  // line and descenders on the last line are clipped by the title container.
+  const displayFontSize = displayedTitleFontSize(fit, design);
+  const lineGaps = Math.max(0, fit.lines.length - 1)
+    * (layout.id === "contemporary-editorial" ? 1.5 : 1);
+  const minimumTextHeight = Math.ceil(
+    (displayFontSize * layout.lineHeight * fit.lines.length) + lineGaps + 3,
+  );
+  height = Math.max(height, minimumTextHeight);
+
   return {
     top: `${top}px`,
     left: "5px",
@@ -220,7 +232,7 @@ function titleAreaStyle(
     gap: layout.id === "contemporary-editorial" ? "1.5px" : "1px",
     textAlign: leftAligned ? "left" : "center",
     fontFamily: design.fonts.titleFont,
-    fontSize: `${displayedTitleFontSize(fit, design)}px`,
+    fontSize: `${displayFontSize}px`,
     fontWeight: layout.titleWeight,
     lineHeight: layout.lineHeight,
     letterSpacing: `${layout.letterSpacingEm}em`,
@@ -370,9 +382,14 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const [coverSpineColor, setCoverSpineColor] = useState<string | undefined>(() => (
     coverUrl ? coverPaletteMemory.get(coverUrl) || undefined : undefined
   ));
-  const spineColor = coverSpineColor || book.color;
+  const spineColor = balanceDefaultSpineColor(
+    coverSpineColor || book.color,
+    `${book.id}|${book.title}|${book.author}|cloth-color`,
+  );
   const tokens = spineTokensFor(book.id, book.title, book.author);
-  const design = pickSpineDesign(book.title, book.author, spineColor, Boolean(coverUrl));
+  // Automatic defaults always use the Shelf of Fame cloth system. A cover may
+  // inform the cloth color, but full-color art belongs to a selected manual spine.
+  const design = pickSpineDesign(book.title, book.author, spineColor, false);
   const fittedTitle = fitSpineTitle(book.title, Math.min(tokens.width, SAFE_TITLE_FIT_WIDTH), design);
   const colors = inkColors(design, spineColor);
   const printFinish = printFinishFor(book, design);
@@ -523,10 +540,11 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
   const showOverlayTypography = generatedMode !== "integrated" || generatedSpineFailed;
   const customSpineArt = Boolean(generatedSpine && !generatedSpineFailed);
   const publishedArt = design.layout.id === "published-art";
-  const showGhostedClothArt = Boolean(coverUrl) && !publishedArt && !generatedSpine;
+  const showGhostArtwork = !publishedArt && !generatedSpine && Boolean(design.artwork);
   const showDecoration = fittedTitle.detailLevel !== "title-only" && !customSpineArt;
   const showStructuralDetail = fittedTitle.detailLevel !== "title-only" && !customSpineArt;
   const artworkImage = spineArtworkImage(design.artwork);
+  const ghostComposition = stableSpineNumber(`${book.id}|${book.title}|${book.author}|ghost-composition`) % 8;
   const automaticSideways = stableSpineNumber(`${book.id}|${book.title}|${book.author}|title-orientation`) % 2 === 0;
   const forceSideways = titleOrientation === "sideways";
   const sidewaysEligible = titleOrientation !== "upright"
@@ -577,22 +595,23 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
       <span className={unifiedStyles.bindingDepth} aria-hidden="true" />
 
       <span className={`${unifiedStyles.printedDesign} ${unifiedStyles[printFinish]}`} data-face={printedFace}>
-        {showGhostedClothArt ? (
-          <img
-            className={`${styles.spineCover} ${designStyles.ghostCoverArt}`}
-            src={coverUrl}
-            alt=""
+        {showGhostArtwork ? (
+          <span
+            className={designStyles.ghostArtwork}
             aria-hidden="true"
-            data-shelf-ghost-cover="true"
-            loading={eager ? "eager" : "lazy"}
-            decoding="async"
-            onError={() => {
-              if (!preferred) {
-                coverMemory.set(key, null);
-                setCover(null);
-              }
-            }}
-          />
+            data-shelf-ghost-artwork="true"
+            data-ghost-composition={ghostComposition}
+          >
+            {artworkImage ? (
+              <img src={artworkImage} alt="" decoding="async" />
+            ) : (
+              <span className={designStyles.ghostEngraving}>
+                <SpineOrnament artwork={design.artwork!} className={designStyles.ghostArtworkVector} variant="primary" />
+                <SpineOrnament artwork={design.artwork!} className={`${designStyles.ghostArtworkDetail} ${designStyles.ghostArtworkDetailTop}`} variant="secondary" />
+                <SpineOrnament artwork={design.artwork!} className={`${designStyles.ghostArtworkDetail} ${designStyles.ghostArtworkDetailBottom}`} variant="secondary" />
+              </span>
+            )}
+          </span>
         ) : null}
 
         {publishedArt && coverUrl ? (
@@ -630,7 +649,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
           <>
             {design.showFrame && showStructuralDetail && !sidewaysTitle ? <span className={designStyles.frame} aria-hidden="true" /> : null}
             {design.showDivider && showStructuralDetail && !sidewaysTitle ? <span className={designStyles.divider} aria-hidden="true" /> : null}
-            {design.artwork && showSpineArtwork ? (
+            {design.artwork && showSpineArtwork && publishedArt ? (
               <span
                 className={`${designStyles.ornamentPlate} ${designStyles.ornamentTop}`}
                 data-ornament-placement="primary"
@@ -652,7 +671,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
                 )}
               </span>
             ) : null}
-            {design.artwork && showSpineArtwork && !artworkImage && !sidewaysTitle ? (
+            {design.artwork && showSpineArtwork && publishedArt && !artworkImage && !sidewaysTitle ? (
               <span
                 className={`${designStyles.ornamentPlate} ${designStyles.ornamentBottom}`}
                 data-ornament-placement="secondary"

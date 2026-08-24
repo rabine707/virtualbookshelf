@@ -38,6 +38,15 @@ export type SpineMotifId =
   | "mystery";
 
 export type SpineArtworkId =
+  | "gothic-castle"
+  | "skull-botanicals"
+  | "ornate-key"
+  | "moth-moon"
+  | "heart-dagger"
+  | "raven-moon"
+  | "letter-roses"
+  | "hockey-heritage"
+  | "western-wildflowers"
   | "moon-forest"
   | "compass-star"
   | "leafy-sprig"
@@ -60,6 +69,14 @@ export type SpineArtworkId =
   | "sealed-letter"
   | "wedding-rings"
   | "moth-bloom"
+  | "coastal-sun"
+  | "broken-heart-roses"
+  | "travel-postcards"
+  | "apartment-window"
+  | "mistletoe-bells"
+  | "medical-herbarium"
+  | "wine-vines"
+  | "lace-mask"
   | "lips";
 
 export type SpineDesign = {
@@ -284,19 +301,46 @@ function variantFor(title: string, author: string): 0 | 1 | 2 {
 
 function artworkFor(text: string, motif: SpineMotifId, seed: string): SpineArtworkId {
   const alternate = stableHash(`${seed}|artwork`) % 2 === 1;
+  const pickArtwork = (pool: SpineArtworkId[], salt: string) => {
+    let mixed = stableHash(`${seed}|${salt}`);
+    mixed ^= mixed >>> 16;
+    mixed = Math.imul(mixed, 0x7feb352d);
+    mixed ^= mixed >>> 15;
+    mixed = Math.imul(mixed, 0x846ca68b);
+    mixed ^= mixed >>> 16;
+    return pool[(mixed >>> 0) % pool.length];
+  };
 
+  if (includesAny(text, ["beach", "seaside", "ocean", "coast", "pool boy", "one summer", "hook, line", "hook line"])) return "coastal-sun";
+  if (includesAny(text, ["ugly love", "does it hurt", "ends with us", "what's left of me", "reminders of him", "break me", "broken heart"])) return "broken-heart-roses";
+  if (includesAny(text, ["vacation", "paris", "travel", "road trip", "getaway"])) return "travel-postcards";
+  if (includesAny(text, ["apartment", "neighbor", "roommate", "next door"])) return "apartment-window";
+  if (includesAny(text, ["christmas", "mistletoe", "holiday", "merry ever after"])) return "mistletoe-bells";
+  if (includesAny(text, ["doctor", "patient", "nurse", "hospital", "medicine"])) return "medical-herbarium";
+  if (includesAny(text, ["vine mess", "vineyard", "wine", "winemaker"])) return "wine-vines";
+  if (includesAny(text, ["masquerade", "madame", "voyeur", "masked", "fifty shades"])) return "lace-mask";
+  if (includesAny(text, ["beautiful venom", "skull", "poison", "toxic", "bones"])) return "skull-botanicals";
+  if (includesAny(text, ["castle", "cathedral", "gothic", "kingdom", "throne", "fae prince", "dark one"])) return "gothic-castle";
+  if (/\b(?:key|lock)\b/.test(text)) return "ornate-key";
+  if (includesAny(text, ["secret", "hidden", "ritual", "mystery"])) {
+    return pickArtwork(["ornate-key", "watching-eye", "candle-key", "raven-moon", "apartment-window"], "mystery-signal");
+  }
+  if (includesAny(text, ["raven", "crow", "blackbird"])) return "raven-moon";
+  if (includesAny(text, ["cowboy", "western", "ranch", "rope me", "rein me", "rodeo"])) return "western-wildflowers";
   if (includesAny(text, ["vixen", "fox"])) return "fox-moon";
-  if (includesAny(text, ["pen pal", "letter", "mail"])) return "sealed-letter";
+  if (includesAny(text, ["pen pal", "letter", "mail", "correspondence"])) return "letter-roses";
   if (includesAny(text, ["hitched", "wedding", "bride", "groom", "marry"])) return "wedding-rings";
-  if (includesAny(text, ["wreck me", "moth", "butterfly"])) return "moth-bloom";
+  if (includesAny(text, ["wreck me", "moth", "butterfly"])) return "moth-moon";
   if (includesAny(text, ["dirty love", "lipstick", "lips"])) return "lips";
   if (includesAny(text, ["beautiful venom"])) return "wildflowers";
   if (includesAny(text, ["axe", "axes", "hatchet"])) return "crossed-axes";
   if (includesAny(text, ["crown", "throne", "queen", "prince", "kingdom", "court"])) return "crown-blade";
   if (includesAny(text, ["venom", "viper", "serpent", "snake"])) return "serpent-rose";
-  if (includesAny(text, ["bleed", "blood", "broken", "redeem", "wound"])) return "thorn-heart";
+  if (includesAny(text, ["dagger", "blade", "bleed", "blood", "wound"])) return "heart-dagger";
+  if (includesAny(text, ["broken", "redeem"])) return "thorn-heart";
   if (includesAny(text, ["hockey", "puck", "ice rink", "goalie"])) {
-    return includesAny(text, ["love", "crush", "heart", "kiss"]) ? "hockey-heart" : "crossed-sticks";
+    if (text.includes("pucking crush")) return "hockey-heritage";
+    return pickArtwork(["hockey-heritage", "hockey-heart", "crossed-sticks"], "sports-signal");
   }
   if (includesAny(text, ["playing", "cards", "poker", "game"])) return "playing-cards";
   if (includesAny(text, ["moon", "moonlight", "night", "lights out"])) return "moon-forest";
@@ -314,15 +358,19 @@ function artworkFor(text: string, motif: SpineMotifId, seed: string): SpineArtwo
     return alternate ? "heart-vine" : "thorn-heart";
   }
 
-  if (motif === "celestial") return alternate ? "moon-forest" : "compass-star";
-  if (motif === "botanical") return alternate ? "botanical-key" : "leafy-sprig";
-  if (motif === "floral") return alternate ? "wildflowers" : "rose-bloom";
-  if (motif === "fantasy") return alternate ? "crown-blade" : "crossed-axes";
-  if (motif === "dark-romance") return alternate ? "serpent-rose" : "thorn-heart";
-  if (motif === "nature") return alternate ? "frost-mountain" : "mountain-pines";
-  if (motif === "romance") return alternate ? "heart-vine" : "thorn-heart";
-  if (motif === "sports") return alternate ? "hockey-heart" : "crossed-sticks";
-  return alternate ? "watching-eye" : "candle-key";
+  if (motif === "celestial") return pickArtwork(["moth-moon", "raven-moon", "moon-forest", "compass-star", "lace-mask"], "celestial-pool");
+  if (motif === "botanical") return pickArtwork(["ornate-key", "botanical-key", "leafy-sprig", "wildflowers", "wine-vines", "medical-herbarium"], "botanical-pool");
+  if (motif === "floral") return pickArtwork(["wildflowers", "rose-bloom", "moth-bloom", "letter-roses", "wine-vines"], "floral-pool");
+  if (motif === "fantasy") return pickArtwork(["gothic-castle", "crown-blade", "crossed-axes", "serpent-rose", "raven-moon", "ornate-key"], "fantasy-pool");
+  if (motif === "dark-romance") return pickArtwork(["skull-botanicals", "heart-dagger", "raven-moon", "serpent-rose", "thorn-heart", "broken-heart-roses", "lace-mask"], "dark-romance-pool");
+  if (motif === "nature") return pickArtwork(["western-wildflowers", "frost-mountain", "mountain-pines", "coastal-sun", "wildflowers"], "nature-pool");
+  if (motif === "romance") return pickArtwork(["letter-roses", "heart-vine", "thorn-heart", "broken-heart-roses", "wedding-rings", "travel-postcards", "coastal-sun", "wine-vines"], "romance-pool");
+  if (motif === "sports") return pickArtwork(["hockey-heritage", "hockey-heart", "crossed-sticks"], "sports-pool");
+  if (motif === "mystery") return pickArtwork(["ornate-key", "watching-eye", "candle-key", "raven-moon", "apartment-window", "lace-mask"], "mystery-pool");
+  return pickArtwork([
+    "ornate-key", "watching-eye", "candle-key", "raven-moon", "wildflowers",
+    "moth-moon", "apartment-window", "travel-postcards", "medical-herbarium", "lace-mask",
+  ], "house-pool");
 }
 
 export function pickSpineDesign(
@@ -395,25 +443,9 @@ export function pickSpineDesign(
                       : includesAny(text, FANTASY_WORDS)
                         ? FANTASY_MOTIFS[variant]
                         : DECORATIVE_MOTIFS[motifIndex];
-  const motifThreshold = layout.id === "decorative-special"
-    ? 96
-    : layout.id === "clothbound-literary"
-      ? 82
-      : layout.id === "contemporary-editorial"
-        ? 72
-        : 56;
-  const hasSemanticMotif = includesAny(text, [
-    ...CELESTIAL_MOTIF_WORDS,
-    ...BOTANICAL_MOTIF_WORDS,
-    ...FLORAL_MOTIF_WORDS,
-    ...FANTASY_MOTIF_WORDS,
-    ...NATURE_MOTIF_WORDS,
-    ...ROMANCE_MOTIF_WORDS,
-    ...SPORTS_MOTIF_WORDS,
-    ...MYSTERY_MOTIF_WORDS,
-    ...DARK_ROMANCE_MOTIF_WORDS,
-  ]);
-  const motif = hasSemanticMotif || detailBucket < motifThreshold ? genreMotif : null;
+  // Every automatic cloth spine receives a deterministic illustration. Strong
+  // title signals still win; quieter books use the seeded house-art pool.
+  const motif = genreMotif;
   const artwork = motif ? artworkFor(text, motif, `${title}|${author}`) : null;
   const showFrame = layout.id === "decorative-special"
     ? detailBucket < 72
