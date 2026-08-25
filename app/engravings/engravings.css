@@ -1,0 +1,46 @@
+.engraving-library {
+  min-height: 100vh;
+  padding: 32px clamp(18px, 4vw, 56px) 72px;
+  color: #f4ead8;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(123, 151, 105, .2), transparent 38%),
+    linear-gradient(180deg, #24231d, #15130f 72%);
+}
+
+.engraving-library-header {
+  max-width: 1180px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.engraving-library-eyebrow { color: #b9c7a5; font-size: 11px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+.engraving-library h1 { margin: 7px 0 5px; font-family: Georgia, serif; font-size: clamp(32px, 5vw, 54px); font-weight: 500; }
+.engraving-library-header p { margin: 0; color: #bdb5a7; }
+.engraving-library-back { flex: none; color: #f4ead8; text-decoration: none; padding: 10px 14px; border: 1px solid rgba(244, 234, 216, .18); border-radius: 999px; }
+.engraving-library-gate { display: grid; place-content: center; justify-items: start; gap: 12px; }
+.engraving-library-gate h1, .engraving-library-gate p { margin: 0; max-width: 480px; }
+.engraving-library-gate .engraving-library-back { margin-top: 8px; }
+
+.engraving-library-summary { max-width: 1180px; margin: 0 auto 18px; display: flex; align-items: baseline; gap: 8px; color: #bdb5a7; }
+.engraving-library-summary strong { color: #f4ead8; font-size: 22px; }
+
+.engraving-library-grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.engraving-card { min-width: 0; overflow: hidden; border: 1px solid rgba(244, 234, 216, .12); border-radius: 16px; background: rgba(255, 255, 255, .045); box-shadow: 0 14px 30px rgba(0, 0, 0, .16); }
+.engraving-card-preview { height: 190px; display: grid; place-items: center; overflow: hidden; color: #d7bc78; background: linear-gradient(135deg, #304032, #1c2720); }
+.engraving-card-preview img { width: 100%; height: 100%; object-fit: contain; filter: grayscale(1) sepia(.25) saturate(.55) contrast(1.03); }
+.engraving-card-svg { width: 72px; height: 108px; overflow: visible; }
+.engraving-card-copy { position: relative; display: grid; gap: 4px; padding: 12px 13px 14px; }
+.engraving-card-copy strong { font-family: Georgia, serif; font-size: 14px; }
+.engraving-card-copy span { color: #b9c7a5; font-size: 11px; }
+.engraving-card-copy small { position: absolute; right: 12px; bottom: 13px; color: #8f887c; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+
+@media (max-width: 620px) {
+  .engraving-library { padding: 22px 14px 52px; }
+  .engraving-library-header { align-items: flex-start; flex-direction: column; }
+  .engraving-library-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .engraving-card-preview { height: 160px; }
+  .engraving-card-copy small { position: static; margin-top: 3px; }
+}

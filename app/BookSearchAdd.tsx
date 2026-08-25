@@ -184,8 +184,11 @@ export default function BookSearchAdd({ books, setBooks, showToast, onImportGood
         .book-search-add-message { margin: 0 22px 12px; padding: 9px 11px; border-radius: 10px; background: rgba(255,255,255,.055); color: rgba(244,234,219,.76); font-size: 12px; }
         .book-search-add-fallback { padding: 0 22px 15px; text-align: center; }
         .book-search-add-fallback button { border: 0; background: transparent; color: rgba(244,234,219,.58); font: inherit; font-size: 11px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-        .book-search-add-imports { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 14px 22px 22px; border-top: 1px solid rgba(255,255,255,.08); }
-        .book-search-add-imports button { min-height: 48px; padding: 9px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: rgba(255,255,255,.045); color: inherit; font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
+        .book-search-add-imports { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 11px; align-items: stretch; padding: 14px 22px 22px; border-top: 1px solid rgba(255,255,255,.08); }
+        .book-search-goodreads { display: grid; gap: 9px; padding: 13px; border: 1px solid rgba(205,166,116,.18); border-radius: 14px; background: rgba(205,166,116,.055); }
+        .book-search-goodreads-copy strong { display: block; margin-bottom: 4px; color: #ead5b6; font-size: 13px; }.book-search-goodreads-copy p { margin: 0; color: rgba(244,234,219,.58); font-size: 10px; line-height: 1.45; }
+        .book-search-goodreads-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }.book-search-goodreads-steps a,.book-search-goodreads-steps button,.book-search-scan { min-height: 44px; display: grid; place-items: center; box-sizing: border-box; padding: 8px 10px; border: 1px solid rgba(255,255,255,.1); border-radius: 11px; background: rgba(255,255,255,.045); color: inherit; font: inherit; font-size: 11px; font-weight: 800; text-align: center; text-decoration: none; cursor: pointer; }.book-search-goodreads-steps a { border-color: rgba(205,166,116,.32); background: rgba(205,166,116,.13); color: #f0d8b5; }
+        .book-search-scan { min-width: 150px; }
         .book-search-add-imports button:disabled { opacity: .45; cursor: default; }
         body.book-search-add-open { overflow: hidden !important; }
         @media (max-width: 760px) {
@@ -201,7 +204,7 @@ export default function BookSearchAdd({ books, setBooks, showToast, onImportGood
           .book-search-result-cover { width: 48px; height: 70px; }
           .book-search-result-add { padding-inline: 7px; }
           .book-search-add-message, .book-search-add-fallback { margin-left: 17px; margin-right: 17px; }
-          .book-search-add-imports { padding: 12px 17px 15px; }
+          .book-search-add-imports { grid-template-columns: 1fr; padding: 12px 17px 15px; }.book-search-goodreads-steps { grid-template-columns: 1fr; }.book-search-scan { min-width: 0; }
         }
       `}</style>
 
@@ -231,7 +234,7 @@ export default function BookSearchAdd({ books, setBooks, showToast, onImportGood
           </div>
           {message ? <div className="book-search-add-message" role="status">{message}</div> : null}
           {searched && title.trim() ? <div className="book-search-add-fallback"><button type="button" onClick={useTypedEntry}>Can’t find it? Add exactly “{title.trim()}”{author.trim() ? ` by ${author.trim()}` : ""}.</button></div> : null}
-          <div className="book-search-add-imports"><button type="button" onClick={importGoodreads}>📚 Import Goodreads</button><button type="button" disabled title="Bookshelf photo scanning is coming soon">📷 Scan bookshelf · Soon</button></div>
+          <div className="book-search-add-imports"><section className="book-search-goodreads" aria-labelledby="goodreads-import-title"><div className="book-search-goodreads-copy"><strong id="goodreads-import-title">Bring over your Goodreads library</strong><p>On iPhone, Goodreads cannot export from its app. Open the export page in Safari, sign in, tap “Export Library,” then download the CSV to Files.</p></div><div className="book-search-goodreads-steps"><a href="https://www.goodreads.com/review/import" target="_blank" rel="noreferrer">1. Get my Goodreads file ↗</a><button type="button" onClick={importGoodreads}>2. Choose downloaded CSV</button></div></section><button className="book-search-scan" type="button" disabled title="Bookshelf photo scanning is coming soon">📷 Scan bookshelf · Soon</button></div>
         </section>
       </div>
     </>,

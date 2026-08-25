@@ -18,6 +18,8 @@ const OWNED_KEY = "shelf-of-fame-decor-owned-v1";
 const ACTIVE_KEY = "shelf-of-fame-decor-active-v1";
 const POINTS_KEY = "shelf-of-fame-community-points-v1";
 const FAVORITES_KEY = "shelf-of-fame-favorites-v1";
+const PROFILE_FAVORITES_KEY = "shelf-of-fame-profile-favorites-v1";
+const PROFILE_FAVORITES_STYLE_KEY = "shelf-of-fame-profile-favorites-style-v1";
 const PUBLIC_KEY = "shelf-of-fame-public-v1";
 const INITIALIZED_KEY = "shelf-of-fame-cloud-initialized-v1";
 
@@ -58,6 +60,8 @@ function currentSettings(fallbackPublic = false): CloudSettings {
     decor_active: decorActive,
     community_stars: points,
     shelf_public: publicRaw === null ? fallbackPublic : publicRaw === "on",
+    profile_favorite_book_ids: safeJson<string[]>(PROFILE_FAVORITES_KEY, []).slice(0, 5),
+    profile_favorites_style: window.localStorage.getItem(PROFILE_FAVORITES_STYLE_KEY) === "spines" ? "spines" : "covers",
   };
 }
 
@@ -77,6 +81,8 @@ function applyCloudSettings(settings: CloudSettings) {
   window.localStorage.setItem(ACTIVE_KEY, JSON.stringify(settings.decor_active && typeof settings.decor_active === "object" ? settings.decor_active : {}));
   window.localStorage.setItem(POINTS_KEY, String(Math.max(0, Number(settings.community_stars || 0))));
   window.localStorage.setItem(PUBLIC_KEY, settings.shelf_public ? "on" : "off");
+  window.localStorage.setItem(PROFILE_FAVORITES_KEY, JSON.stringify(Array.isArray(settings.profile_favorite_book_ids) ? settings.profile_favorite_book_ids.slice(0, 5) : []));
+  window.localStorage.setItem(PROFILE_FAVORITES_STYLE_KEY, settings.profile_favorites_style === "spines" ? "spines" : "covers");
   if (settings.theme) document.documentElement.dataset.shelfTheme = settings.theme;
   document.documentElement.dataset.spineLabels = settings.spine_labels === false ? "off" : "on";
   document.documentElement.dataset.titleOrientation = titleOrientation;

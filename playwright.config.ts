@@ -13,6 +13,13 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3000",
     browserName: "chromium",
+    storageState: {
+      cookies: [],
+      origins: [{
+        origin: "http://localhost:3000",
+        localStorage: [{ name: "shelf-of-fame-onboarding-status-v1", value: "skipped" }],
+      }],
+    },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

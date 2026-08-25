@@ -3,6 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import CloudAccountSettings from "../CloudAccountSettings";
+import { updateProfileFavorites } from "../cloud-sync";
 import { Book, STORAGE_KEY } from "../../lib/books/client-library";
 import { MobileBookSpine } from "../mobile-first/MobileBookSpine";
 import {
@@ -31,6 +32,7 @@ function initials(displayName: string, username: string) {
 const GENRE_SUGGESTIONS = ["Romance", "Fantasy", "Mystery", "Thriller", "Horror", "Historical", "Sci-fi", "Contemporary", "Nonfiction", "Young adult"];
 const FAVORITES_KEY = "shelf-of-fame-profile-favorites-v1";
 const FAVORITES_STYLE_KEY = "shelf-of-fame-profile-favorites-style-v1";
+type AccountView = "profile" | "public" | "account";
 
 export default function AccountPage() {
   const [session, setSession] = useState<ShelfSession | null>(null);
@@ -56,6 +58,12 @@ export default function AccountPage() {
   const [bookQuery, setBookQuery] = useState("");
   const [favoritesStyle, setFavoritesStyle] = useState<"covers" | "spines">("covers");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarCrop, setAvatarCrop] = useState<{ file: File; url: string } | null>(null);
+  const [avatarZoom, setAvatarZoom] = useState(1);
+  const [avatarX, setAvatarX] = useState(0);
+  const [avatarY, setAvatarY] = useState(0);
+  const [profileDirty, setProfileDirty] = useState(false);
+  const [accountView, setAccountView] = useState<AccountView>("profile");
   const avatarInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -166,12 +174,14 @@ export default function AccountPage() {
     const exists = genres.some((item) => item.toLowerCase() === genre.toLowerCase());
     const next = exists ? genres.filter((item) => item.toLowerCase() !== genre.toLowerCase()) : [...genres, genre].slice(0, 8);
     setFavoriteGenres(next.join(", "));
+    setProfileDirty(true);
   }
 
   function toggleFavoriteBook(id: string) {
     setFavoriteBookIds((current) => {
       const next = current.includes(id) ? current.filter((bookId) => bookId !== id) : [...current, id].slice(-5);
       window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+      if (session?.access_token) void updateProfileFavorites(next, favoritesStyle).catch(() => undefined);
       return next;
     });
   }
@@ -179,27 +189,56 @@ export default function AccountPage() {
   function setFavoriteDisplayStyle(style: "covers" | "spines") {
     setFavoritesStyle(style);
     window.localStorage.setItem(FAVORITES_STYLE_KEY, style);
+    if (session?.access_token) void updateProfileFavorites(favoriteBookIds, style).catch(() => undefined);
   }
 
-  async function uploadAvatar(event: ChangeEvent<HTMLInputElement>) {
+  function chooseAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file || !session?.access_token || !session.user?.id) return;
     if (!file.type.startsWith("image/") || file.size > 2 * 1024 * 1024) {
       setMessage("Choose a JPG, PNG, or WebP image under 2 MB."); setMessageKind("error"); return;
     }
+    if (avatarCrop) URL.revokeObjectURL(avatarCrop.url);
+    setAvatarCrop({ file, url: URL.createObjectURL(file) });
+    setAvatarZoom(1); setAvatarX(0); setAvatarY(0);
+  }
+
+  function closeAvatarCrop() {
+    if (avatarCrop) URL.revokeObjectURL(avatarCrop.url);
+    setAvatarCrop(null);
+  }
+
+  async function uploadAvatar() {
+    if (!avatarCrop || !session?.access_token || !session.user?.id) return;
     setUploadingAvatar(true); setMessage(""); setMessageKind("");
     try {
-      const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      const path = `${session.user.id}/${Date.now()}.${extension}`;
+      const image = new Image();
+      image.src = avatarCrop.url;
+      await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error("Could not read that photo.")); });
+      const size = 512;
+      const canvas = document.createElement("canvas");
+      canvas.width = size; canvas.height = size;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Could not prepare that photo.");
+      const scale = Math.max(size / image.naturalWidth, size / image.naturalHeight) * avatarZoom;
+      const width = image.naturalWidth * scale;
+      const height = image.naturalHeight * scale;
+      const offsetX = (size - width) / 2 + avatarX * Math.max(0, width - size) / 2;
+      const offsetY = (size - height) / 2 + avatarY * Math.max(0, height - size) / 2;
+      context.drawImage(image, offsetX, offsetY, width, height);
+      const cropped = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Could not prepare that photo.")), "image/jpeg", .9));
+      const path = `${session.user.id}/${Date.now()}.jpg`;
       const response = await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, {
         method: "POST",
-        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}`, "Content-Type": file.type, "x-upsert": "false" },
-        body: file,
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}`, "Content-Type": "image/jpeg", "x-upsert": "false" },
+        body: cropped,
       });
       if (!response.ok) throw new Error("Could not upload that photo yet.");
       setAvatarUrl(`${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`);
+      setProfileDirty(true);
       setMessage("Photo uploaded. Save your profile to keep it."); setMessageKind("ok");
+      closeAvatarCrop();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not upload that photo."); setMessageKind("error");
     } finally { setUploadingAvatar(false); }
@@ -374,6 +413,7 @@ export default function AccountPage() {
       setSession(next);
       setOriginalUsername(clean);
       setUsername(clean);
+      setProfileDirty(false);
       setMessage("Profile saved.");
       setMessageKind("ok");
     } catch (error) {
@@ -499,16 +539,26 @@ export default function AccountPage() {
           <h1>Your reading life</h1>
           <p>A home for your taste, favorites, and Shelf of Fame story.</p>
         </div>
-        <Link className="sof-account-back" href="/">← Back to shelf</Link>
+        <div className="sof-account-header-actions">
+          <Link className="sof-account-community" href="/readers">Find readers</Link>
+          <Link className="sof-account-back" href="/">← Back to shelf</Link>
+        </div>
       </header>
 
+      <nav className="sof-account-tabs" aria-label="Account sections">
+        <button type="button" className={accountView === "profile" ? "is-active" : ""} aria-current={accountView === "profile" ? "page" : undefined} onClick={() => setAccountView("profile")}><span>Profile</span><small>Your look & favorites</small></button>
+        <button type="button" className={accountView === "public" ? "is-active" : ""} aria-current={accountView === "public" ? "page" : undefined} onClick={() => setAccountView("public")}><span>Public shelf</span><small>Privacy & sharing</small></button>
+        <button type="button" className={accountView === "account" ? "is-active" : ""} aria-current={accountView === "account" ? "page" : undefined} onClick={() => setAccountView("account")}><span>Account</span><small>Sign-in & security</small></button>
+      </nav>
+
+      <div className="sof-account-view" hidden={accountView !== "profile"}>
       <section className="sof-reader-hero">
         <div className="sof-reader-identity">
           <button className="sof-avatar-button" type="button" onClick={() => avatarInput.current?.click()} aria-label="Change profile photo">
             {avatarUrl ? <img className="sof-account-avatar" src={avatarUrl} alt="Profile avatar" /> : <span className="sof-account-avatar sof-account-avatar-fallback">{avatarInitials}</span>}
             <span className="sof-avatar-edit">{uploadingAvatar ? "…" : "＋"}</span>
           </button>
-          <input ref={avatarInput} className="sof-visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => void uploadAvatar(event)} />
+          <input ref={avatarInput} className="sof-visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} />
           <div><div className="sof-reader-eyebrow">MY READER PROFILE</div><h2>{displayName || username || "Reader"}</h2><p>{username ? `@${username}` : "Choose a username"}</p></div>
         </div>
         <p className={`sof-reader-bio ${bio ? "" : "is-placeholder"}`}>{bio || "Tell readers what you love, what you chase in a story, or the book you never stop recommending."}</p>
@@ -528,9 +578,9 @@ export default function AccountPage() {
       <section className="sof-profile-favorites sof-account-section">
         <div className="sof-account-section-heading"><div><span className="sof-section-number">01</span><h2>Books that feel like me</h2></div><p>Choose up to five favorites from your shelf.</p></div>
         <div className="sof-favorite-style" role="group" aria-label="Favorite book display style"><span>Display as</span><div><button type="button" className={favoritesStyle === "covers" ? "is-selected" : ""} aria-pressed={favoritesStyle === "covers"} onClick={() => setFavoriteDisplayStyle("covers")}>Covers</button><button type="button" className={favoritesStyle === "spines" ? "is-selected" : ""} aria-pressed={favoritesStyle === "spines"} onClick={() => setFavoriteDisplayStyle("spines")}>Spines</button></div></div>
-        {favoriteBooks.length ? <div className={`sof-favorite-showcase is-${favoritesStyle}`}>{favoriteBooks.map((book, index) => favoritesStyle === "covers" ? <article className="sof-favorite-cover" key={book.id} aria-label={`${book.title} by ${book.author}`}>{book.preferredCover?.url ? <img src={book.preferredCover.url} alt="" loading="lazy" decoding="async" /> : <span className="sof-favorite-cover-fallback" style={{ background: book.color }}>{book.title.slice(0, 1)}</span>}<small>{book.title}</small></article> : <article className="sof-favorite-shelf-spine" key={book.id} aria-label={`${book.title} by ${book.author}`}><div><MobileBookSpine book={book} index={index} onSelect={() => undefined} /></div></article>)}</div> : <div className="sof-favorites-empty">Your favorites will make this profile unmistakably yours.</div>}
+        {favoriteBooks.length ? <div className={`sof-favorite-showcase is-${favoritesStyle}`}>{favoriteBooks.map((book, index) => favoritesStyle === "covers" ? <article className="sof-favorite-cover" key={book.id} aria-label={`${book.title} by ${book.author}`}>{book.preferredCover?.url ? <img src={book.preferredCover.url} alt="" loading="lazy" decoding="async" /> : <span className="sof-favorite-cover-fallback" style={{ background: book.color }}>{book.title.slice(0, 1)}</span>}<small>{book.title}</small></article> : <article className="sof-favorite-shelf-spine" key={book.id}><MobileBookSpine book={book} index={index} onSelect={() => undefined} /></article>)}</div> : <div className="sof-favorites-empty">Your favorites will make this profile unmistakably yours.</div>}
         <details className="sof-book-picker" open={bookPickerOpen} onToggle={(event) => setBookPickerOpen(event.currentTarget.open)}>
-          <summary>{favoriteBooks.length ? `Edit favorite books (${favoriteBooks.length}/5)` : "Choose favorite books"}</summary>
+          <summary>{favoriteBooks.length ? `Edit books (${favoriteBooks.length}/5)` : "Choose books"}</summary>
           {bookPickerOpen && <div className="sof-book-picker-panel">
             <label className="sof-book-search"><span>Find a book</span><input type="search" value={bookQuery} onChange={(event) => setBookQuery(event.target.value)} placeholder="Search by title or author" /></label>
             <div className="sof-book-picker-results">{matchingBooks.map((book) => <button type="button" className={favoriteBookIds.includes(book.id) ? "is-selected" : ""} aria-pressed={favoriteBookIds.includes(book.id)} key={book.id} onClick={() => toggleFavoriteBook(book.id)}>{book.preferredCover?.url ? <img src={book.preferredCover.url} alt="" loading="lazy" decoding="async" /> : <span style={{ background: book.color }}>{book.title.slice(0, 1)}</span>}<b>{book.title}</b><small>{book.author}</small></button>)}</div>
@@ -539,9 +589,15 @@ export default function AccountPage() {
           </div>}
         </details>
       </section>
+      </div>
 
-      <form className="sof-account-form" onSubmit={saveProfile}>
-        <section className="sof-account-section">
+      <section className="sof-account-view sof-public-shelf-view" hidden={accountView !== "public"} aria-labelledby="public-shelf-heading">
+        <div className="sof-account-view-heading"><div><span className="sof-section-number">PUBLIC SHELF</span><h2 id="public-shelf-heading">Choose what readers can see</h2></div><p>Your shelf stays private until you publish it. You can make it private again at any time.</p></div>
+        <div className="sof-cloud-settings-host" />
+      </section>
+
+      <form className="sof-account-form" onSubmit={saveProfile} onChange={() => setProfileDirty(true)}>
+        <section className="sof-account-section" hidden={accountView !== "profile"}>
           <div className="sof-account-section-heading"><div><span className="sof-section-number">02</span><h2>Shape your profile</h2></div><p>These details appear on your public shelf.</p></div>
           <div className="sof-account-grid">
             <label>Display name
@@ -550,41 +606,54 @@ export default function AccountPage() {
             </label>
             <label>Username
               <div className="sof-username-row">
-                <input value={username} onChange={(e) => setUsername(e.target.value)} minLength={3} maxLength={24} autoCapitalize="none" autoCorrect="off" />
-                <button type="button" onClick={() => void checkUsername()} disabled={checking}>{checking ? "Checking…" : "Check"}</button>
+                <input value={username} onChange={(e) => setUsername(e.target.value)} onBlur={() => { if (cleanUsername(username) !== cleanUsername(originalUsername)) void checkUsername(); }} minLength={3} maxLength={24} autoCapitalize="none" autoCorrect="off" />
+                {checking && <span className="sof-field-inline-status">Checking…</span>}
               </div>
-              <small>3–24 characters. Letters, numbers, periods, and underscores.</small>
+              <small>Availability is checked automatically. Use 3–24 letters, numbers, periods, or underscores.</small>
             </label>
             <label className="sof-account-full">Bio
-              <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={240} rows={4} placeholder="A little about your reading taste…" />
+              <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={240} rows={4} placeholder="What do you chase in a story? What book do you never stop recommending?" />
               <small>{bio.length}/240</small>
             </label>
-            <fieldset className="sof-account-full sof-genre-field"><legend>Favorite genres <span>(choose up to 8)</span></legend><div className="sof-genre-chips">{GENRE_SUGGESTIONS.map((genre) => <button type="button" className={genres.some((item) => item.toLowerCase() === genre.toLowerCase()) ? "is-selected" : ""} key={genre} onClick={() => toggleGenre(genre)}>{genre}</button>)}</div><label>Something else<input value={favoriteGenres} onChange={(e) => setFavoriteGenres(e.target.value)} placeholder="Fantasy, romance, mystery" /></label><small>Your choices appear as tags on your public profile.</small></fieldset>
+            <fieldset className="sof-account-full sof-genre-field"><legend>Genres and tags <span>(up to 8)</span></legend><div className="sof-genre-chips">{GENRE_SUGGESTIONS.map((genre) => <button type="button" className={genres.some((item) => item.toLowerCase() === genre.toLowerCase()) ? "is-selected" : ""} key={genre} onClick={() => toggleGenre(genre)}>{genre}</button>)}</div><label>Add or edit custom tags<input value={favoriteGenres} onChange={(e) => setFavoriteGenres(e.target.value)} placeholder="LitRPG, cozy mystery, romantasy" /></label><small>Separate tags with commas. They appear on your public profile.</small></fieldset>
           </div>
         </section>
 
-        <details className="sof-account-section sof-account-details">
-          <summary><span><span className="sof-section-number">03</span><strong>Account & security</strong><small>Sign-in, password, sync, and sharing</small></span><b>＋</b></summary>
+        <section className="sof-account-section sof-account-security" hidden={accountView !== "account"}>
           <div className="sof-account-details-content">
-          <div className="sof-account-section-heading"><h2>Sign-in & security</h2><p>Your email is private and is never shown on your public profile.</p></div>
+          <div className="sof-account-section-heading"><div><span className="sof-section-number">ACCOUNT</span><h2>Sign-in & security</h2></div><p>Your email is private and is never shown on your public profile.</p></div>
           <div className="sof-account-security-row">
             <div><span>Email</span><strong>{session.user.email || "No email available"}</strong></div>
             <button type="button" onClick={() => void sendPasswordReset()}>Send password reset</button>
           </div>
-          <div className="sof-cloud-settings-host" />
+          <div className="sof-account-security-row">
+            <div><span>Getting started</span><strong>Replay the setup guide whenever you like</strong></div>
+            <button type="button" onClick={() => { window.localStorage.setItem("shelf-of-fame-onboarding-eligible-v1", "1"); window.localStorage.removeItem("shelf-of-fame-onboarding-status-v1"); window.location.assign("/"); }}>Replay setup guide</button>
           </div>
-        </details>
+          <button className="sof-account-signout sof-account-signout-inline" type="button" onClick={() => void signOut()} disabled={signingOut}>{signingOut ? "Signing out…" : "Sign out"}</button>
+          </div>
+        </section>
 
-        {message && <div className={`sof-account-message ${messageKind === "error" ? "is-error" : "is-ok"}`}>{message}</div>}
+        {message && accountView === "profile" && <div className={`sof-account-message ${messageKind === "error" ? "is-error" : "is-ok"}`}>{message}</div>}
 
-        <div className="sof-account-actions">
-          <button className="sof-account-save" type="submit" disabled={saving || checking}>{saving ? "Saving…" : "Save changes"}</button>
-          <button className="sof-account-signout" type="button" onClick={() => void signOut()} disabled={signingOut}>
-            {signingOut ? "Signing out…" : "Sign out"}
-          </button>
+        <div className={`sof-account-actions ${profileDirty ? "is-dirty" : ""}`} hidden={accountView !== "profile"}>
+          <span>{profileDirty ? "You have unsaved changes" : "Your profile is up to date"}</span>
+          <button className="sof-account-save" type="submit" disabled={!profileDirty || saving || checking}>{saving ? "Saving…" : "Save changes"}</button>
         </div>
       </form>
       <CloudAccountSettings />
+      {avatarCrop ? <div className="sof-avatar-crop-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeAvatarCrop(); }}>
+        <section className="sof-avatar-crop-dialog" role="dialog" aria-modal="true" aria-labelledby="avatar-crop-title">
+          <div className="sof-avatar-crop-heading"><div><span className="sof-section-number">PROFILE PHOTO</span><h2 id="avatar-crop-title">Frame your photo</h2></div><button type="button" onClick={closeAvatarCrop} aria-label="Close photo editor">×</button></div>
+          <div className="sof-avatar-crop-preview"><img src={avatarCrop.url} alt="Selected profile photo preview" style={{ transform: `translate(${avatarX * 18}%, ${avatarY * 18}%) scale(${avatarZoom})` }} /></div>
+          <div className="sof-avatar-crop-controls">
+            <label><span>Zoom</span><input type="range" min="1" max="2.5" step="0.01" value={avatarZoom} onChange={(event) => setAvatarZoom(Number(event.target.value))} /></label>
+            <label><span>Move left or right</span><input type="range" min="-1" max="1" step="0.01" value={avatarX} onChange={(event) => setAvatarX(Number(event.target.value))} /></label>
+            <label><span>Move up or down</span><input type="range" min="-1" max="1" step="0.01" value={avatarY} onChange={(event) => setAvatarY(Number(event.target.value))} /></label>
+          </div>
+          <div className="sof-avatar-crop-actions"><button type="button" className="sof-avatar-crop-cancel" onClick={closeAvatarCrop}>Cancel</button><button type="button" className="sof-account-save" disabled={uploadingAvatar} onClick={() => void uploadAvatar()}>{uploadingAvatar ? "Uploading…" : "Use this photo"}</button></div>
+        </section>
+      </div> : null}
     </div>
   </main>;
 }

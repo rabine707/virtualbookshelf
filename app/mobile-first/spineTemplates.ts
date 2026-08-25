@@ -77,7 +77,11 @@ export type SpineArtworkId =
   | "medical-herbarium"
   | "wine-vines"
   | "lace-mask"
-  | "lips";
+  | "lips"
+  | "open-book"
+  | "hourglass"
+  | "lighthouse"
+  | "feather-quill";
 
 export type SpineDesign = {
   layout: SpineLayoutDefinition;
@@ -317,6 +321,10 @@ function artworkFor(text: string, motif: SpineMotifId, seed: string): SpineArtwo
   if (includesAny(text, ["apartment", "neighbor", "roommate", "next door"])) return "apartment-window";
   if (includesAny(text, ["christmas", "mistletoe", "holiday", "merry ever after"])) return "mistletoe-bells";
   if (includesAny(text, ["doctor", "patient", "nurse", "hospital", "medicine"])) return "medical-herbarium";
+  if (includesAny(text, ["library", "bookshop", "bookstore", "reader", "storybook", "archive"])) return "open-book";
+  if (includesAny(text, ["time", "forever", "until", "before", "after", "last chance"])) return "hourglass";
+  if (includesAny(text, ["lighthouse", "harbor", "shore", "sea", "island", "storm"])) return "lighthouse";
+  if (includesAny(text, ["writer", "poet", "poetry", "journal", "diary", "words"])) return "feather-quill";
   if (includesAny(text, ["vine mess", "vineyard", "wine", "winemaker"])) return "wine-vines";
   if (includesAny(text, ["masquerade", "madame", "voyeur", "masked", "fifty shades"])) return "lace-mask";
   if (includesAny(text, ["beautiful venom", "skull", "poison", "toxic", "bones"])) return "skull-botanicals";
@@ -358,18 +366,19 @@ function artworkFor(text: string, motif: SpineMotifId, seed: string): SpineArtwo
     return alternate ? "heart-vine" : "thorn-heart";
   }
 
-  if (motif === "celestial") return pickArtwork(["moth-moon", "raven-moon", "moon-forest", "compass-star", "lace-mask"], "celestial-pool");
+  if (motif === "celestial") return pickArtwork(["moth-moon", "raven-moon", "moon-forest", "compass-star", "lace-mask", "hourglass"], "celestial-pool");
   if (motif === "botanical") return pickArtwork(["ornate-key", "botanical-key", "leafy-sprig", "wildflowers", "wine-vines", "medical-herbarium"], "botanical-pool");
   if (motif === "floral") return pickArtwork(["wildflowers", "rose-bloom", "moth-bloom", "letter-roses", "wine-vines"], "floral-pool");
   if (motif === "fantasy") return pickArtwork(["gothic-castle", "crown-blade", "crossed-axes", "serpent-rose", "raven-moon", "ornate-key"], "fantasy-pool");
   if (motif === "dark-romance") return pickArtwork(["skull-botanicals", "heart-dagger", "raven-moon", "serpent-rose", "thorn-heart", "broken-heart-roses", "lace-mask"], "dark-romance-pool");
-  if (motif === "nature") return pickArtwork(["western-wildflowers", "frost-mountain", "mountain-pines", "coastal-sun", "wildflowers"], "nature-pool");
+  if (motif === "nature") return pickArtwork(["western-wildflowers", "frost-mountain", "mountain-pines", "coastal-sun", "wildflowers", "lighthouse"], "nature-pool");
   if (motif === "romance") return pickArtwork(["letter-roses", "heart-vine", "thorn-heart", "broken-heart-roses", "wedding-rings", "travel-postcards", "coastal-sun", "wine-vines"], "romance-pool");
   if (motif === "sports") return pickArtwork(["hockey-heritage", "hockey-heart", "crossed-sticks"], "sports-pool");
-  if (motif === "mystery") return pickArtwork(["ornate-key", "watching-eye", "candle-key", "raven-moon", "apartment-window", "lace-mask"], "mystery-pool");
+  if (motif === "mystery") return pickArtwork(["ornate-key", "watching-eye", "candle-key", "raven-moon", "apartment-window", "lace-mask", "hourglass", "feather-quill"], "mystery-pool");
   return pickArtwork([
     "ornate-key", "watching-eye", "candle-key", "raven-moon", "wildflowers",
     "moth-moon", "apartment-window", "travel-postcards", "medical-herbarium", "lace-mask",
+    "open-book", "hourglass", "lighthouse", "feather-quill",
   ], "house-pool");
 }
 

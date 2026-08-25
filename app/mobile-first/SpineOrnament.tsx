@@ -9,6 +9,18 @@ type SpineOrnamentProps = {
 };
 
 function PrimaryOrnament({ artwork }: { artwork: SpineArtworkId }) {
+  if (artwork === "open-book") {
+    return <><path data-art-accent="true" d="M5 17c7-2 13.3-.5 19 4.5C29.7 16.5 36 15 43 17v32c-7-2-13.3-.5-19 4.5C18.3 48.5 12 47 5 49V17Z" /><path d="M24 21.5v32M9 23c4.4-.7 8.3.3 11.5 3M9 29c4.4-.7 8.3.3 11.5 3M39 23c-4.4-.7-8.3.3-11.5 3M39 29c-4.4-.7-8.3.3-11.5 3M10 57h28" /></>;
+  }
+  if (artwork === "hourglass") {
+    return <><path d="M12 6h24M12 58h24M15 8c0 12 3.7 17 9 23-5.3 6-9 11-9 25M33 8c0 12-3.7 17-9 23 5.3 6 9 11 9 25" /><path data-art-accent="true" d="M17 14h14c-1 7-3.4 11-7 15-3.6-4-6-8-7-15Zm0 37c1-7 3.4-11 7-15 3.6 4 6 8 7 15H17Z" /><path d="M9 4h30M9 60h30" /></>;
+  }
+  if (artwork === "lighthouse") {
+    return <><path data-art-accent="true" d="M18 19h12l4 39H14l4-39Z" /><path d="M17 19h14l-2-7H19l-2 7ZM21 5h6v7h-6V5ZM16 27h16M15 40h18M12 58h24M4 16l13-4M44 16l-13-4M5 51c5-3 9-3 14 0s9 3 14 0 7-3 11-1" /></>;
+  }
+  if (artwork === "feather-quill") {
+    return <><path data-art-accent="true" d="M39 5C22 7 11 21 13 43c13-4 24-15 26-38Z" /><path d="M38 6 8 58M15 39c6-1 11-3.5 16-8M18 31c-2-3-3-6-3-9M23 25c5-1 9-3 13-6M28 18c-1-2-1.5-4.2-1.5-6.5M7 58h20" /></>;
+  }
   if (artwork === "moon-forest") {
     return (
       <>
@@ -297,6 +309,7 @@ function PrimaryOrnament({ artwork }: { artwork: SpineArtworkId }) {
 }
 
 function IllustrationWash({ artwork }: { artwork: SpineArtworkId }) {
+  if (["open-book", "hourglass", "lighthouse", "feather-quill"].includes(artwork)) return null;
   if (artwork === "moon-forest") {
     return <path data-art-fill="true" d="M31 5.5A13.5 13.5 0 1 0 35.8 30 11.4 11.4 0 1 1 31 5.5Z" />;
   }
@@ -403,6 +416,9 @@ function IllustrationWash({ artwork }: { artwork: SpineArtworkId }) {
 }
 
 function EngravingDetail({ artwork }: { artwork: SpineArtworkId }) {
+  if (["open-book", "hourglass", "lighthouse", "feather-quill"].includes(artwork)) {
+    return <g data-art-detail="true"><path d="M10 55h28M14 58h20" /></g>;
+  }
   if (artwork === "moon-forest") {
     return (
       <g data-art-detail="true">
@@ -600,6 +616,9 @@ function EngravingDetail({ artwork }: { artwork: SpineArtworkId }) {
 }
 
 function SecondaryOrnament({ artwork }: { artwork: SpineArtworkId }) {
+  if (["open-book", "hourglass", "lighthouse", "feather-quill"].includes(artwork)) {
+    return <><path d="M8 32h32M12 28l-4 4 4 4M36 28l4 4-4 4" /><circle cx="24" cy="32" r="3" /></>;
+  }
   if (artwork === "moon-forest" || artwork === "compass-star" || artwork === "fox-moon") {
     return (
       <>

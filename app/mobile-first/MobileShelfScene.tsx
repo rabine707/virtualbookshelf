@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   CSSProperties,
   PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -29,6 +30,10 @@ type SortMode = "recent" | "title" | "author" | "rating" | "status" | "color";
 type SortDirection = "asc" | "desc";
 
 const BOOKS_PER_ROW = 6;
+const SHELF_ROW_HEIGHT = 199;
+const SHELF_HINT_HEIGHT = 78;
+const SHELF_OVERSCAN = 3;
+const SHELF_SCROLL_KEY = "shelf-of-fame-mobile-scroll-v1";
 const SORT_LABELS: Record<SortMode, string> = {
   recent: "Recently added",
   title: "Title",
@@ -74,6 +79,17 @@ function StyleIcon() {
       <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
       <path d="m5.6 5.6 2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
       <circle cx="12" cy="12" r="3.5" />
+    </svg>
+  );
+}
+
+function ReadersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="9" cy="8" r="3" />
+      <circle cx="16.5" cy="9.5" r="2.3" />
+      <path d="M3.5 19c.5-3.7 2.4-5.6 5.5-5.6s5 1.9 5.5 5.6" />
+      <path d="M14.2 14.3c3.5-.8 5.7.8 6.3 4.2" />
     </svg>
   );
 }
@@ -137,7 +153,10 @@ export default function MobileShelfScene({
   const [sortOpen, setSortOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("recent");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [renderWindow, setRenderWindow] = useState({ start: 0, end: 8 });
   const shelfViewport = useRef<HTMLDivElement>(null);
+  const restoredScroll = useRef(false);
+  const resetScrollAfterFirstRender = useRef(false);
   const activeLightPointer = useRef<number | null>(null);
   const lightFrame = useRef<number | null>(null);
   const pendingLight = useRef<{ scene: HTMLDivElement; x: number; y: number } | null>(null);
@@ -224,49 +243,72 @@ export default function MobileShelfScene({
     ? `${visibleBooks.length} ${visibleBooks.length === 1 ? "match" : "matches"}`
     : `${books.length} ${books.length === 1 ? "book" : "books"}`;
 
-  useEffect(() => {
+  const syncVisibleRows = useCallback(() => {
     const viewport = shelfViewport.current;
-    if (!viewport || shelfCount === 0) {
+    if (!viewport || rows.length === 0) {
       setActiveShelf(0);
       return;
     }
 
-    setActiveShelf((current) => Math.min(Math.max(current, 1), shelfCount));
-    const shelfElements = Array.from(
-      viewport.querySelectorAll<HTMLElement>("[data-shelf-number]"),
-    );
-    if (!("IntersectionObserver" in window)) return;
+    const firstVisible = Math.max(0, Math.floor(viewport.scrollTop / SHELF_ROW_HEIGHT));
+    const visibleCount = Math.ceil(viewport.clientHeight / SHELF_ROW_HEIGHT) + 1;
+    const start = Math.max(0, firstVisible - SHELF_OVERSCAN);
+    const end = Math.min(rows.length, firstVisible + visibleCount + SHELF_OVERSCAN);
+    setRenderWindow((current) => current.start === start && current.end === end ? current : { start, end });
+    if (shelfCount > 0) {
+      const nextActive = Math.min(shelfCount, firstVisible + 1);
+      setActiveShelf((current) => current === nextActive ? current : nextActive);
+    }
+    if (!query.trim() && sortMode === "recent" && sortDirection === "desc") {
+      window.sessionStorage.setItem(SHELF_SCROLL_KEY, String(viewport.scrollTop));
+    }
+  }, [query, rows.length, shelfCount, sortDirection, sortMode]);
 
-    const chooseActiveShelf = () => {
-      const viewportBounds = viewport.getBoundingClientRect();
-      const readingLine = viewportBounds.top + Math.min(86, viewportBounds.height * .24);
-      let closestShelf = 1;
-      let closestDistance = Number.POSITIVE_INFINITY;
-
-      shelfElements.forEach((element) => {
-        const bounds = element.getBoundingClientRect();
-        const distance = bounds.top <= readingLine && bounds.bottom >= readingLine
-          ? 0
-          : Math.min(Math.abs(bounds.top - readingLine), Math.abs(bounds.bottom - readingLine));
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestShelf = Number(element.dataset.shelfNumber) || 1;
-        }
-      });
-
-      setActiveShelf((current) => current === closestShelf ? current : closestShelf);
+  useEffect(() => {
+    const viewport = shelfViewport.current;
+    if (!viewport) return;
+    const onScroll = () => syncVisibleRows();
+    viewport.addEventListener("scroll", onScroll, { passive: true });
+    const resizeObserver = new ResizeObserver(syncVisibleRows);
+    resizeObserver.observe(viewport);
+    syncVisibleRows();
+    return () => {
+      viewport.removeEventListener("scroll", onScroll);
+      resizeObserver.disconnect();
     };
+  }, [syncVisibleRows]);
 
-    const observer = new IntersectionObserver(chooseActiveShelf, {
-      root: viewport,
-      rootMargin: "-12% 0px -64% 0px",
-      threshold: [0, .25, .5, .75, 1],
+  useEffect(() => {
+    const viewport = shelfViewport.current;
+    if (!viewport || restoredScroll.current || !rows.length || !books.length) return;
+    restoredScroll.current = true;
+    const saved = Number(window.sessionStorage.getItem(SHELF_SCROLL_KEY));
+    requestAnimationFrame(() => {
+      if (Number.isFinite(saved) && saved > 0) viewport.scrollTop = Math.min(saved, viewport.scrollHeight - viewport.clientHeight);
+      syncVisibleRows();
     });
-    shelfElements.forEach((element) => observer.observe(element));
-    chooseActiveShelf();
+  }, [books.length, rows.length, syncVisibleRows]);
 
-    return () => observer.disconnect();
-  }, [books.length, query, shelfCount, sortDirection, sortMode]);
+  useEffect(() => {
+    const viewport = shelfViewport.current;
+    if (!viewport) return;
+    if (!resetScrollAfterFirstRender.current) {
+      resetScrollAfterFirstRender.current = true;
+      return;
+    }
+    viewport.scrollTop = 0;
+    setRenderWindow({ start: 0, end: 8 });
+    setActiveShelf(1);
+  }, [query, sortDirection, sortMode]);
+
+  const renderedRows = rows.slice(renderWindow.start, renderWindow.end);
+  const topSpacerHeight = renderWindow.start * SHELF_ROW_HEIGHT;
+  const hiddenAfterWindow = rows.slice(renderWindow.end);
+  const bottomSpacerHeight = hiddenAfterWindow.reduce((height, row, index) => {
+    const absoluteIndex = renderWindow.end + index;
+    const continuationHint = !query.trim() && books.length > 0 && row.length === 0 && absoluteIndex === rows.length - 1;
+    return height + (continuationHint ? SHELF_HINT_HEIGHT : SHELF_ROW_HEIGHT);
+  }, 0);
 
   const sceneStyle = {
     "--shell-classic-image": `url("${SPINE_SHELL_TEXTURES.classic}")`,
@@ -365,7 +407,10 @@ export default function MobileShelfScene({
 
         <div ref={shelfViewport} className={`${styles.shelfViewport} ${polish.shelfViewport}`}>
           <div className={`${styles.bookcase} ${polish.bookcase}`}>
-            {rows.length ? rows.map((row, rowIndex) => {
+            {rows.length ? <>
+              {topSpacerHeight > 0 ? <div aria-hidden="true" style={{ height: topSpacerHeight }} /> : null}
+              {renderedRows.map((row, windowIndex) => {
+              const rowIndex = renderWindow.start + windowIndex;
               const continuationHint = !query.trim() && books.length > 0 && row.length === 0 && rowIndex === rows.length - 1;
 
               return (
@@ -374,6 +419,7 @@ export default function MobileShelfScene({
                   key={rowIndex}
                   aria-label={continuationHint ? "Shelf continues" : `Shelf row ${rowIndex + 1}`}
                   data-shelf-number={continuationHint ? undefined : rowIndex + 1}
+                  data-shelf-variant={(rowIndex % 3) + 1}
                 >
                   <div className={`${styles.booksRow} ${polish.booksRow}`}>
                     {row.map((book, bookIndex) => (
@@ -391,7 +437,9 @@ export default function MobileShelfScene({
                   <div className={`${styles.shelfPlank} ${polish.shelfPlank}`} aria-hidden="true" />
                 </section>
               );
-            }) : (
+              })}
+              {bottomSpacerHeight > 0 ? <div aria-hidden="true" style={{ height: bottomSpacerHeight }} /> : null}
+            </> : (
               <div className={styles.noResults}>
                 <span>No books found.</span>
                 <button type="button" onClick={() => setQuery("")}>Show all books</button>
@@ -553,6 +601,11 @@ export default function MobileShelfScene({
           <SearchIcon />
           <span className={styles.dockLabel}>Search</span>
         </button>
+
+        <Link href="/readers" className={styles.dockLink} aria-label="Find readers">
+          <ReadersIcon />
+          <span className={styles.dockLabel}>Readers</span>
+        </Link>
 
         <button type="button" className={styles.addButton} onClick={onAddBook} aria-label="Add a book">
           <span className={styles.addCircle} aria-hidden="true">+</span>

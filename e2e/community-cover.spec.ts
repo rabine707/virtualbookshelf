@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { searchShelf, shelfBook, shelfCover } from "./mobile-shelf-helpers";
+import { searchShelf, shelfBook } from "./mobile-shelf-helpers";
 
 const COMMUNITY_COVER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23795'/%3E%3C/svg%3E";
 const CHOSEN_COVER = "https://example.com/chosen-cover.svg";
@@ -24,7 +24,9 @@ test("applies an approved community cover to the live shelf without reloading", 
   });
 
   await page.goto("/");
-  await expect(shelfCover(page, "Fourth Wing", "Rebecca Yarros")).toHaveAttribute("src", COMMUNITY_COVER, { timeout: 8000 });
+  const fourthWing = shelfBook(page, "Fourth Wing", "Rebecca Yarros");
+  await fourthWing.click();
+  await expect(page.getByAltText("Cover of Fourth Wing")).toHaveAttribute("src", COMMUNITY_COVER, { timeout: 8000 });
 
   const state = await page.evaluate(() => {
     const books = JSON.parse(window.localStorage.getItem("shelf-of-fame-library-v1") || "[]") as Array<{
@@ -83,9 +85,11 @@ test("submits a signed-in reader's chosen cover directly from the React action",
   await searchShelf(page, "Fourth Wing");
   await shelfBook(page, "Fourth Wing", "Rebecca Yarros").click();
 
-  const correctCover = page.getByTitle("Save this as the correct cover");
-  await expect(correctCover).toBeEnabled();
-  await correctCover.click();
+  const bookDialog = page.getByRole("dialog", { name: "Fourth Wing" });
+  await bookDialog.getByText("Customize artwork", { exact: true }).click();
+  await bookDialog.getByRole("button", { name: "Cover Selector" }).click();
+  await bookDialog.getByRole("button", { name: "Crop or use this Google cover" }).click();
+  await page.getByRole("dialog", { name: "Crop cover for Fourth Wing" }).getByRole("button", { name: "Use image as-is" }).click();
 
   await expect.poll(() => submitted).not.toBeNull();
   expect(submitted).toMatchObject({

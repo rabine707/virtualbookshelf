@@ -39,6 +39,7 @@ type MobileBookSpineProps = {
   book: Book;
   index: number;
   onSelect: (book: Book) => void;
+  externalSpineUrl?: string;
 };
 
 type PrintFinish = "ink" | "debossed" | "foil";
@@ -391,7 +392,7 @@ function sidewaysTitleLayout(
   return { containerStyle, titleStyle };
 }
 
-export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps) {
+export function MobileBookSpine({ book, index, onSelect, externalSpineUrl }: MobileBookSpineProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const key = coverKey(book);
   const eager = index < 12;
@@ -400,7 +401,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
     : undefined;
   const [cover, setCover] = useState<CoverResult | null>(() => preferred || coverMemory.get(key) || null);
   const [shouldLoad, setShouldLoad] = useState(() => eager || coverMemory.has(key));
-  const [generatedSpine, setGeneratedSpine] = useState<string>();
+  const [generatedSpine, setGeneratedSpine] = useState<string | undefined>(externalSpineUrl);
   const [generatedSpineFailed, setGeneratedSpineFailed] = useState(false);
   const [generatedMode, setGeneratedMode] = useState<SpineRenderMode>("overlay");
   const [spineCrop, setSpineCrop] = useState<string>();
@@ -520,10 +521,11 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
 
   useEffect(() => {
     let cancelled = false;
-    setGeneratedSpine(undefined);
+    setGeneratedSpine(externalSpineUrl);
     setGeneratedSpineFailed(false);
-    setGeneratedMode("overlay");
+    setGeneratedMode(externalSpineUrl ? "integrated" : "overlay");
     setSpineCrop(undefined);
+    if (externalSpineUrl) return () => { cancelled = true; };
     if (!coverUrl) return () => { cancelled = true; };
 
     void Promise.all([getGeneratedSpine(coverUrl), getGeneratedSpineMode(coverUrl)]).then(([image, mode]) => {
@@ -548,7 +550,7 @@ export function MobileBookSpine({ book, index, onSelect }: MobileBookSpineProps)
       cancelled = true;
       window.removeEventListener("shelf-spine-generated", onGenerated);
     };
-  }, [coverUrl]);
+  }, [coverUrl, externalSpineUrl]);
 
   const style = {
     "--mobile-spine-color": spineColor,

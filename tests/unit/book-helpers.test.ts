@@ -12,10 +12,13 @@ import {
   stripSeriesSuffix,
 } from "../../lib/books/matching";
 import {
+  analyzeGoodreadsImport,
   allowedCovers,
   Book,
   cleanIsbn,
+  goodreadsShelfGroup,
   mergeAudibleBooks,
+  mergeGoodreadsBooks,
   mergeGoodreadsFeedback,
   normalizeAudibleRow,
   normalizeGoodreadsRow,
@@ -93,6 +96,14 @@ describe("library import and cover helpers", () => {
   test("cleans Goodreads custom shelves and removes reading statuses", () => {
     expect(normalizeGoodreadsTags("to-read, currently-reading, found-family, FOUND_family, cozy"))
       .toEqual(["Found family", "Cozy"]);
+  });
+
+  test("groups Goodreads reading statuses for selective imports", () => {
+    expect(goodreadsShelfGroup("read")).toBe("read");
+    expect(goodreadsShelfGroup("currently reading")).toBe("currently-reading");
+    expect(goodreadsShelfGroup("to-read")).toBe("to-read");
+    expect(goodreadsShelfGroup("Want_To_Read")).toBe("to-read");
+    expect(goodreadsShelfGroup("owned")).toBe("other");
   });
 
   test("normalizes audible-cli rows including BOM headers and cover URLs", () => {
@@ -189,6 +200,42 @@ describe("library import and cover helpers", () => {
       seriesName: "Into Darkness",
       seriesNumber: 1,
       readerNote: "Loved the tension.",
+    });
+  });
+
+  test("previews Goodreads changes and imports without duplicates or removing shelf books", () => {
+    const current: Book[] = [
+      {
+        id: "existing",
+        title: "Fourth Wing",
+        author: "Rebecca Yarros",
+        color: "#000",
+        readerNote: "Keep this note.",
+        preferredCover: { url: "https://example.com/fourth-wing.jpg", source: "Saved" },
+      },
+      { id: "unrelated", title: "Owned Book", author: "Reader", color: "#111" },
+    ];
+    const normalized = [
+      normalizeGoodreadsRow({ Title: "Fourth Wing", Author: "Rebecca Yarros", "My Rating": "5" }, 0),
+      normalizeGoodreadsRow({ Title: "New Book", Author: "New Author" }, 1),
+      normalizeGoodreadsRow({ Title: "New Book", Author: "New Author" }, 2),
+    ].filter((book): book is Book => Boolean(book));
+
+    const analysis = analyzeGoodreadsImport(current, normalized, 4);
+    expect(analysis).toMatchObject({
+      newCount: 1,
+      existingCount: 1,
+      repeatedCount: 1,
+      unreadableCount: 1,
+    });
+
+    const merged = mergeGoodreadsBooks(current, analysis.books);
+    expect(merged).toHaveLength(3);
+    expect(merged.map((book) => book.title)).toEqual(["Fourth Wing", "Owned Book", "New Book"]);
+    expect(merged[0]).toMatchObject({
+      rating: 5,
+      readerNote: "Keep this note.",
+      preferredCover: { url: "https://example.com/fourth-wing.jpg", source: "Saved" },
     });
   });
 

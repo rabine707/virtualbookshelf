@@ -59,10 +59,11 @@ test("signs in, stores the enriched account, and revokes the current session on 
   await page.getByLabel("Password").fill("correct-horse-battery-staple");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 
-  await expect(page.getByRole("heading", { name: "Your account" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your reading life" })).toBeVisible();
   await expect(page.getByText("@shelfreader")).toBeVisible();
   await expect.poll(() => page.evaluate((key) => Boolean(window.localStorage.getItem(key)), SESSION_KEY)).toBe(true);
 
+  await page.getByRole("button", { name: /^Account/ }).click();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page).toHaveURL("/");
   expect(logoutCalled).toBe(true);

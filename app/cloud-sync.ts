@@ -13,6 +13,8 @@ export type CloudSettings = {
   shelf_public?: boolean;
   plan?: "free" | "supporter" | "premium";
   premium_themes?: string[];
+  profile_favorite_book_ids?: string[];
+  profile_favorites_style?: "covers" | "spines";
   updated_at?: string;
 };
 
@@ -72,6 +74,13 @@ export function syncMyShelf(books: unknown[], settings: CloudSettings, replace =
 
 export function updateMyShelfSettings(settings: Partial<CloudSettings>) {
   return rpc<CloudSettings>("update_my_shelf_settings", { p_settings: settings });
+}
+
+export function updateProfileFavorites(bookIds: string[], style: "covers" | "spines") {
+  return rpc<Pick<CloudSettings, "profile_favorite_book_ids" | "profile_favorites_style">>("update_profile_favorites", {
+    p_book_ids: bookIds.slice(0, 5),
+    p_style: style,
+  });
 }
 
 export function loadPublicShelf(username: string) {

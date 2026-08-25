@@ -231,6 +231,53 @@ function importIdentity(book: Book) {
   return `${title}::${author}`;
 }
 
+export type GoodreadsImportAnalysis = {
+  books: Book[];
+  totalRows: number;
+  newCount: number;
+  existingCount: number;
+  repeatedCount: number;
+  unreadableCount: number;
+};
+
+export type GoodreadsShelfGroup = "read" | "currently-reading" | "to-read" | "other";
+
+export function goodreadsShelfGroup(shelf?: string): GoodreadsShelfGroup {
+  const normalized = (shelf || "").trim().toLowerCase().replace(/[_\s]+/g, "-");
+  if (normalized === "read") return "read";
+  if (normalized === "currently-reading") return "currently-reading";
+  if (normalized === "to-read" || normalized === "want-to-read") return "to-read";
+  return "other";
+}
+
+export function analyzeGoodreadsImport(current: Book[], normalized: Book[], totalRows: number): GoodreadsImportAnalysis {
+  const base = looksLikeSampleShelf(current) ? [] : current;
+  const currentIdentities = new Set(base.map(importIdentity));
+  const seen = new Set<string>();
+  const books: Book[] = [];
+  let repeatedCount = 0;
+
+  for (const book of normalized) {
+    const identity = importIdentity(book);
+    if (seen.has(identity)) {
+      repeatedCount += 1;
+      continue;
+    }
+    seen.add(identity);
+    books.push(book);
+  }
+
+  const existingCount = books.filter((book) => currentIdentities.has(importIdentity(book))).length;
+  return {
+    books,
+    totalRows,
+    newCount: books.length - existingCount,
+    existingCount,
+    repeatedCount,
+    unreadableCount: Math.max(0, totalRows - normalized.length),
+  };
+}
+
 export function normalizeAudibleRow(row: Record<string, string>, index: number): Book | null {
   const title = audibleValue(row, "title");
   if (!title) return null;
@@ -328,6 +375,18 @@ export function mergeGoodreadsFeedback(current: Book[], imported: Book[]) {
       importSource: existing.importSource?.includes("Audible") ? "Goodreads + Audible" : book.importSource,
     };
   });
+}
+
+export function mergeGoodreadsBooks(current: Book[], imported: Book[]) {
+  const base = looksLikeSampleShelf(current) ? [] : current;
+  const refreshed = mergeGoodreadsFeedback(base, imported);
+  const refreshedByIdentity = new Map(refreshed.map((book) => [importIdentity(book), book]));
+  const currentIdentities = new Set(base.map(importIdentity));
+
+  return [
+    ...base.map((book) => refreshedByIdentity.get(importIdentity(book)) || book),
+    ...refreshed.filter((book) => !currentIdentities.has(importIdentity(book))),
+  ];
 }
 
 export function isStoredBook(value: unknown): value is Book {

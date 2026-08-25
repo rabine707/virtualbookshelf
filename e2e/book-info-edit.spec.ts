@@ -54,8 +54,9 @@ test("edits book metadata in place and migrates spine candidate identity without
 
   const bookDialog = page.getByRole("dialog", { name: "Fourth Wing" });
   await expect(bookDialog).toBeVisible();
-  const bookInfo = bookDialog.getByRole("region", { name: "Book information" });
-  await bookInfo.getByRole("button", { name: "Edit", exact: true }).click();
+  await bookDialog.getByText("Book information", { exact: true }).click();
+  const bookInfo = bookDialog.getByRole("region", { name: "Edit book information" });
+  await bookInfo.getByRole("button", { name: /Edit book details/ }).click();
 
   const editor = page.getByRole("dialog", { name: "Edit book details" });
   await expect(editor).toBeVisible();

@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BookSearchAdd from "./BookSearchAdd";
+import GoodreadsImportReview from "./GoodreadsImportReview";
+import GoodreadsImportUndoToast from "./GoodreadsImportUndoToast";
+import ImportedCoverProgress from "./ImportedCoverProgress";
 import { BookDetailsModal } from "./components/BookDetailsModal";
 import { CoverUndoToast } from "./components/CoverUndoToast";
 import { CoverReviewQueue } from "./components/CoverReviewQueue";
@@ -11,10 +14,12 @@ import { useBookMetadataEditor } from "./hooks/useBookMetadataEditor";
 import { useBookTagEnrichment } from "./hooks/useBookTagEnrichment";
 import { useCloudShelfSync } from "./hooks/useCloudShelfSync";
 import { useCommunityCoverSync } from "./hooks/useCommunityCoverSync";
+import { useImportedCoverFinder } from "./hooks/useImportedCoverFinder";
 import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
 import MobileShelfScene from "./mobile-first/MobileShelfScene";
 import ThemeEnricher from "./ThemeEnricher";
+import OnboardingGuide from "./OnboardingGuide";
 import { Book, CoverResult, WebCoverResult } from "../lib/books/client-library";
 
 const DEFAULT_CLOTH_PREFIX = "shelf-of-fame-default-cloth:";
@@ -29,12 +34,22 @@ export default function Home() {
     books,
     setBooks,
     storageReady,
+    isFirstRun,
     importMessage,
     showToast,
+    goodreadsPreview,
+    goodreadsUndoMessage,
+    goodreadsCoverCandidateIds,
     importGoodreadsCsv,
+    confirmGoodreadsImport,
+    cancelGoodreadsImport,
+    setGoodreadsShelfFilter,
+    undoGoodreadsImport,
+    dismissGoodreadsUndo,
   } = useShelfLibrary();
 
   useCloudShelfSync({ books, setBooks, storageReady });
+  const importedCoverFinder = useImportedCoverFinder({ books, setBooks, storageReady });
   const { submitCoverChoice } = useCommunityCoverSync({ books, setBooks });
   useRomanceShelfEnrichment({ books, setBooks });
 
@@ -119,12 +134,22 @@ export default function Home() {
   const goodreadsInput = useRef<HTMLInputElement>(null);
   const [coverReviewOpen, setCoverReviewOpen] = useState(false);
   const [coverReviewInitialTotal, setCoverReviewInitialTotal] = useState(0);
+  const [coverReviewScopeIds, setCoverReviewScopeIds] = useState<string[] | null>(null);
   const booksNeedingCoverReview = books.filter((book) => !book.preferredCover?.url && !book.coverReviewStatus);
+  const coverReviewScope = useMemo(() => coverReviewScopeIds ? new Set(coverReviewScopeIds) : null, [coverReviewScopeIds]);
+  const activeCoverReviewBooks = coverReviewScope
+    ? booksNeedingCoverReview.filter((book) => coverReviewScope.has(book.id))
+    : booksNeedingCoverReview;
 
-  function openFindCovers() {
-    const next = booksNeedingCoverReview[0];
+  function openFindCovers(scopeIds?: string[]) {
+    const requestedScope = scopeIds?.length ? new Set(scopeIds) : null;
+    const scoped = scopeIds?.length
+      ? booksNeedingCoverReview.filter((book) => requestedScope?.has(book.id))
+      : booksNeedingCoverReview;
+    const next = scoped[0];
     if (next) {
-      setCoverReviewInitialTotal(booksNeedingCoverReview.length);
+      setCoverReviewScopeIds(scopeIds?.length ? scopeIds : null);
+      setCoverReviewInitialTotal(scoped.length);
       setCoverReviewOpen(true);
       setSelected(next);
       return;
@@ -156,8 +181,10 @@ export default function Home() {
     if (!reviewed) return;
     for (const option of approved) void submitCoverChoice(reviewed, option);
 
+    const scope = coverReviewScopeIds ? new Set(coverReviewScopeIds) : null;
     const remaining = books.filter((book) => (
       book.id !== reviewedId && !book.preferredCover?.url && !book.coverReviewStatus
+      && (!scope || scope.has(book.id))
     ));
     const next = remaining[0];
     if (next) {
@@ -165,6 +192,7 @@ export default function Home() {
       showToast(`${status === "skipped" ? "Skipped" : status === "no-match" ? "Recorded no match for" : "Saved covers for"} ${selected.title}. Moving to ${next.title}.`);
     } else {
       setCoverReviewOpen(false);
+      setCoverReviewScopeIds(null);
       setSelected(null);
       showToast("Cover review complete. Every queued book has been handled.");
     }
@@ -176,11 +204,12 @@ export default function Home() {
         books={books}
         importMessage={importMessage}
         missingCoverCount={booksNeedingCoverReview.length}
-        onFindCovers={openFindCovers}
+        onFindCovers={() => openFindCovers()}
         onSelect={setSelected}
         onAddBook={() => window.dispatchEvent(new Event("shelf-open-book-search"))}
       />
       <ThemeEnricher />
+      <OnboardingGuide books={books} eligible={storageReady && isFirstRun} onAddBook={() => window.dispatchEvent(new Event("shelf-open-book-search"))} />
 
       <input
         ref={goodreadsInput}
@@ -196,6 +225,34 @@ export default function Home() {
         showToast={showToast}
         onImportGoodreads={() => goodreadsInput.current?.click()}
       />
+      <GoodreadsImportReview
+        preview={goodreadsPreview}
+        onConfirm={confirmGoodreadsImport}
+        onCancel={cancelGoodreadsImport}
+        onShelfFilterChange={setGoodreadsShelfFilter}
+      />
+      <GoodreadsImportUndoToast
+        message={goodreadsUndoMessage}
+        coverCount={goodreadsCoverCandidateIds.length}
+        onFindCovers={() => {
+          importedCoverFinder.start(goodreadsCoverCandidateIds);
+          dismissGoodreadsUndo();
+        }}
+        onUndo={undoGoodreadsImport}
+        onDismiss={dismissGoodreadsUndo}
+      />
+      <ImportedCoverProgress
+        job={importedCoverFinder.job}
+        currentTitle={importedCoverFinder.currentTitle}
+        onPause={importedCoverFinder.pause}
+        onResume={importedCoverFinder.resume}
+        onReview={() => {
+          const ids = importedCoverFinder.job?.reviewBookIds || [];
+          importedCoverFinder.dismiss();
+          openFindCovers(ids);
+        }}
+        onDismiss={importedCoverFinder.dismiss}
+      />
 
       {coverUndo && (
         <CoverUndoToast
@@ -208,7 +265,7 @@ export default function Home() {
       {coverReviewOpen && selected ? (
         <CoverReviewQueue
           book={selected}
-          position={Math.max(1, coverReviewInitialTotal - booksNeedingCoverReview.length + 1)}
+          position={Math.max(1, coverReviewInitialTotal - activeCoverReviewBooks.length + 1)}
           total={Math.max(1, coverReviewInitialTotal)}
           coverOptions={coverOptions}
           webCoverResults={webCoverResults}
@@ -220,7 +277,7 @@ export default function Home() {
           onSearchMore={searchMoreCovers}
           onSearchWeb={() => searchWebCovers("covers")}
           onFinish={finishReviewAndAdvance}
-          onClose={() => { setCoverReviewOpen(false); setSelected(null); }}
+          onClose={() => { setCoverReviewOpen(false); setCoverReviewScopeIds(null); setSelected(null); }}
         />
       ) : selected && (
         <BookDetailsModal

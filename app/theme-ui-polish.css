@@ -254,6 +254,13 @@ html[data-shelf-theme] .theme-option {
   cursor: pointer;
 }
 html[data-shelf-theme] .theme-option:hover { background: var(--sof-ui-control-hover); }
+html[data-shelf-theme] .theme-option:disabled {
+  opacity: .48;
+  filter: grayscale(1);
+  cursor: not-allowed;
+  background: color-mix(in srgb, var(--sof-ui-control) 72%, #777 28%);
+}
+html[data-shelf-theme] .theme-option:disabled:hover { background: color-mix(in srgb, var(--sof-ui-control) 72%, #777 28%); }
 html[data-shelf-theme] .theme-option.active {
   border-color: var(--sof-ui-accent);
   background: var(--sof-ui-accent-soft);
@@ -271,7 +278,23 @@ html[data-shelf-theme] .theme-option-icon {
 }
 html[data-shelf-theme] .theme-option-copy { display: grid; gap: 2px; min-width: 0; }
 html[data-shelf-theme] .theme-option-copy strong { font-size: 13px; }
+html[data-shelf-theme] .theme-option-soon { color: var(--sof-ui-muted); font-size: 11px; font-weight: 700; }
 html[data-shelf-theme] .theme-option-copy small { color: var(--sof-ui-muted); font-size: 10px; line-height: 1.25; }
+html[data-shelf-theme] .theme-picker-library-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--sof-ui-border);
+  border-radius: 12px;
+  background: var(--sof-ui-control);
+  color: var(--sof-ui-text);
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+}
+html[data-shelf-theme] .theme-picker-library-link:hover { background: var(--sof-ui-control-hover); }
 html[data-shelf-theme] .theme-picker-spine-setting {
   width: 100%;
   display: flex;

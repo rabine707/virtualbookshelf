@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { shelfBook, shelfCover } from "./mobile-shelf-helpers";
+import { shelfBook } from "./mobile-shelf-helpers";
 
 const CLOUD_COVER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23577'/%3E%3C/svg%3E";
 
@@ -53,7 +53,8 @@ test("hydrates a signed-in cloud shelf into React state without reloading", asyn
   const cloudBook = shelfBook(page, "Cloud Reader Book", "Shelf Author");
   await expect(cloudBook).toBeVisible({ timeout: 8000 });
   await expect(page.locator('button[data-book-id]')).toHaveCount(1);
-  await expect(shelfCover(page, "Cloud Reader Book", "Shelf Author")).toHaveAttribute("src", CLOUD_COVER);
+  await cloudBook.click();
+  await expect(page.getByAltText("Cover of Cloud Reader Book")).toHaveAttribute("src", CLOUD_COVER);
 
   const state = await page.evaluate(() => ({
     library: JSON.parse(window.localStorage.getItem("shelf-of-fame-library-v1") || "[]") as Array<{ id?: string; title?: string }>,

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { AUTH_CHANGED_EVENT, readStoredShelfSession } from "./auth-client";
 
 type ShelfTheme = "classic" | "dark-academia" | "botanical" | "fantasy" | "cozy" | "gothic" | "celestial";
 
@@ -11,14 +12,14 @@ const SIDEWAYS_TITLES_KEY = "shelf-of-fame-sideways-titles-v1";
 const TITLE_ORIENTATION_KEY = "shelf-of-fame-title-orientation-v1";
 type TitleOrientation = "auto" | "upright" | "sideways";
 
-const THEMES: { id: ShelfTheme; label: string; subtitle: string; icon: string }[] = [
-  { id: "classic", label: "Classic", subtitle: "Clean warm wood", icon: "▤" },
-  { id: "dark-academia", label: "Dark Academia", subtitle: "Walnut, candles & antiques", icon: "♜" },
-  { id: "botanical", label: "Botanical", subtitle: "Plants, glass & soft green light", icon: "❧" },
-  { id: "fantasy", label: "Fantasy", subtitle: "Crystals, runes & magic glow", icon: "✦" },
-  { id: "cozy", label: "Cozy Cottage", subtitle: "Warm pine, flowers & lamplight", icon: "⌂" },
-  { id: "gothic", label: "Gothic Romance", subtitle: "Black wood, roses & candlelight", icon: "♠" },
-  { id: "celestial", label: "Celestial", subtitle: "Midnight blue, stars & brass", icon: "☾" },
+const THEMES: { id: ShelfTheme; label: string; subtitle: string; icon: string; available: boolean }[] = [
+  { id: "classic", label: "Classic", subtitle: "Clean warm wood", icon: "▤", available: false },
+  { id: "dark-academia", label: "Dark Academia", subtitle: "Walnut, candles & antiques", icon: "♜", available: false },
+  { id: "botanical", label: "Botanical", subtitle: "Plants, glass & soft green light", icon: "❧", available: true },
+  { id: "fantasy", label: "Fantasy", subtitle: "Crystals, runes & magic glow", icon: "✦", available: false },
+  { id: "cozy", label: "Cozy Cottage", subtitle: "Warm pine, flowers & lamplight", icon: "⌂", available: false },
+  { id: "gothic", label: "Gothic Romance", subtitle: "Black wood, roses & candlelight", icon: "♠", available: false },
+  { id: "celestial", label: "Celestial", subtitle: "Midnight blue, stars & brass", icon: "☾", available: false },
 ];
 
 const THEME_ASSETS: Record<Exclude<ShelfTheme, "classic">, string[]> = {
@@ -98,15 +99,17 @@ function syncDecor(theme: ShelfTheme, force = false) {
 }
 
 export default function ThemeEnricher() {
-  const [theme, setTheme] = useState<ShelfTheme>("classic");
+  const [theme, setTheme] = useState<ShelfTheme>("botanical");
   const [spineLabels, setSpineLabels] = useState(true);
   const [titleOrientation, setTitleOrientation] = useState<TitleOrientation>("auto");
   const [toolbar, setToolbar] = useState<Element | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [isCurator, setIsCurator] = useState(false);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(THEME_KEY);
-    const initial: ShelfTheme = isShelfTheme(saved) ? saved : "classic";
+    const savedTheme = isShelfTheme(saved) ? THEMES.find((option) => option.id === saved) : undefined;
+    const initial: ShelfTheme = savedTheme?.available ? savedTheme.id : "botanical";
     setTheme(initial);
     applyTheme(initial);
 
@@ -173,7 +176,15 @@ export default function ThemeEnricher() {
     return () => window.removeEventListener("shelf-open-personalization", openPersonalization);
   }, []);
 
+  useEffect(() => {
+    const syncCurator = () => setIsCurator(readStoredShelfSession()?.profile?.trusted_curator === true);
+    syncCurator();
+    window.addEventListener(AUTH_CHANGED_EVENT, syncCurator);
+    return () => window.removeEventListener(AUTH_CHANGED_EVENT, syncCurator);
+  }, []);
+
   function choose(next: ShelfTheme) {
+    if (!THEMES.find((option) => option.id === next)?.available) return;
     setTheme(next);
     applyTheme(next);
     setPickerOpen(false);
@@ -253,15 +264,17 @@ export default function ThemeEnricher() {
                   key={option.id}
                   className={`theme-option${theme === option.id ? " active" : ""}`}
                   onClick={() => choose(option.id)}
+                  disabled={!option.available}
                 >
                   <span className="theme-option-icon">{option.icon}</span>
                   <span className="theme-option-copy">
-                    <strong>{option.label}</strong>
+                    <strong>{option.label}{option.available ? null : <span className="theme-option-soon"> (Soon)</span>}</strong>
                     <small>{option.subtitle}</small>
                   </span>
                 </button>
               ))}
             </div>
+            {isCurator ? <a className="theme-picker-library-link" href="/engravings">View all engravings <span aria-hidden="true">→</span></a> : null}
           </div>
         </div>,
         document.body,

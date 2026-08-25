@@ -11,3 +11,5 @@ pnpm-debug.log*
 playwright-report
 test-results
 coverage
+debug.log
+*.tsbuildinfo

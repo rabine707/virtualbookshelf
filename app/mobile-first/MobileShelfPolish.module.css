@@ -113,6 +113,12 @@
   --shelf-bay-image: url("/themes/botanical/v7/shelf-bay-walnut-v3.webp");
 }
 
+/* Virtualized rows retain their original visual cadence even when earlier
+   shelves are represented by a lightweight spacer. */
+.shelfRow[data-shelf-variant="1"] { --shelf-bay-image: url("/themes/botanical/v7/shelf-bay-walnut-v1.webp"); }
+.shelfRow[data-shelf-variant="2"] { --shelf-bay-image: url("/themes/botanical/v7/shelf-bay-walnut-v2.webp"); }
+.shelfRow[data-shelf-variant="3"] { --shelf-bay-image: url("/themes/botanical/v7/shelf-bay-walnut-v3.webp"); }
+
 /* Calm the baked left-edge glare while leaving the live book spines untouched. */
 .shelfRow::after {
   content: "";
