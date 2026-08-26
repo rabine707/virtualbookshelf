@@ -185,7 +185,6 @@ export default function AccountPage() {
     books: books.length,
     read: books.filter((book) => book.shelf?.toLowerCase() === "read").length,
     fiveStars: books.filter((book) => Number(book.rating) === 5).length,
-    rereads: books.reduce((total, book) => total + Number(book.rereadCount || 0), 0),
   }), [books]);
 
   async function openConnections(kind: "followers" | "following") {
@@ -597,7 +596,7 @@ export default function AccountPage() {
           <button type="button" onClick={() => void openConnections("following")}><strong>{socialCounts.following}</strong><span>Following</span></button>
         </div>
         <div className="sof-reader-stats">
-          <div><strong>{readingStats.books}</strong><span>On my shelf</span></div><div><strong>{readingStats.read}</strong><span>Books read</span></div><div><strong>{readingStats.fiveStars}</strong><span>Five-star reads</span></div><div><strong>{readingStats.rereads}</strong><span>Rereads</span></div>
+          <div><strong>{readingStats.books}</strong><span>On my shelf</span></div><div><strong>{readingStats.read}</strong><span>Books read</span></div><div><strong>{readingStats.fiveStars}</strong><span>Five-star reads</span></div>
         </div>
         {session.profile?.trusted_curator ? (
           <Link className="sof-curator-link" href="/spine-requests">
