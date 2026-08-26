@@ -35,7 +35,7 @@ function ReaderCard({ profile, onFollow }: { profile: SocialProfile; onFollow: (
   return <article className="reader-card">
     <Link className="reader-card-main" href={`/u/${encodeURIComponent(profile.username)}`}>
       {profile.avatar_url ? <img src={profile.avatar_url} alt="" /> : <span className="reader-card-avatar">{initials}</span>}
-      <span className="reader-card-copy"><small>@{profile.username}{profile.trusted_curator ? " · Curator" : ""}</small><strong>{name}</strong><span>{profile.bio || "A Shelf of Fame reader."}</span></span>
+      <span className="reader-card-copy"><small>@{profile.username}{profile.is_demo ? " · Demo" : profile.trusted_curator ? " · Curator" : ""}</small><strong>{name}</strong><span>{profile.bio || "A Shelf of Fame reader."}</span></span>
     </Link>
     <div className="reader-card-meta"><span>{Number(profile.followers || 0)} followers</span>{profile.favorite_genres?.slice(0, 3).map((genre) => <span key={genre}>#{genre}</span>)}</div>
     {!profile.is_self && <button type="button" className={profile.is_following ? "is-following" : ""} disabled={busy} onClick={async () => { setBusy(true); try { await onFollow(profile); } finally { setBusy(false); } }}>{busy ? "Saving…" : profile.is_following ? "Following" : "Follow"}</button>}

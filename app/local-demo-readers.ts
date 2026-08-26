@@ -1,7 +1,6 @@
 import type { Book } from "../lib/books/client-library";
 import type { SocialProfile, SocialProfilePage } from "./social-client";
 
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 const FOLLOW_KEY = "shelf-of-fame-local-demo-follows-v1";
 
 type DemoReader = {
@@ -91,16 +90,12 @@ const demoReaders: DemoReader[] = [
   },
 ];
 
-export function isLocalDemoHost(hostname = typeof window === "undefined" ? "" : window.location.hostname) {
-  return LOCAL_HOSTS.has(hostname.toLowerCase());
-}
-
 function normalizedUsername(username: string) {
   return decodeURIComponent(username).replace(/^@/, "").trim().toLowerCase();
 }
 
 function followedUsernames() {
-  if (!isLocalDemoHost() || typeof window === "undefined") return new Set<string>();
+  if (typeof window === "undefined") return new Set<string>();
   try {
     const saved = JSON.parse(window.localStorage.getItem(FOLLOW_KEY) || "[]");
     return new Set(Array.isArray(saved) ? saved.map(String) : []);
@@ -113,6 +108,7 @@ function profileWithLocalFollow(reader: DemoReader): SocialProfile {
   const isFollowing = followedUsernames().has(reader.profile.username);
   return {
     ...reader.profile,
+    is_demo: true,
     favorite_genres: [...(reader.profile.favorite_genres || [])],
     is_following: isFollowing,
     is_self: false,
@@ -121,12 +117,10 @@ function profileWithLocalFollow(reader: DemoReader): SocialProfile {
 }
 
 export function localDemoReader(username: string) {
-  if (!isLocalDemoHost()) return null;
   return demoReaders.find((reader) => reader.profile.username === normalizedUsername(username)) || null;
 }
 
 export function localDemoReaderPage(query = "", offset = 0, limit = 24): SocialProfilePage | null {
-  if (!isLocalDemoHost()) return null;
   const needle = query.replace(/^@/, "").trim().toLowerCase();
   const matching = demoReaders.filter((reader) => !needle || [
     reader.profile.username,
@@ -140,13 +134,12 @@ export function localDemoReaderPage(query = "", offset = 0, limit = 24): SocialP
 }
 
 export function localDemoPublicShelf(username: string): Record<string, unknown> | null | undefined {
-  if (!isLocalDemoHost()) return undefined;
   const reader = localDemoReader(username);
   // Unknown usernames should continue to Supabase. Returning null here makes
   // every real public profile look private while developing on localhost.
   if (!reader) return undefined;
   return {
-    profile: { ...reader.profile },
+    profile: { ...reader.profile, is_demo: true },
     settings: {
       theme: reader.theme,
       community_stars: reader.communityStars,

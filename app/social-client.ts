@@ -9,6 +9,7 @@ export type SocialProfile = {
   bio?: string | null;
   favorite_genres?: string[];
   trusted_curator?: boolean;
+  is_demo?: boolean;
   followers?: number;
   following?: number;
   is_following?: boolean;
@@ -62,10 +63,21 @@ async function socialRpc<T>(name: string, body: Record<string, unknown>) {
   return await response.json() as T;
 }
 
-export function discoverReaders(query = "", offset = 0, limit = 24) {
-  const localPage = localDemoReaderPage(query, offset, limit);
-  if (localPage) return Promise.resolve(localPage);
-  return socialRpc<SocialProfilePage>("discover_public_profiles", { p_query: query, p_offset: offset, p_limit: limit });
+export async function discoverReaders(query = "", offset = 0, limit = 24) {
+  const demoPage = offset === 0 ? localDemoReaderPage(query, 0, limit) : null;
+  let livePage: SocialProfilePage;
+  try {
+    livePage = await socialRpc<SocialProfilePage>("discover_public_profiles", { p_query: query, p_offset: offset, p_limit: limit });
+  } catch (error) {
+    if (demoPage?.profiles.length) return demoPage;
+    throw error;
+  }
+  if (offset > 0) return livePage;
+  const seen = new Set((demoPage?.profiles || []).map((profile) => profile.username));
+  return {
+    profiles: [...(demoPage?.profiles || []), ...(livePage.profiles || []).filter((profile) => !seen.has(profile.username))],
+    next_offset: livePage.next_offset,
+  };
 }
 
 export function listConnections(username: string, kind: "followers" | "following", offset = 0, limit = 30) {
