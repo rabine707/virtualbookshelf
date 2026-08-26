@@ -71,6 +71,7 @@ export default function AccountPage() {
   const [connectionsLoading, setConnectionsLoading] = useState(false);
   const [connectionsMessage, setConnectionsMessage] = useState("");
   const avatarInput = useRef<HTMLInputElement>(null);
+  const bioInput = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     let stopped = false;
@@ -196,6 +197,14 @@ export default function AccountPage() {
       setConnections([]);
       setConnectionsMessage(`Could not load ${kind} right now.`);
     } finally { setConnectionsLoading(false); }
+  }
+
+  function editBio() {
+    setAccountView("profile");
+    window.requestAnimationFrame(() => {
+      bioInput.current?.focus();
+      bioInput.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   }
 
   function toggleGenre(genre: string) {
@@ -589,14 +598,14 @@ export default function AccountPage() {
           <input ref={avatarInput} className="sof-visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} />
           <div><div className="sof-reader-eyebrow">MY READER PROFILE</div><h2>{displayName || username || "Reader"}</h2><p>{username ? `@${username}` : "Choose a username"}</p></div>
         </div>
-        <p className={`sof-reader-bio ${bio ? "" : "is-placeholder"}`}>{bio || "Tell readers what you love, what you chase in a story, or the book you never stop recommending."}</p>
+        {bio ? <p className="sof-reader-bio">{bio}</p> : <button className="sof-reader-bio is-placeholder" type="button" onClick={editBio}>Add a bio so readers know what you love →</button>}
         <div className="sof-reader-genres">{genres.length ? genres.map((genre) => <span key={genre}>#{genre}</span>) : <span className="is-placeholder">Add a few favorite genres below</span>}</div>
         <div className="sof-reader-social" aria-label="Reader connections">
           <button type="button" onClick={() => void openConnections("followers")}><strong>{socialCounts.followers}</strong><span>Followers</span></button>
           <button type="button" onClick={() => void openConnections("following")}><strong>{socialCounts.following}</strong><span>Following</span></button>
         </div>
         <div className="sof-reader-stats">
-          <div><strong>{readingStats.books}</strong><span>On my shelf</span></div><div><strong>{readingStats.read}</strong><span>Books read</span></div><div><strong>{readingStats.fiveStars}</strong><span>Five-star reads</span></div>
+          <div><strong>{readingStats.books}</strong><span>Total books</span></div><div><strong>{readingStats.read}</strong><span>Finished</span></div><div><strong>{readingStats.fiveStars}</strong><span>Five-star reads</span></div>
         </div>
         {session.profile?.trusted_curator ? (
           <Link className="sof-curator-link" href="/spine-requests">
@@ -612,7 +621,7 @@ export default function AccountPage() {
       <section className="sof-profile-favorites sof-account-section">
         <div className="sof-account-section-heading"><div><span className="sof-section-number">01</span><h2>Books that feel like me</h2></div><p>Choose up to five favorites from your shelf.</p></div>
         <div className="sof-favorite-style" role="group" aria-label="Favorite book display style"><span>Display as</span><div><button type="button" className={favoritesStyle === "covers" ? "is-selected" : ""} aria-pressed={favoritesStyle === "covers"} onClick={() => setFavoriteDisplayStyle("covers")}>Covers</button><button type="button" className={favoritesStyle === "spines" ? "is-selected" : ""} aria-pressed={favoritesStyle === "spines"} onClick={() => setFavoriteDisplayStyle("spines")}>Spines</button></div></div>
-        {favoriteBooks.length ? <div className={`sof-favorite-showcase is-${favoritesStyle}`}>{favoriteBooks.map((book, index) => favoritesStyle === "covers" ? <article className="sof-favorite-cover" key={book.id} aria-label={`${book.title} by ${book.author}`}>{book.preferredCover?.url ? <img src={book.preferredCover.url} alt="" loading="lazy" decoding="async" /> : <span className="sof-favorite-cover-fallback" style={{ background: book.color }}>{book.title.slice(0, 1)}</span>}<small>{book.title}</small></article> : <article className="sof-favorite-shelf-spine" key={book.id}><MobileBookSpine book={book} index={index} onSelect={() => undefined} /></article>)}</div> : <div className="sof-favorites-empty">Your favorites will make this profile unmistakably yours.</div>}
+        {favoriteBooks.length ? <div className={`sof-favorite-showcase is-${favoritesStyle}`}>{favoriteBooks.map((book, index) => favoritesStyle === "covers" ? <article className="sof-favorite-cover" key={book.id} aria-label={`${book.title} by ${book.author}`}>{book.preferredCover?.url ? <img src={book.preferredCover.url} alt="" loading="lazy" decoding="async" /> : <span className="sof-favorite-cover-fallback" style={{ background: book.color }}>{book.title.slice(0, 1)}</span>}<small>{book.title}</small></article> : <article className="sof-favorite-shelf-spine" key={book.id}><MobileBookSpine book={book} index={index} onSelect={() => undefined} /></article>)}</div> : <button className="sof-favorites-empty" type="button" onClick={() => setBookPickerOpen(true)}>Choose the books that feel most like you →</button>}
         <details className="sof-book-picker" open={bookPickerOpen} onToggle={(event) => setBookPickerOpen(event.currentTarget.open)}>
           <summary>{favoriteBooks.length ? `Edit books (${favoriteBooks.length}/5)` : "Choose books"}</summary>
           {bookPickerOpen && <div className="sof-book-picker-panel">
@@ -646,7 +655,7 @@ export default function AccountPage() {
               <small>Availability is checked automatically. Use 3–24 letters, numbers, periods, or underscores.</small>
             </label>
             <label className="sof-account-full">Bio
-              <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={240} rows={4} placeholder="What do you chase in a story? What book do you never stop recommending?" />
+              <textarea ref={bioInput} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={240} rows={4} placeholder="What do you chase in a story? What book do you never stop recommending?" />
               <small>{bio.length}/240</small>
             </label>
             <fieldset className="sof-account-full sof-genre-field"><legend>Genres and tags <span>(up to 8)</span></legend><div className="sof-genre-chips">{GENRE_SUGGESTIONS.map((genre) => <button type="button" className={genres.some((item) => item.toLowerCase() === genre.toLowerCase()) ? "is-selected" : ""} key={genre} onClick={() => toggleGenre(genre)}>{genre}</button>)}</div><label>Add or edit custom tags<input value={favoriteGenres} onChange={(e) => setFavoriteGenres(e.target.value)} placeholder="LitRPG, cozy mystery, romantasy" /></label><small>Separate tags with commas. They appear on your public profile.</small></fieldset>

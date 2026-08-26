@@ -41,7 +41,7 @@ test("signs in, stores the enriched account, and revokes the current session on 
         username: "shelfreader",
         display_name: "Shelf Reader",
         avatar_url: null,
-        bio: "Beta reader",
+        bio: null,
       }]),
     });
   });
@@ -67,6 +67,12 @@ test("signs in, stores the enriched account, and revokes the current session on 
 
   await expect(page.getByRole("heading", { name: "Your reading life" })).toBeVisible();
   await expect(page.getByText("@shelfreader")).toBeVisible();
+  await expect(page.getByText("Total books", { exact: true })).toBeVisible();
+  await expect(page.getByText("Finished", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Add a bio so readers know what you love →" }).click();
+  await expect(page.getByLabel("Bio")).toBeFocused();
+  await page.getByRole("button", { name: "Choose the books that feel most like you →" }).click();
+  await expect(page.locator(".sof-book-picker")).toHaveAttribute("open", "");
   await expect(page.getByRole("button", { name: "12 Followers" })).toBeVisible();
   await expect(page.getByRole("button", { name: "7 Following" })).toBeVisible();
   await page.getByRole("button", { name: "12 Followers" }).click();
