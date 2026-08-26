@@ -133,6 +133,10 @@ export function localDemoReaderPage(query = "", offset = 0, limit = 24): SocialP
   return { profiles, next_offset: offset + limit < matching.length ? offset + limit : null };
 }
 
+export function localDemoFollowingCount() {
+  return demoReaders.filter((reader) => followedUsernames().has(reader.profile.username)).length;
+}
+
 export function localDemoPublicShelf(username: string): Record<string, unknown> | null | undefined {
   const reader = localDemoReader(username);
   // Unknown usernames should continue to Supabase. Returning null here makes

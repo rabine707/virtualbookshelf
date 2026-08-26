@@ -1,5 +1,5 @@
 import { SUPABASE_KEY, SUPABASE_URL, readStoredShelfSession } from "./auth-client";
-import { localDemoConnections, localDemoReaderPage, setLocalDemoFollow } from "./local-demo-readers";
+import { localDemoConnections, localDemoFollowingCount, localDemoReaderPage, setLocalDemoFollow } from "./local-demo-readers";
 
 export type SocialProfile = {
   id?: string;
@@ -17,6 +17,7 @@ export type SocialProfile = {
 };
 
 export type SocialProfilePage = { profiles: SocialProfile[]; next_offset: number | null };
+export type ProfileSocial = { favorite_genres?: string[]; followers?: number; following?: number; is_following?: boolean; is_self?: boolean };
 
 export type ActivityPrivacy = {
   shelf_public: boolean;
@@ -84,6 +85,14 @@ export function listConnections(username: string, kind: "followers" | "following
   const localPage = localDemoConnections(username, offset, limit);
   if (localPage) return Promise.resolve(localPage);
   return socialRpc<SocialProfilePage>("list_profile_connections", { p_username: username, p_kind: kind, p_offset: offset, p_limit: limit });
+}
+
+export function getProfileSocial(username: string) {
+  return socialRpc<ProfileSocial>("get_profile_social", { p_username: username });
+}
+
+export function getLocalDemoFollowingCount() {
+  return localDemoFollowingCount();
 }
 
 export async function listMyFollowing(offset = 0, limit = 30): Promise<SocialProfilePage> {

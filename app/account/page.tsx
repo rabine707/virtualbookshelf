@@ -6,6 +6,7 @@ import CloudAccountSettings from "../CloudAccountSettings";
 import { updateProfileFavorites } from "../cloud-sync";
 import { Book, STORAGE_KEY } from "../../lib/books/client-library";
 import { MobileBookSpine } from "../mobile-first/MobileBookSpine";
+import { getLocalDemoFollowingCount, getProfileSocial, listConnections, listMyFollowing, type SocialProfile } from "../social-client";
 import {
   AUTH_CHANGED_EVENT,
   AUTH_ERROR_EVENT,
@@ -64,6 +65,11 @@ export default function AccountPage() {
   const [avatarY, setAvatarY] = useState(0);
   const [profileDirty, setProfileDirty] = useState(false);
   const [accountView, setAccountView] = useState<AccountView>("profile");
+  const [socialCounts, setSocialCounts] = useState({ followers: 0, following: 0 });
+  const [connectionsKind, setConnectionsKind] = useState<"followers" | "following" | null>(null);
+  const [connections, setConnections] = useState<SocialProfile[]>([]);
+  const [connectionsLoading, setConnectionsLoading] = useState(false);
+  const [connectionsMessage, setConnectionsMessage] = useState("");
   const avatarInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -142,6 +148,18 @@ export default function AccountPage() {
   }, []);
 
   useEffect(() => {
+    if (!session?.access_token || !originalUsername) return;
+    let stopped = false;
+    getProfileSocial(originalUsername).then((social) => {
+      if (!stopped) setSocialCounts({
+        followers: Number(social.followers || 0),
+        following: Number(social.following || 0) + getLocalDemoFollowingCount(),
+      });
+    }).catch(() => undefined);
+    return () => { stopped = true; };
+  }, [originalUsername, session?.access_token]);
+
+  useEffect(() => {
     try {
       const savedBooks = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
       if (Array.isArray(savedBooks)) setBooks(savedBooks);
@@ -169,6 +187,17 @@ export default function AccountPage() {
     fiveStars: books.filter((book) => Number(book.rating) === 5).length,
     rereads: books.reduce((total, book) => total + Number(book.rereadCount || 0), 0),
   }), [books]);
+
+  async function openConnections(kind: "followers" | "following") {
+    setConnectionsKind(kind); setConnectionsLoading(true); setConnectionsMessage("");
+    try {
+      const page = kind === "following" ? await listMyFollowing(0, 50) : await listConnections(originalUsername, "followers", 0, 50);
+      setConnections(page.profiles || []);
+    } catch {
+      setConnections([]);
+      setConnectionsMessage(`Could not load ${kind} right now.`);
+    } finally { setConnectionsLoading(false); }
+  }
 
   function toggleGenre(genre: string) {
     const exists = genres.some((item) => item.toLowerCase() === genre.toLowerCase());
@@ -563,6 +592,10 @@ export default function AccountPage() {
         </div>
         <p className={`sof-reader-bio ${bio ? "" : "is-placeholder"}`}>{bio || "Tell readers what you love, what you chase in a story, or the book you never stop recommending."}</p>
         <div className="sof-reader-genres">{genres.length ? genres.map((genre) => <span key={genre}>#{genre}</span>) : <span className="is-placeholder">Add a few favorite genres below</span>}</div>
+        <div className="sof-reader-social" aria-label="Reader connections">
+          <button type="button" onClick={() => void openConnections("followers")}><strong>{socialCounts.followers}</strong><span>Followers</span></button>
+          <button type="button" onClick={() => void openConnections("following")}><strong>{socialCounts.following}</strong><span>Following</span></button>
+        </div>
         <div className="sof-reader-stats">
           <div><strong>{readingStats.books}</strong><span>On my shelf</span></div><div><strong>{readingStats.read}</strong><span>Books read</span></div><div><strong>{readingStats.fiveStars}</strong><span>Five-star reads</span></div><div><strong>{readingStats.rereads}</strong><span>Rereads</span></div>
         </div>
@@ -574,6 +607,8 @@ export default function AccountPage() {
           </Link>
         ) : null}
       </section>
+
+      {connectionsKind ? <div className="sof-connections-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setConnectionsKind(null); }}><section className="sof-connections-dialog" role="dialog" aria-modal="true" aria-labelledby="sof-connections-title"><header><div><small>MY COMMUNITY</small><h2 id="sof-connections-title">{connectionsKind === "followers" ? "Followers" : "Following"}</h2></div><button type="button" aria-label="Close" onClick={() => setConnectionsKind(null)}>×</button></header>{connectionsLoading ? <p className="sof-connections-state">Loading readers…</p> : connectionsMessage ? <p className="sof-connections-state">{connectionsMessage}</p> : connections.length ? <div className="sof-connections-list">{connections.map((profile) => { const connectionName = profile.display_name || profile.username; return <Link href={`/u/${encodeURIComponent(profile.username)}`} key={profile.username}><span className="sof-connection-avatar">{profile.avatar_url ? <img src={profile.avatar_url} alt="" /> : connectionName.slice(0, 1).toUpperCase()}</span><span><strong>{connectionName}</strong><small>@{profile.username}{profile.is_demo ? " · Demo" : ""}</small></span><b aria-hidden="true">→</b></Link>; })}</div> : <div className="sof-connections-empty"><span aria-hidden="true">♡</span><h3>No {connectionsKind} yet</h3><p>{connectionsKind === "following" ? "Readers you follow will appear here." : "When readers follow you, they will appear here."}</p>{connectionsKind === "following" ? <Link href="/readers">Find readers</Link> : null}</div>}</section></div> : null}
 
       <section className="sof-profile-favorites sof-account-section">
         <div className="sof-account-section-heading"><div><span className="sof-section-number">01</span><h2>Books that feel like me</h2></div><p>Choose up to five favorites from your shelf.</p></div>

@@ -48,6 +48,12 @@ test("signs in, stores the enriched account, and revokes the current session on 
   await page.route("**/rest/v1/rpc/get_my_shelf", async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ books: [], settings: null }) });
   });
+  await page.route("**/rest/v1/rpc/get_profile_social", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ followers: 12, following: 7, is_self: true }) });
+  });
+  await page.route("**/rest/v1/rpc/list_profile_connections", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ profiles: [{ username: "bookfriend", display_name: "Book Friend", followers: 3, is_following: false }], next_offset: null }) });
+  });
   let logoutCalled = false;
   await page.route("**/auth/v1/logout?scope=local", async (route) => {
     logoutCalled = true;
@@ -61,6 +67,12 @@ test("signs in, stores the enriched account, and revokes the current session on 
 
   await expect(page.getByRole("heading", { name: "Your reading life" })).toBeVisible();
   await expect(page.getByText("@shelfreader")).toBeVisible();
+  await expect(page.getByRole("button", { name: "12 Followers" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "7 Following" })).toBeVisible();
+  await page.getByRole("button", { name: "12 Followers" }).click();
+  await expect(page.getByRole("dialog", { name: "Followers" })).toBeVisible();
+  await expect(page.getByText("Book Friend")).toBeVisible();
+  await page.getByRole("button", { name: "Close" }).click();
   await expect.poll(() => page.evaluate((key) => Boolean(window.localStorage.getItem(key)), SESSION_KEY)).toBe(true);
 
   await page.getByRole("button", { name: /^Account/ }).click();
