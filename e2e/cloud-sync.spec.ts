@@ -41,6 +41,11 @@ test("hydrates a signed-in cloud shelf into React state without reloading", asyn
   await page.route("**/rest/v1/rpc/get_approved_covers_for_library", async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
+  await page.route("**/rest/v1/rpc/sync_my_shelf", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ books: [], settings: { shelf_public: false } }),
+  }));
   await page.route("**/api/cover?**", async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ url: null, source: null, options: [] }) });
   });
@@ -53,6 +58,7 @@ test("hydrates a signed-in cloud shelf into React state without reloading", asyn
   const cloudBook = shelfBook(page, "Cloud Reader Book", "Shelf Author");
   await expect(cloudBook).toBeVisible({ timeout: 8000 });
   await expect(page.locator('button[data-book-id]')).toHaveCount(1);
+  await expect(page.getByText("Saved to cloud", { exact: true })).toBeVisible();
   await cloudBook.click();
   await expect(page.getByAltText("Cover of Cloud Reader Book")).toHaveAttribute("src", CLOUD_COVER);
 
@@ -68,4 +74,50 @@ test("hydrates a signed-in cloud shelf into React state without reloading", asyn
   expect(state.favorites).toContain("cloud reader book::shelf author");
   expect(state.initialized).toBe("1");
   expect(state.loadCount).toBe("1");
+});
+
+test("retries a failed cloud write without losing the local shelf", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("shelf-of-fame-supabase-session", JSON.stringify({
+      access_token: "test-cloud-token",
+      user: { id: "user-1", email: "reader@example.com" },
+    }));
+    window.localStorage.setItem("shelf-of-fame-library-v1", JSON.stringify([{
+      id: "local-book-1",
+      title: "Offline First Book",
+      author: "Patient Reader",
+      color: "#445566",
+    }]));
+  });
+
+  await page.route("**/rest/v1/rpc/get_my_shelf", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ books: [], settings: null }),
+  }));
+
+  let syncAttempts = 0;
+  await page.route("**/rest/v1/rpc/sync_my_shelf", (route) => {
+    syncAttempts += 1;
+    if (syncAttempts === 1) {
+      return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ message: "Temporary outage" }) });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ books: [], settings: { shelf_public: false } }),
+    });
+  });
+  await page.route("**/rest/v1/rpc/get_approved_covers_for_library", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: "[]",
+  }));
+
+  await page.goto("/");
+
+  await expect.poll(() => syncAttempts, { timeout: 8_000 }).toBe(2);
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("shelf-of-fame-cloud-pending-v1"))).toBeNull();
+  await expect(shelfBook(page, "Offline First Book", "Patient Reader")).toBeVisible();
+  await expect(page.getByText("Saved to cloud", { exact: true })).toBeVisible();
 });

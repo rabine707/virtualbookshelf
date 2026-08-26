@@ -142,7 +142,9 @@ export function localDemoReaderPage(query = "", offset = 0, limit = 24): SocialP
 export function localDemoPublicShelf(username: string): Record<string, unknown> | null | undefined {
   if (!isLocalDemoHost()) return undefined;
   const reader = localDemoReader(username);
-  if (!reader) return null;
+  // Unknown usernames should continue to Supabase. Returning null here makes
+  // every real public profile look private while developing on localhost.
+  if (!reader) return undefined;
   return {
     profile: { ...reader.profile },
     settings: {

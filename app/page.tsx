@@ -13,6 +13,7 @@ import { useBookCoverManager } from "./hooks/useBookCoverManager";
 import { useBookMetadataEditor } from "./hooks/useBookMetadataEditor";
 import { useBookTagEnrichment } from "./hooks/useBookTagEnrichment";
 import { useCloudShelfSync } from "./hooks/useCloudShelfSync";
+import CloudSyncIndicator from "./CloudSyncIndicator";
 import { useCommunityCoverSync } from "./hooks/useCommunityCoverSync";
 import { useImportedCoverFinder } from "./hooks/useImportedCoverFinder";
 import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
@@ -48,7 +49,7 @@ export default function Home() {
     dismissGoodreadsUndo,
   } = useShelfLibrary();
 
-  useCloudShelfSync({ books, setBooks, storageReady });
+  const cloudSyncStatus = useCloudShelfSync({ books, setBooks, storageReady });
   const importedCoverFinder = useImportedCoverFinder({ books, setBooks, storageReady });
   const { submitCoverChoice } = useCommunityCoverSync({ books, setBooks });
   useRomanceShelfEnrichment({ books, setBooks });
@@ -200,6 +201,7 @@ export default function Home() {
 
   return (
     <>
+      <CloudSyncIndicator status={cloudSyncStatus} />
       <MobileShelfScene
         books={books}
         importMessage={importMessage}

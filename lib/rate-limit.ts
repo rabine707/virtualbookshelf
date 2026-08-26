@@ -17,6 +17,7 @@ const POLICIES: Record<string, RateLimitPolicy> = {
   "/api/asin": { limit: 120, windowMs: 60_000 },
   "/api/book-search": { limit: 90, windowMs: 60_000 },
   "/api/book-tags": { limit: 90, windowMs: 60_000 },
+  "/api/cover-download": { limit: 30, windowMs: 60_000 },
   "/api/spine-requests": { limit: 60, windowMs: 60 * 60_000 },
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, SetStateAction, useEffect, useRef } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import {
   cloudFavoriteIdentities,
   cloudPayloadBooks,
@@ -22,12 +22,17 @@ const PROFILE_FAVORITES_KEY = "shelf-of-fame-profile-favorites-v1";
 const PROFILE_FAVORITES_STYLE_KEY = "shelf-of-fame-profile-favorites-style-v1";
 const PUBLIC_KEY = "shelf-of-fame-public-v1";
 const INITIALIZED_KEY = "shelf-of-fame-cloud-initialized-v1";
+const PENDING_SYNC_KEY = "shelf-of-fame-cloud-pending-v1";
+const DEBOUNCE_MS = 1_500;
+const MAX_RETRY_MS = 30_000;
 
 type UseCloudShelfSyncOptions = {
   books: Book[];
   setBooks: Dispatch<SetStateAction<Book[]>>;
   storageReady: boolean;
 };
+
+export type CloudSyncStatus = "local" | "saving" | "saved" | "offline" | "retrying";
 
 function safeJson<T>(key: string, fallback: T): T {
   try {
@@ -97,15 +102,24 @@ function fingerprint(books: Book[], publicFallback = false) {
 }
 
 export function useCloudShelfSync({ books, setBooks, storageReady }: UseCloudShelfSyncOptions) {
+  const [status, setStatus] = useState<CloudSyncStatus>("local");
   const booksRef = useRef(books);
   const running = useRef(false);
   const lastSynced = useRef("");
   const publicFallback = useRef(false);
   const storageReadyRef = useRef(storageReady);
+  const retryCount = useRef(0);
+  const retryTimer = useRef<number | null>(null);
+  const debounceTimer = useRef<number | null>(null);
+  const requestFlush = useRef<(delay?: number) => void>(() => undefined);
 
   useEffect(() => {
     booksRef.current = books;
-  }, [books]);
+    if (storageReady) {
+      if (readShelfSession()?.access_token) setStatus(navigator.onLine ? "saving" : "offline");
+      requestFlush.current(DEBOUNCE_MS);
+    }
+  }, [books, storageReady]);
 
   useEffect(() => {
     storageReadyRef.current = storageReady;
@@ -115,9 +129,29 @@ export function useCloudShelfSync({ books, setBooks, storageReady }: UseCloudShe
     if (!storageReady) return;
     let stopped = false;
 
+    const clearRetry = () => {
+      if (retryTimer.current !== null) window.clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    };
+
+    const clearDebounce = () => {
+      if (debounceTimer.current !== null) window.clearTimeout(debounceTimer.current);
+      debounceTimer.current = null;
+    };
+
+    const scheduleRetry = () => {
+      if (stopped || !navigator.onLine) return;
+      clearRetry();
+      const delay = Math.min(MAX_RETRY_MS, 1_000 * (2 ** retryCount.current));
+      retryCount.current += 1;
+      retryTimer.current = window.setTimeout(() => void flush(), delay);
+    };
+
     const initialize = async () => {
       if (running.current || stopped || !storageReadyRef.current || !readShelfSession()?.access_token) return;
       running.current = true;
+      setStatus(navigator.onLine ? "saving" : "offline");
+      let failed = false;
       try {
         const cloud = await loadMyShelf();
         if (stopped) return;
@@ -148,45 +182,94 @@ export function useCloudShelfSync({ books, setBooks, storageReady }: UseCloudShe
 
         window.localStorage.setItem(INITIALIZED_KEY, "1");
         lastSynced.current = fingerprint(merged, publicFallback.current);
+        setStatus("saved");
       } catch {
         // The shelf remains fully usable offline/local if cloud sync is unavailable.
+        failed = true;
+        setStatus(navigator.onLine ? "retrying" : "offline");
+        scheduleRetry();
       } finally {
         running.current = false;
+        if (!failed) requestFlush.current(DEBOUNCE_MS);
       }
     };
 
     const flush = async () => {
-      if (running.current || stopped || !storageReadyRef.current || !readShelfSession()?.access_token) return;
+      if (stopped || !storageReadyRef.current || !readShelfSession()?.access_token) return;
+      if (running.current) {
+        requestFlush.current(250);
+        return;
+      }
       const currentBooks = localBooksForCloud(booksRef.current);
       const next = fingerprint(currentBooks, publicFallback.current);
-      if (!next || next === lastSynced.current) return;
+      if (!next || next === lastSynced.current) {
+        setStatus("saved");
+        return;
+      }
       running.current = true;
+      setStatus(navigator.onLine ? "saving" : "offline");
+      let failed = false;
+      clearRetry();
+      try { window.localStorage.setItem(PENDING_SYNC_KEY, next); } catch { /* best effort */ }
       try {
         const result = await syncMyShelf(payloadBooks(currentBooks), currentSettings(publicFallback.current), true);
         publicFallback.current = Boolean(result.settings?.shelf_public);
-        lastSynced.current = fingerprint(currentBooks, publicFallback.current);
+        lastSynced.current = next;
+        retryCount.current = 0;
+        setStatus("saved");
+        if (window.localStorage.getItem(PENDING_SYNC_KEY) === next) {
+          window.localStorage.removeItem(PENDING_SYNC_KEY);
+        }
       } catch {
-        // Retry on the next interval/focus without interrupting the reader.
+        // Keep the pending fingerprint across reloads and retry with backoff.
+        failed = true;
+        setStatus(navigator.onLine ? "retrying" : "offline");
+        scheduleRetry();
       } finally {
         running.current = false;
+        const latest = fingerprint(localBooksForCloud(booksRef.current), publicFallback.current);
+        if (!failed && latest !== lastSynced.current) requestFlush.current(DEBOUNCE_MS);
       }
     };
 
+    requestFlush.current = (delay = DEBOUNCE_MS) => {
+      if (stopped) return;
+      clearDebounce();
+      debounceTimer.current = window.setTimeout(() => void flush(), delay);
+    };
+
     void initialize();
-    const interval = window.setInterval(() => void flush(), 5000);
-    const onFocus = () => void flush();
+    const interval = window.setInterval(() => requestFlush.current(0), 5_000);
+    const onFocus = () => requestFlush.current(0);
+    const onOnline = () => {
+      retryCount.current = 0;
+      setStatus(readShelfSession()?.access_token ? "saving" : "local");
+      requestFlush.current(0);
+    };
+    const onOffline = () => setStatus(readShelfSession()?.access_token ? "offline" : "local");
     const onAuth = () => {
       lastSynced.current = "";
+      retryCount.current = 0;
+      setStatus(readShelfSession()?.access_token ? "saving" : "local");
       void initialize();
     };
     window.addEventListener("focus", onFocus);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
     window.addEventListener("shelf-auth-changed", onAuth as EventListener);
 
     return () => {
       stopped = true;
       window.clearInterval(interval);
+      clearRetry();
+      clearDebounce();
+      requestFlush.current = () => undefined;
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
       window.removeEventListener("shelf-auth-changed", onAuth as EventListener);
     };
   }, [setBooks, storageReady]);
+
+  return status;
 }

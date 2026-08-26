@@ -1,4 +1,5 @@
 import { localDemoPublicShelf } from "./local-demo-readers";
+import type { Database, Json } from "../lib/database.types";
 
 const SUPABASE_URL = "https://vrkuimrfdkejfhpxlwlf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mf0u925xGBkP4iNgxSCjuQ_H4Dp8r1S";
@@ -44,7 +45,14 @@ export function shelfAccessToken() {
   return readShelfSession()?.access_token || "";
 }
 
-async function rpc<T>(name: string, body: Record<string, unknown>, authenticated = true): Promise<T> {
+type PublicFunctions = Database["public"]["Functions"];
+type RpcName = keyof PublicFunctions;
+type RpcArgs<Name extends RpcName> = PublicFunctions[Name]["Args"] extends never
+  ? Record<string, never>
+  : PublicFunctions[Name]["Args"];
+type RpcResult<Name extends RpcName> = PublicFunctions[Name]["Returns"];
+
+async function rpc<Name extends RpcName>(name: Name, body: RpcArgs<Name>, authenticated = true): Promise<RpcResult<Name>> {
   const token = authenticated ? shelfAccessToken() : "";
   const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: "POST",
@@ -59,36 +67,36 @@ async function rpc<T>(name: string, body: Record<string, unknown>, authenticated
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;
   if (!response.ok) throw new Error(data?.message || data?.error || `Cloud request failed (${response.status})`);
-  return data as T;
+  return data as RpcResult<Name>;
 }
 
 export function loadMyShelf() {
-  return rpc<CloudShelf>("get_my_shelf", {});
+  return rpc("get_my_shelf", {}) as Promise<CloudShelf>;
 }
 
 export function syncMyShelf(books: unknown[], settings: CloudSettings, replace = true) {
-  return rpc<CloudShelf>("sync_my_shelf", {
-    p_books: books,
-    p_settings: settings,
+  return rpc("sync_my_shelf", {
+    p_books: books as Json,
+    p_settings: settings as Json,
     p_replace: replace,
-  });
+  }) as Promise<CloudShelf>;
 }
 
 export function updateMyShelfSettings(settings: Partial<CloudSettings>) {
-  return rpc<CloudSettings>("update_my_shelf_settings", { p_settings: settings });
+  return rpc("update_my_shelf_settings", { p_settings: settings as Json }) as Promise<CloudSettings>;
 }
 
 export function updateProfileFavorites(bookIds: string[], style: "covers" | "spines") {
-  return rpc<Pick<CloudSettings, "profile_favorite_book_ids" | "profile_favorites_style">>("update_profile_favorites", {
+  return rpc("update_profile_favorites", {
     p_book_ids: bookIds.slice(0, 5),
     p_style: style,
-  });
+  }) as Promise<Pick<CloudSettings, "profile_favorite_book_ids" | "profile_favorites_style">>;
 }
 
 export function loadPublicShelf(username: string) {
   const localShelf = localDemoPublicShelf(username);
   if (localShelf !== undefined) return Promise.resolve(localShelf);
-  return rpc<Record<string, unknown> | null>("get_public_shelf", { p_username: username }, false);
+  return rpc("get_public_shelf", { p_username: username }, false) as Promise<Record<string, unknown> | null>;
 }
 
 export function publicSpineUrl(storagePath?: string | null) {
