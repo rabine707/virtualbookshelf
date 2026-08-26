@@ -1,4 +1,5 @@
 import { SUPABASE_KEY, SUPABASE_URL, readStoredShelfSession } from "./auth-client";
+import { localDemoConnections, localDemoReaderPage, setLocalDemoFollow } from "./local-demo-readers";
 
 export type SocialProfile = {
   id?: string;
@@ -62,14 +63,20 @@ async function socialRpc<T>(name: string, body: Record<string, unknown>) {
 }
 
 export function discoverReaders(query = "", offset = 0, limit = 24) {
+  const localPage = localDemoReaderPage(query, offset, limit);
+  if (localPage) return Promise.resolve(localPage);
   return socialRpc<SocialProfilePage>("discover_public_profiles", { p_query: query, p_offset: offset, p_limit: limit });
 }
 
 export function listConnections(username: string, kind: "followers" | "following", offset = 0, limit = 30) {
+  const localPage = localDemoConnections(username, offset, limit);
+  if (localPage) return Promise.resolve(localPage);
   return socialRpc<SocialProfilePage>("list_profile_connections", { p_username: username, p_kind: kind, p_offset: offset, p_limit: limit });
 }
 
 export function setReaderFollow(username: string, follow: boolean) {
+  const localSocial = setLocalDemoFollow(username, follow);
+  if (localSocial) return Promise.resolve(localSocial);
   return socialRpc<Record<string, unknown>>("set_profile_follow", { p_username: username, p_follow: follow });
 }
 

@@ -1,3 +1,5 @@
+import { localDemoPublicShelf } from "./local-demo-readers";
+
 const SUPABASE_URL = "https://vrkuimrfdkejfhpxlwlf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mf0u925xGBkP4iNgxSCjuQ_H4Dp8r1S";
 const SESSION_KEY = "shelf-of-fame-supabase-session";
@@ -84,6 +86,8 @@ export function updateProfileFavorites(bookIds: string[], style: "covers" | "spi
 }
 
 export function loadPublicShelf(username: string) {
+  const localShelf = localDemoPublicShelf(username);
+  if (localShelf !== undefined) return Promise.resolve(localShelf);
   return rpc<Record<string, unknown> | null>("get_public_shelf", { p_username: username }, false);
 }
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { readStoredShelfSession } from "../auth-client";
 import { discoverReaders, loadReaderActivity, markReaderNotificationsSeen, setReaderFollow, updateActivityPrivacy, type ActivityPrivacy, type ReaderActivity, type SocialProfile } from "../social-client";
+import { localDemoReader } from "../local-demo-readers";
 import "./readers.css";
 import "./readers-improvements.css";
 
@@ -135,7 +136,7 @@ export default function ReadersPage() {
   }
 
   async function toggleFollow(profile: SocialProfile) {
-    if (!readStoredShelfSession()?.access_token) { window.location.assign("/account"); return; }
+    if (!localDemoReader(profile.username) && !readStoredShelfSession()?.access_token) { window.location.assign("/account"); return; }
     await setReaderFollow(profile.username, !profile.is_following);
     setProfiles((current) => current.map((item) => item.username === profile.username ? {
       ...item,
