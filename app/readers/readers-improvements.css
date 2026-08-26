@@ -28,7 +28,7 @@
   .readers-header-actions { justify-content: flex-start; }
 }
 
-.reader-community-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 18px; padding: 5px; border: 1px solid rgba(255,255,255,.09); border-radius: 15px; background: rgba(0,0,0,.2); }
+.reader-community-tabs { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; margin-bottom: 18px; padding: 5px; border: 1px solid rgba(255,255,255,.09); border-radius: 15px; background: rgba(0,0,0,.2); }
 .reader-community-tabs button { position: relative; min-height: 42px; border: 1px solid transparent; border-radius: 11px; background: transparent; color: #aaa096; font: 800 12px/1 Arial,sans-serif; cursor: pointer; }
 .reader-community-tabs button.is-active { border-color: rgba(205,166,116,.25); background: rgba(205,166,116,.12); color: #f1dfc6; }
 .reader-community-tabs button > span { position: absolute; top: 6px; margin-left: 6px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; background: #d8b77f; color: #20150f; font-size: 9px; line-height: 17px; }

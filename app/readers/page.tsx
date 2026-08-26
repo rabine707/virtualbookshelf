@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { readStoredShelfSession } from "../auth-client";
-import { discoverReaders, loadReaderActivity, markReaderNotificationsSeen, setReaderFollow, updateActivityPrivacy, type ActivityPrivacy, type ReaderActivity, type SocialProfile } from "../social-client";
+import { discoverReaders, listMyFollowing, loadReaderActivity, markReaderNotificationsSeen, setReaderFollow, updateActivityPrivacy, type ActivityPrivacy, type ReaderActivity, type SocialProfile } from "../social-client";
 import { localDemoReader } from "../local-demo-readers";
 import "./readers.css";
 import "./readers-improvements.css";
@@ -50,7 +50,11 @@ export default function ReadersPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
-  const [view, setView] = useState<"discover" | "activity">("discover");
+  const [view, setView] = useState<"discover" | "following" | "activity">("discover");
+  const [followingProfiles, setFollowingProfiles] = useState<SocialProfile[]>([]);
+  const [followingOffset, setFollowingOffset] = useState<number | null>(null);
+  const [followingLoading, setFollowingLoading] = useState(false);
+  const [followingMessage, setFollowingMessage] = useState("");
   const [activities, setActivities] = useState<ReaderActivity[]>([]);
   const [activityOffset, setActivityOffset] = useState<number | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -96,6 +100,22 @@ export default function ReadersPage() {
   }, []);
 
   useEffect(() => { void loadActivity(); }, [loadActivity]);
+
+  const loadFollowing = useCallback(async (offset = 0) => {
+    setFollowingLoading(true); setFollowingMessage("");
+    try {
+      const page = await listMyFollowing(offset);
+      setFollowingProfiles((current) => offset ? [...current, ...(page.profiles || [])] : page.profiles || []);
+      setFollowingOffset(page.next_offset ?? null);
+    } catch (error) {
+      setFollowingMessage(error instanceof Error ? error.message : "Could not load followed readers.");
+    } finally { setFollowingLoading(false); }
+  }, []);
+
+  function openFollowing() {
+    setView("following");
+    void loadFollowing();
+  }
 
   async function openActivity() {
     if (!readStoredShelfSession()?.access_token) { window.location.assign("/account"); return; }
@@ -143,11 +163,14 @@ export default function ReadersPage() {
       is_following: !item.is_following,
       followers: Math.max(0, Number(item.followers || 0) + (item.is_following ? -1 : 1)),
     } : item));
+    setFollowingProfiles((current) => profile.is_following
+      ? current.filter((item) => item.username !== profile.username)
+      : current);
   }
 
   return <main className="readers-page"><div className="readers-shell">
     <header className="readers-header"><div><small>SHELF OF FAME COMMUNITY</small><h1>Find your next shelfmate</h1><p>Discover readers by name, username, or the stories they love.</p></div><div className="readers-header-actions"><Link href="/">← My shelf</Link><Link href="/account">My profile</Link></div></header>
-    <nav className="reader-community-tabs" aria-label="Reader community sections"><button type="button" className={view === "discover" ? "is-active" : ""} aria-current={view === "discover" ? "page" : undefined} onClick={() => setView("discover")}>Discover</button><button type="button" className={view === "activity" ? "is-active" : ""} aria-current={view === "activity" ? "page" : undefined} onClick={() => void openActivity()}>Activity{unreadActivity + newFollowers > 0 ? <span aria-label={`${unreadActivity + newFollowers} new updates`}>{Math.min(99, unreadActivity + newFollowers)}</span> : null}</button></nav>
+    <nav className="reader-community-tabs" aria-label="Reader community sections"><button type="button" className={view === "discover" ? "is-active" : ""} aria-current={view === "discover" ? "page" : undefined} onClick={() => setView("discover")}>Discover</button><button type="button" className={view === "following" ? "is-active" : ""} aria-current={view === "following" ? "page" : undefined} onClick={openFollowing}>Following</button><button type="button" className={view === "activity" ? "is-active" : ""} aria-current={view === "activity" ? "page" : undefined} onClick={() => void openActivity()}>Activity{unreadActivity + newFollowers > 0 ? <span aria-label={`${unreadActivity + newFollowers} new updates`}>{Math.min(99, unreadActivity + newFollowers)}</span> : null}</button></nav>
     {view === "discover" ? <>
     <form className="reader-search" onSubmit={submit}><label><span className="sof-visually-hidden">Search readers</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try a name, @username, or genre" /></label>{query ? <button className="reader-search-clear" type="button" onClick={() => setQuery("")} aria-label="Clear reader search">×</button> : null}<button type="submit">Search</button></form>
     <div className="reader-genre-filters" aria-label="Browse readers by genre">
@@ -159,7 +182,14 @@ export default function ReadersPage() {
     <section className="reader-grid">{profiles.map((profile) => <ReaderCard key={profile.username} profile={profile} onFollow={toggleFollow} />)}</section>
     {loading && <div className="reader-state">Finding readers…</div>}
     {!loading && nextOffset !== null && <button className="reader-load-more" type="button" onClick={() => void load(activeQuery, nextOffset)}>Show more readers</button>}
-    </> : <section className="reader-activity-view" aria-labelledby="reader-activity-title">
+    </> : view === "following" ? <section className="reader-following-view" aria-labelledby="reader-following-title">
+      <div className="reader-activity-heading"><div><small>YOUR COMMUNITY</small><h2 id="reader-following-title">Readers you follow</h2><p>Return to the shelves and readers you want to keep up with.</p></div><button type="button" onClick={() => setView("discover")}>Find readers</button></div>
+      {followingMessage ? <div className="reader-state">{followingMessage}</div> : null}
+      {!followingMessage && !followingLoading && !followingProfiles.length ? <div className="reader-empty-state"><span aria-hidden="true">♡</span><h3>No followed readers yet</h3><p>Follow readers from Discover and they will stay collected here. Demo follows are saved in this browser; real reader follows sync with your account.</p><div><button type="button" onClick={() => setView("discover")}>Discover readers</button>{!readStoredShelfSession()?.access_token ? <Link href="/account">Sign in to sync follows</Link> : null}</div></div> : null}
+      <section className="reader-grid">{followingProfiles.map((profile) => <ReaderCard key={profile.username} profile={profile} onFollow={toggleFollow} />)}</section>
+      {followingLoading ? <div className="reader-state">Loading followed readers…</div> : null}
+      {!followingLoading && followingOffset !== null ? <button className="reader-load-more" type="button" onClick={() => void loadFollowing(followingOffset)}>Show more</button> : null}
+    </section> : <section className="reader-activity-view" aria-labelledby="reader-activity-title">
       <div className="reader-activity-heading"><div><small>FOLLOWING</small><h2 id="reader-activity-title">Your reader activity</h2><p>Recent reading moments shared by people you follow.</p></div><button type="button" onClick={() => setView("discover")}>Find readers</button></div>
       {recentFollowers > 0 ? <div className="reader-follow-notice">{recentFollowers} new {recentFollowers === 1 ? "reader follows" : "readers follow"} you.</div> : null}
       <details className="reader-privacy" open={!activityPrivacy.activity_sharing_enabled}><summary><span><strong>My activity sharing</strong><small>{activityPrivacy.activity_sharing_enabled ? activityPrivacy.shelf_public ? "Visible to followers" : "On · shelf private" : "Off"}</small></span><b>Privacy controls</b></summary><div className="reader-privacy-body"><label className="reader-privacy-master"><span><strong>Share my reading activity</strong><small>Off by default. Your shelf must also be public.</small></span><input type="checkbox" checked={activityPrivacy.activity_sharing_enabled} disabled={privacyBusy} onChange={(event) => void saveActivityPrivacy({ ...activityPrivacy, activity_sharing_enabled: event.target.checked })} /></label>{!activityPrivacy.shelf_public ? <p>Your shelf is private, so no activity is visible. You can publish it from <Link href="/account">Public shelf settings</Link>.</p> : null}<fieldset disabled={!activityPrivacy.activity_sharing_enabled || privacyBusy}><legend>Choose what followers may see</legend>{([['activity_share_added','Books I add'],['activity_share_finished','Books I finish'],['activity_share_rated','Ratings I give'],['activity_share_favorited','Books I favorite']] as const).map(([key,label]) => <label key={key}><input type="checkbox" checked={activityPrivacy[key]} onChange={(event) => void saveActivityPrivacy({ ...activityPrivacy, [key]: event.target.checked })} /><span>{label}</span></label>)}</fieldset>{privacyBusy ? <small role="status">Saving privacy…</small> : null}</div></details>

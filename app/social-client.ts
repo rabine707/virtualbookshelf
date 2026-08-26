@@ -86,6 +86,26 @@ export function listConnections(username: string, kind: "followers" | "following
   return socialRpc<SocialProfilePage>("list_profile_connections", { p_username: username, p_kind: kind, p_offset: offset, p_limit: limit });
 }
 
+export async function listMyFollowing(offset = 0, limit = 30): Promise<SocialProfilePage> {
+  const session = readStoredShelfSession();
+  const username = session?.profile?.username || session?.user?.user_metadata?.username || "";
+  const demos = offset === 0
+    ? (localDemoReaderPage("", 0, 100)?.profiles || []).filter((profile) => profile.is_following)
+    : [];
+  if (!username || !session?.access_token) return { profiles: demos, next_offset: null };
+  const livePage = await socialRpc<SocialProfilePage>("list_profile_connections", {
+    p_username: username,
+    p_kind: "following",
+    p_offset: offset,
+    p_limit: limit,
+  });
+  const seen = new Set(demos.map((profile) => profile.username));
+  return {
+    profiles: [...demos, ...(livePage.profiles || []).filter((profile) => !seen.has(profile.username))],
+    next_offset: livePage.next_offset,
+  };
+}
+
 export function setReaderFollow(username: string, follow: boolean) {
   const localSocial = setLocalDemoFollow(username, follow);
   if (localSocial) return Promise.resolve(localSocial);

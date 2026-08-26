@@ -35,6 +35,13 @@ test("keeps local demo follows in the browser without requiring sign in", async 
 
   await page.reload();
   await expect(page.getByRole("button", { name: "✓ Following" })).toBeVisible();
+
+  await page.goto("/readers");
+  await page.getByRole("button", { name: "Following", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Readers you follow" })).toBeVisible();
+  await expect(page.getByRole("strong").filter({ hasText: "Malachi Vize" })).toBeVisible();
+  await page.getByRole("button", { name: "Following", exact: true }).last().click();
+  await expect(page.getByText("No followed readers yet")).toBeVisible();
 });
 
 test("keeps every local demo shelf public and viewable", async ({ page }) => {
