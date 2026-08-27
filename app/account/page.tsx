@@ -671,8 +671,17 @@ export default function AccountPage() {
           </div>
           <div className="sof-account-security-row">
             <div><span>Getting started</span><strong>Replay the setup guide whenever you like</strong></div>
-            <button type="button" onClick={() => { window.localStorage.setItem("shelf-of-fame-onboarding-eligible-v1", "1"); window.localStorage.removeItem("shelf-of-fame-onboarding-status-v1"); window.location.assign("/"); }}>Replay setup guide</button>
+            <button type="button" onClick={() => { window.localStorage.setItem("shelf-of-fame-onboarding-eligible-v1", "1"); window.localStorage.removeItem("shelf-of-fame-onboarding-status-v1"); window.sessionStorage.removeItem("shelf-of-fame-onboarding-dismissed-this-visit-v1"); window.location.assign("/"); }}>Replay setup guide</button>
           </div>
+          <nav className="sof-account-resource-links" aria-label="Privacy, terms, and support">
+            <div><span>Privacy & support</span><strong>Understand your choices or get help</strong></div>
+            <div>
+              <Link href="/privacy">Privacy</Link>
+              <Link href="/terms">Terms</Link>
+              <Link href="/help-the-shelf">Support</Link>
+              <Link href="/credits">Credits</Link>
+            </div>
+          </nav>
           <button className="sof-account-signout sof-account-signout-inline" type="button" onClick={() => void signOut()} disabled={signingOut}>{signingOut ? "Signing out…" : "Sign out"}</button>
           </div>
         </section>

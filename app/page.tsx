@@ -21,6 +21,7 @@ import { useShelfLibrary } from "./hooks/useShelfLibrary";
 import MobileShelfScene from "./mobile-first/MobileShelfScene";
 import ThemeEnricher from "./ThemeEnricher";
 import OnboardingGuide from "./OnboardingGuide";
+import GuestWelcome from "./GuestWelcome";
 import { Book, CoverResult, WebCoverResult } from "../lib/books/client-library";
 
 const DEFAULT_CLOTH_PREFIX = "shelf-of-fame-default-cloth:";
@@ -133,6 +134,7 @@ export default function Home() {
   }
 
   const goodreadsInput = useRef<HTMLInputElement>(null);
+  const [guestWelcomeBlocking, setGuestWelcomeBlocking] = useState(true);
   const [coverReviewOpen, setCoverReviewOpen] = useState(false);
   const [coverReviewInitialTotal, setCoverReviewInitialTotal] = useState(0);
   const [coverReviewScopeIds, setCoverReviewScopeIds] = useState<string[] | null>(null);
@@ -202,6 +204,7 @@ export default function Home() {
   return (
     <>
       <CloudSyncIndicator status={cloudSyncStatus} />
+      <GuestWelcome onVisibilityChange={setGuestWelcomeBlocking} />
       <MobileShelfScene
         books={books}
         importMessage={importMessage}
@@ -211,7 +214,7 @@ export default function Home() {
         onAddBook={() => window.dispatchEvent(new Event("shelf-open-book-search"))}
       />
       <ThemeEnricher />
-      <OnboardingGuide books={books} eligible={storageReady && isFirstRun} onAddBook={() => window.dispatchEvent(new Event("shelf-open-book-search"))} />
+      <OnboardingGuide books={books} eligible={storageReady && isFirstRun && !guestWelcomeBlocking} onAddBook={() => window.dispatchEvent(new Event("shelf-open-book-search"))} />
 
       <input
         ref={goodreadsInput}

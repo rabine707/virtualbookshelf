@@ -100,11 +100,19 @@ export default function AuthEnricher() {
   useEffect(() => {
     let refreshTimer: number | undefined;
 
+    function onOpenAuth(event: Event) {
+      const requestedMode = (event as CustomEvent<{ mode?: "login" | "signup" }>).detail?.mode;
+      setMessage("");
+      setMode(requestedMode === "signup" ? "signup" : "login");
+      setOpen(true);
+    }
+
     function onAuthChanged(event: Event) {
       const detail = (event as CustomEvent<Session | null>).detail;
       setSession(detail || null);
     }
     window.addEventListener("shelf-auth-changed", onAuthChanged as EventListener);
+    window.addEventListener("shelf-open-auth", onOpenAuth as EventListener);
 
     const refreshStoredSession = async () => {
       try {
@@ -157,6 +165,7 @@ export default function AuthEnricher() {
 
     return () => {
       window.removeEventListener("shelf-auth-changed", onAuthChanged as EventListener);
+      window.removeEventListener("shelf-open-auth", onOpenAuth as EventListener);
       if (refreshTimer) window.clearInterval(refreshTimer);
     };
   }, []);

@@ -63,6 +63,18 @@ const READER_REACTIONS = [
 ];
 const SHELF_AWARDS = ["Best banter", "Most chaotic", "Biggest surprise", "Best couple", "Stayed with me", "Five-star favorite"];
 
+function spineOptionLabel(option: SharedSpineEntry, index: number) {
+  const source = `${option.provider || ""} ${option.model || ""}`.toLowerCase();
+  if (source.includes("clothbound")) return "Clothbound";
+  if (source.includes("dust") || source.includes("jacket")) return "Dust Jacket";
+  if (source.includes("special") || source.includes("edition") || source.includes("foil")) return "Special Edition";
+  if (option.provider === "cover-crop") {
+    const position = option.position ? `${option.position[0].toUpperCase()}${option.position.slice(1)} ` : "";
+    return `${position}Cover Crop`;
+  }
+  return `Custom Spine ${index + 1}`;
+}
+
 export function BookDetailsModal({
   selected,
   libraryBooks,
@@ -424,9 +436,21 @@ export function BookDetailsModal({
         <button type="button" className={`saved-spine-option${!activeSpine ? " active" : ""}`} onClick={() => void chooseSpine()}>
           <div className="default-cloth-preview" aria-hidden="true" /><span>{!activeSpine ? "Active" : "Default Cloth"}</span>
         </button>
-        {spineOptions.map((option) => <button key={option.id} type="button" className={`saved-spine-option${activeSpine === option.url ? " active" : ""}`} onClick={() => void chooseSpine(option)}>
-          <img src={option.url} alt="" loading="lazy" /><span>{activeSpine === option.url ? "Active" : "Custom Curator Spine"}</span>
-        </button>)}
+        {spineOptions.map((option, index) => {
+          const label = spineOptionLabel(option, index);
+          const active = activeSpine === option.url;
+          return <button
+            key={option.id}
+            type="button"
+            className={`saved-spine-option${active ? " active" : ""}`}
+            aria-label={`${active ? "Active spine" : "Choose spine"}: ${label}`}
+            aria-pressed={active}
+            onClick={() => void chooseSpine(option)}
+          >
+            <img src={option.url} alt={`${selected.title} — ${label} spine`} loading="lazy" />
+            <span>{active ? `Active · ${label}` : label}</span>
+          </button>;
+        })}
       </div>
       {spineMessage ? <p className="saved-spine-empty" role="status">{spineMessage}</p> : null}
     </section>

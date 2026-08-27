@@ -6,6 +6,7 @@ import { Book, looksLikeSampleShelf } from "../lib/books/client-library";
 import "./onboarding.css";
 
 const STATUS_KEY = "shelf-of-fame-onboarding-status-v1";
+const SESSION_DISMISSED_KEY = "shelf-of-fame-onboarding-dismissed-this-visit-v1";
 const DISCOVERY_KEY = "shelf-of-fame-onboarding-discovery-v1";
 const STYLE_DECIDED_KEY = "shelf-of-fame-onboarding-style-v1";
 const PRIVACY_DECIDED_KEY = "shelf-of-fame-onboarding-privacy-v1";
@@ -32,6 +33,7 @@ export default function OnboardingGuide({ books, eligible, onAddBook }: { books:
 
   useEffect(() => {
     if (!eligible) return;
+    if (window.sessionStorage.getItem(SESSION_DISMISSED_KEY) === "1") return;
     const status = window.localStorage.getItem(STATUS_KEY);
     if (status === "complete" || status === "skipped") return;
     setProgress(readProgress(books));
@@ -51,11 +53,12 @@ export default function OnboardingGuide({ books, eligible, onAddBook }: { books:
 
   function start() { window.localStorage.setItem(STATUS_KEY, "started"); setMode("checklist"); }
   function finish(status: "complete" | "skipped") { window.localStorage.setItem(STATUS_KEY, status); setMode("hidden"); }
+  function hideForVisit() { window.sessionStorage.setItem(SESSION_DISMISSED_KEY, "1"); setMode("hidden"); }
   function openStyle() { window.localStorage.setItem(STYLE_DECIDED_KEY, "1"); setProgress((current) => ({ ...current, style: true })); window.dispatchEvent(new Event("shelf-open-personalization")); }
   function visitPrivacy() { window.localStorage.setItem(PRIVACY_DECIDED_KEY, "1"); setProgress((current) => ({ ...current, privacy: true })); }
   function visitReaders() { window.localStorage.setItem(DISCOVERY_KEY, "1"); setProgress((current) => ({ ...current, discover: true })); }
 
-  if (mode === "welcome") return <div className="sof-onboarding-backdrop" role="presentation"><section className="sof-onboarding-welcome" role="dialog" aria-modal="true" aria-labelledby="sof-onboarding-title"><span className="sof-onboarding-mark" aria-hidden="true">✦</span><small>SHELF OF FAME</small><h1 id="sof-onboarding-title">Make this shelf yours</h1><p>Bring in your books, choose your style, and decide if you want to share. You can stop and return at any time.</p><div><button type="button" className="is-primary" onClick={start}>Start my shelf</button><button type="button" onClick={() => setMode("hidden")}>Not now</button></div><button className="sof-onboarding-skip" type="button" onClick={() => finish("skipped")}>Skip setup permanently</button></section></div>;
+  if (mode === "welcome") return <div className="sof-onboarding-backdrop" role="presentation"><section className="sof-onboarding-welcome" role="dialog" aria-modal="true" aria-labelledby="sof-onboarding-title"><span className="sof-onboarding-mark" aria-hidden="true">✦</span><small>SHELF OF FAME</small><h1 id="sof-onboarding-title">Make this shelf yours</h1><p>Bring in your books, choose your style, and decide if you want to share. You can stop and return at any time.</p><div><button type="button" className="is-primary" onClick={start}>Start my shelf</button><button type="button" onClick={hideForVisit}>Not now</button></div><button className="sof-onboarding-skip" type="button" onClick={() => finish("skipped")}>Skip setup permanently</button></section></div>;
 
   const steps = [
     { key: "books" as const, title: "Bring in your books", copy: "Add one book or use our guided Goodreads import.", action: <button type="button" onClick={onAddBook}>Add or import</button> },
@@ -65,5 +68,5 @@ export default function OnboardingGuide({ books, eligible, onAddBook }: { books:
     { key: "discover" as const, title: "Discover readers", copy: "Find shelves and people you may want to follow.", action: <Link href="/readers" onClick={visitReaders}>Find readers</Link> },
   ];
 
-  return <aside className="sof-onboarding-checklist" aria-label="Getting started"><header><div><small>GETTING STARTED</small><strong>{completeCount} of 5 complete</strong></div><button type="button" aria-label="Hide setup checklist" onClick={() => setMode("hidden")}>×</button></header><div className="sof-onboarding-progress"><span style={{ width: `${completeCount * 20}%` }} /></div><ol>{steps.map((step) => <li className={progress[step.key] ? "is-complete" : ""} key={step.key}><span className="sof-onboarding-check" aria-hidden="true">{progress[step.key] ? "✓" : ""}</span><div><strong>{step.title}</strong><p>{step.copy}</p></div>{progress[step.key] ? <span className="sof-onboarding-done">Done</span> : step.action}</li>)}</ol><footer>{completeCount === 5 ? <button type="button" className="is-primary" onClick={() => finish("complete")}>Finish setup</button> : <button type="button" onClick={() => finish("skipped")}>Skip the rest</button>}</footer></aside>;
+  return <aside className="sof-onboarding-checklist" aria-label="Getting started"><header><div><small>GETTING STARTED</small><strong>{completeCount} of 5 complete</strong></div><button type="button" aria-label="Hide setup checklist for this visit" onClick={hideForVisit}>×</button></header><div className="sof-onboarding-progress"><span style={{ width: `${completeCount * 20}%` }} /></div><ol>{steps.map((step) => <li className={progress[step.key] ? "is-complete" : ""} key={step.key}><span className="sof-onboarding-check" aria-hidden="true">{progress[step.key] ? "✓" : ""}</span><div><strong>{step.title}</strong><p>{step.copy}</p></div>{progress[step.key] ? <span className="sof-onboarding-done">Done</span> : step.action}</li>)}</ol><footer>{completeCount === 5 ? <button type="button" className="is-primary" onClick={() => finish("complete")}>Finish setup</button> : <button type="button" onClick={() => finish("skipped")}>Skip the rest</button>}</footer></aside>;
 }

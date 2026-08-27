@@ -120,6 +120,16 @@ export function localDemoReader(username: string) {
   return demoReaders.find((reader) => reader.profile.username === normalizedUsername(username)) || null;
 }
 
+export function onboardingDemoReaders() {
+  return demoReaders.map((reader) => ({
+    username: reader.profile.username,
+    name: reader.profile.display_name || reader.profile.username,
+    bio: reader.profile.bio || "",
+    genres: [...(reader.profile.favorite_genres || [])],
+    featuredSpine: reader.books[0]?.demoSpineUrl || "",
+  }));
+}
+
 export function localDemoReaderPage(query = "", offset = 0, limit = 24): SocialProfilePage | null {
   const needle = query.replace(/^@/, "").trim().toLowerCase();
   const matching = demoReaders.filter((reader) => !needle || [

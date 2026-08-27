@@ -19,6 +19,8 @@ export type SharedSpineEntry = {
   url: string;
   renderMode: SharedSpineRenderMode;
   position?: SharedSpinePosition;
+  provider?: string;
+  model?: string;
 };
 
 type StoredSession = {
@@ -155,6 +157,8 @@ function sharedEntry(row: SharedSpineRow): SharedSpineEntry {
     url: publicSpineUrl(row.storage_path),
     renderMode: sharedSpineRenderMode(row.provider),
     position,
+    provider: row.provider || undefined,
+    model: row.model || undefined,
   };
 }
 

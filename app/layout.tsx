@@ -16,10 +16,24 @@ import "./auth.css";
 import "./account/account.css";
 import "./help-shelf-launcher.css";
 import AuthSessionManager from "./AuthSessionManager";
+import PublicFooter from "./components/PublicFooter";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://virtualbookshelf-eta.vercel.app"),
   title: "Shelf of Fame — Your Reading Life, On Display",
   description: "Turn the books you've read into a shelf worth showing off.",
+  applicationName: "Shelf of Fame",
+  openGraph: {
+    title: "Shelf of Fame — Your Reading Life, On Display",
+    description: "Turn the books you've read into a shelf worth showing off.",
+    type: "website",
+    siteName: "Shelf of Fame",
+  },
+  twitter: {
+    card: "summary",
+    title: "Shelf of Fame — Your Reading Life, On Display",
+    description: "Turn the books you've read into a shelf worth showing off.",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -27,6 +41,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         {children}
+        <PublicFooter />
         <AuthSessionManager />
       </body>
     </html>
