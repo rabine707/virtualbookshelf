@@ -19,7 +19,7 @@ export default function TermsPage() {
       <h2>Service availability</h2>
       <p>The product is evolving and may change or experience interruptions. Keep your original library exports and any artwork you cannot replace.</p>
       <h2>Questions</h2>
-      <p>Use the <Link href="/help-the-shelf">support page</Link> to report a problem or request help.</p>
+      <p>Use the <Link href="/support">support page</Link> to report a problem or request help.</p>
       <p className="public-info-note">These launch terms are a concise product notice, not a substitute for jurisdiction-specific legal review.</p>
     </article>
   </main>;

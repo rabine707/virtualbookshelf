@@ -17,7 +17,7 @@ export default function PrivacyPage() {
       <h2>Where information is stored</h2>
       <p>Shelf of Fame may store shelf and account information on your device and, when you sign in, in its cloud services so your collection can sync across sessions.</p>
       <h2>Your choices</h2>
-      <p>You can make your shelf private again from Public Shelf settings. For help with your information or account, use the <Link href="/help-the-shelf">support page</Link>.</p>
+      <p>You can make your shelf private again from Public Shelf settings. For help with your information or account, use the <Link href="/support">support page</Link>.</p>
       <p className="public-info-note">This plain-language notice describes the current product behavior and will be expanded as public services are added.</p>
     </article>
   </main>;

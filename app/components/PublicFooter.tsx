@@ -6,7 +6,7 @@ export default function PublicFooter() {
     <nav aria-label="Legal and support">
       <Link href="/privacy">Privacy</Link>
       <Link href="/terms">Terms</Link>
-      <Link href="/help-the-shelf">Support</Link>
+      <Link href="/support">Support</Link>
       <Link href="/credits">Credits</Link>
     </nav>
   </footer>;

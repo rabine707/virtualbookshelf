@@ -764,6 +764,19 @@ export type Database = {
           source: string
         }[]
       }
+      get_next_shelf_cover_candidate: {
+        Args: { p_excluded_ids?: string[] }
+        Returns: {
+          author: string
+          book_id: string
+          id: string
+          image_url: string
+          source_author: string | null
+          source_title: string | null
+          status: string
+          title: string
+        }[]
+      }
       get_approved_covers_for_library: {
         Args: { p_books: Json }
         Returns: {

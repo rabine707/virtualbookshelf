@@ -1,6 +1,6 @@
 .page {
   min-height: 100vh;
-  padding: 56px 24px 80px;
+  padding: 40px 24px 56px;
   color: #eee9dc;
   background:
     radial-gradient(circle at 16% 0%, rgba(183, 201, 143, .10), transparent 28%),
@@ -8,85 +8,72 @@
 }
 
 .shell {
-  width: min(920px, 100%);
+  width: min(680px, 100%);
   margin: 0 auto;
 }
 
 .back {
   display: inline-flex;
-  margin-bottom: 28px;
-  color: #b7c98f;
+  margin-bottom: 22px;
+  color: rgba(217, 228, 183, .68);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .back:hover { text-decoration: underline; }
 
 .eyebrow {
-  margin: 0 0 8px;
-  color: #aabd80;
-  font: 700 11px/1.2 Arial, sans-serif;
+  margin: 0 0 6px;
+  color: rgba(170, 189, 128, .68);
+  font: 700 9px/1.2 Arial, sans-serif;
   letter-spacing: .18em;
 }
 
 .title {
   margin: 0;
-  font: 600 clamp(42px, 7vw, 70px)/.95 Georgia, serif;
-  letter-spacing: -.035em;
+  font: 600 28px/1.05 Georgia, serif;
+  letter-spacing: -.02em;
 }
 
 .intro {
-  max-width: 700px;
-  margin: 16px 0 34px;
-  color: rgba(238, 233, 220, .72);
-  font-size: 16px;
-  line-height: 1.65;
-}
-
-.list {
-  display: grid;
-  gap: 16px;
-}
-
-.card {
-  padding: 22px 24px;
-  border: 1px solid rgba(183, 201, 143, .20);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(17, 36, 23, .76), rgba(7, 18, 11, .78));
-  box-shadow: inset 0 1px rgba(255, 255, 255, .03), 0 16px 44px rgba(0, 0, 0, .18);
-}
-
-.name {
-  margin: 0 0 8px;
-  font: 600 24px/1.2 Georgia, serif;
-}
-
-.meta {
-  margin: 5px 0;
-  color: rgba(238, 233, 220, .70);
+  margin: 8px 0 24px;
+  color: rgba(238, 233, 220, .55);
+  font-size: 12px;
   line-height: 1.5;
 }
 
-.label {
-  color: #b7c98f;
-  font-weight: 700;
+.list {
+  border-top: 1px solid rgba(183, 201, 143, .14);
+}
+
+.card {
+  padding: 13px 0 14px;
+  border-bottom: 1px solid rgba(183, 201, 143, .14);
+}
+
+.name {
+  margin: 0 0 3px;
+  font: 600 13px/1.35 Georgia, serif;
+}
+
+.meta {
+  margin: 0;
+  color: rgba(238, 233, 220, .48);
+  font: 11px/1.45 Arial, sans-serif;
 }
 
 .link {
-  color: #d9e4b7;
+  color: rgba(217, 228, 183, .78);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 
 .attribution {
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-left: 3px solid rgba(183, 201, 143, .52);
-  background: rgba(183, 201, 143, .055);
-  color: #eee9dc;
+  margin: 3px 0 0;
+  color: rgba(238, 233, 220, .38);
+  font: 10px/1.4 Arial, sans-serif;
 }
 
 @media (max-width: 640px) {
-  .page { padding: 36px 16px 60px; }
-  .card { padding: 18px; }
+  .page { padding: 28px 18px 44px; }
 }

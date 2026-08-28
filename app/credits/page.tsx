@@ -13,30 +13,21 @@ export default function CreditsPage() {
         <a className={styles.back} href="/">← Back to Shelf of Fame</a>
 
         <p className={styles.eyebrow}>SHELF OF FAME</p>
-        <h1 className={styles.title}>Asset credits</h1>
+        <h1 className={styles.title}>Credits</h1>
         <p className={styles.intro}>
-          Shelf of Fame uses a mix of original artwork, generated assets, public-domain resources,
-          and licensed third-party visuals. This page records required credits and source information
-          for assets used in the experience.
+          Required attribution for third-party assets used in the experience.
         </p>
 
         <section className={styles.list} aria-label="Third-party asset credits">
           {assetCredits.map((asset) => (
             <article className={styles.card} key={asset.id}>
               <h2 className={styles.name}>{asset.name}</h2>
-              {asset.usage && (
-                <p className={styles.meta}>
-                  <span className={styles.label}>Used for:</span> {asset.usage}
-                </p>
-              )}
               <p className={styles.meta}>
-                <span className={styles.label}>Source:</span>{" "}
                 <a className={styles.link} href={asset.sourceUrl} target="_blank" rel="noreferrer">
                   {asset.source}
                 </a>
-              </p>
-              <p className={styles.meta}>
-                <span className={styles.label}>License:</span> {asset.license}
+                <span aria-hidden="true"> · </span>
+                <span>{asset.license}</span>
               </p>
               {asset.attribution && (
                 <p className={styles.attribution}>{asset.attribution}</p>

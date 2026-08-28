@@ -678,7 +678,7 @@ export default function AccountPage() {
             <div>
               <Link href="/privacy">Privacy</Link>
               <Link href="/terms">Terms</Link>
-              <Link href="/help-the-shelf">Support</Link>
+              <Link href="/support">Support</Link>
               <Link href="/credits">Credits</Link>
             </div>
           </nav>
