@@ -1,0 +1,82 @@
+.panel {
+  margin: 28px 0 34px;
+  padding: 22px;
+  border: 1px solid rgba(172, 122, 59, .22);
+  border-radius: 14px;
+  background: rgba(255, 252, 242, .72);
+}
+
+.panel h2 { margin: 0 0 8px; color: #2d271f; }
+.panel > p { margin-bottom: 18px; color: #5a4f44; }
+
+.form {
+  display: grid;
+  gap: 15px;
+}
+
+.form label {
+  display: grid;
+  gap: 6px;
+  color: #342d25;
+  font: 700 13px/1.35 Arial, sans-serif;
+}
+
+.form label span { color: #7a6e61; font-weight: 400; }
+
+.form input,
+.form select,
+.form textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(83, 62, 38, .28);
+  border-radius: 8px;
+  color: #241f1a;
+  background: #fffdf8;
+  font: 14px/1.45 Arial, sans-serif;
+}
+
+.form textarea { resize: vertical; }
+
+.form input:focus-visible,
+.form select:focus-visible,
+.form textarea:focus-visible,
+.form button:focus-visible {
+  outline: 3px solid rgba(139, 89, 35, .32);
+  outline-offset: 2px;
+}
+
+.form button {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  color: #fffaf0;
+  background: #4b3523;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.form button:disabled { cursor: wait; opacity: .62; }
+
+.privacy {
+  margin: -2px 0 0;
+  color: #75695d;
+  font: 12px/1.45 Arial, sans-serif;
+}
+
+.error,
+.success {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font: 13px/1.45 Arial, sans-serif;
+}
+
+.error { color: #791f1f; background: #fae5e1; }
+.success { color: #24522e; background: #e4f1e3; }
+
+@media (max-width: 640px) {
+  .panel { padding: 17px; }
+  .form button { width: 100%; }
+}
