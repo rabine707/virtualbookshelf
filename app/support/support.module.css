@@ -59,22 +59,22 @@
 
 .form button:disabled { cursor: wait; opacity: .62; }
 
-.privacy {
+.panel .privacy {
   margin: -2px 0 0;
   color: #75695d;
   font: 12px/1.45 Arial, sans-serif;
 }
 
-.error,
-.success {
+.panel .error,
+.panel .success {
   margin: 16px 0 0;
   padding: 10px 12px;
   border-radius: 8px;
   font: 13px/1.45 Arial, sans-serif;
 }
 
-.error { color: #791f1f; background: #fae5e1; }
-.success { color: #24522e; background: #e4f1e3; }
+.panel .error { color: #791f1f; background: #fae5e1; }
+.panel .success { color: #24522e; background: #e4f1e3; }
 
 @media (max-width: 640px) {
   .panel { padding: 17px; }
