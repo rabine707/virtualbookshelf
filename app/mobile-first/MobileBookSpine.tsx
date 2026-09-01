@@ -40,6 +40,7 @@ type MobileBookSpineProps = {
   index: number;
   onSelect: (book: Book) => void;
   externalSpineUrl?: string;
+  highlighted?: boolean;
 };
 
 type PrintFinish = "ink" | "debossed" | "foil";
@@ -392,7 +393,7 @@ function sidewaysTitleLayout(
   return { containerStyle, titleStyle };
 }
 
-export function MobileBookSpine({ book, index, onSelect, externalSpineUrl }: MobileBookSpineProps) {
+export function MobileBookSpine({ book, index, onSelect, externalSpineUrl, highlighted = false }: MobileBookSpineProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const key = coverKey(book);
   const eager = index < 12;
@@ -598,7 +599,14 @@ export function MobileBookSpine({ book, index, onSelect, externalSpineUrl }: Mob
     <button
       ref={ref}
       type="button"
-      className={`${styles.bookSpine} ${coverUrl ? styles.bookSpineWithCover : ""} ${unifiedStyles.book} ${designStyles.publisherSpine} ${layoutClass(design.layout.id)}`}
+      className={[
+        styles.bookSpine,
+        coverUrl ? styles.bookSpineWithCover : "",
+        highlighted ? styles.justAddedSpine : "",
+        unifiedStyles.book,
+        designStyles.publisherSpine,
+        layoutClass(design.layout.id),
+      ].filter(Boolean).join(" ")}
       style={style}
       onClick={() => onSelect(book)}
       aria-label={`${book.title} by ${book.author}`}

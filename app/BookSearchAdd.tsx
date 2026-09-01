@@ -10,9 +10,20 @@ type BookSearchAddProps = {
   setBooks: Dispatch<SetStateAction<Book[]>>;
   showToast: (message: string) => void;
   onImportGoodreads: () => void;
+  openRequest?: number;
 };
 
-export default function BookSearchAdd({ books, setBooks, showToast, onImportGoodreads }: BookSearchAddProps) {
+type AddedBookNotice = { id: string; title: string; existed: boolean };
+
+function resultIsOnShelf(books: Book[], result: BookSearchResult) {
+  const normalize = (value?: string) => (value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return books.some((book) => (
+    (result.isbn && book.isbn === result.isbn)
+    || (normalize(book.title) === normalize(result.title) && normalize(book.author) === normalize(result.author))
+  ));
+}
+
+export default function BookSearchAdd({ books, setBooks, showToast, onImportGoodreads, openRequest = 0 }: BookSearchAddProps) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -20,6 +31,7 @@ export default function BookSearchAdd({ books, setBooks, showToast, onImportGood
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [message, setMessage] = useState("");
+  const [addedBook, setAddedBook] = useState<AddedBookNotice | null>(null);
   const requestRef = useRef<AbortController | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -89,6 +101,10 @@ export default function BookSearchAdd({ books, setBooks, showToast, onImportGood
   }, []);
 
   useEffect(() => {
+    if (openRequest > 0) setOpen(true);
+  }, [openRequest]);
+
+  useEffect(() => {
     if (!open) return;
     document.body.classList.add("book-search-add-open");
     requestAnimationFrame(() => titleRef.current?.focus());
@@ -115,13 +131,14 @@ export default function BookSearchAdd({ books, setBooks, showToast, onImportGood
     setSearched(false);
     setSearching(false);
     setMessage("");
+    setAddedBook(null);
   }
 
-  function finishSuccess(nextBooks: Book[], successMessage: string) {
+  function finishSuccess(nextBooks: Book[], successMessage: string, notice: AddedBookNotice) {
     setBooks(nextBooks);
     showToast(successMessage);
-    close();
-    resetForm();
+    setMessage(successMessage);
+    setAddedBook(notice);
   }
 
   function submit(event: FormEvent) {
@@ -136,13 +153,29 @@ export default function BookSearchAdd({ books, setBooks, showToast, onImportGood
       : saved.existed
         ? `${saved.title} is already on your shelf. I refreshed its book details.`
         : `Added ${saved.title} — ${saved.author}.`;
-    finishSuccess(saved.books, successMessage);
+    const savedBook = saved.books.find((book) => book.title === saved.title && book.author === saved.author);
+    if (savedBook) finishSuccess(saved.books, successMessage, { id: savedBook.id, title: savedBook.title, existed: saved.existed });
   }
 
   function useTypedEntry() {
     const result = addTypedBook(books, title, author);
     setMessage(result.message);
-    if (result.ok) finishSuccess(result.books, result.message);
+    if (result.ok) {
+      const savedBook = result.books[result.books.length - 1];
+      if (savedBook) finishSuccess(result.books, result.message, { id: savedBook.id, title: savedBook.title, existed: false });
+    }
+  }
+
+  function addAnother() {
+    resetForm();
+    requestAnimationFrame(() => titleRef.current?.focus());
+  }
+
+  function viewOnShelf() {
+    if (!addedBook) return;
+    window.dispatchEvent(new CustomEvent("shelf-book-added", { detail: { bookId: addedBook.id } }));
+    close();
+    resetForm();
   }
 
   function importGoodreads() {
@@ -180,8 +213,12 @@ export default function BookSearchAdd({ books, setBooks, showToast, onImportGood
         .book-search-result-copy span { color: rgba(244,234,219,.7); font-size: 12px; }
         .book-search-result-copy small { color: rgba(244,234,219,.45); font-size: 10px; }
         .book-search-result-add { padding: 7px 9px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: 10px; font-weight: 800; }
+        .book-search-result-add.is-saved { color: #cbdcbd; background: rgba(126,166,102,.14); }
         .book-search-best { margin-left: 6px; color: #c8ae8b; font-size: 9px; letter-spacing: .05em; text-transform: uppercase; }
         .book-search-add-message { margin: 0 22px 12px; padding: 9px 11px; border-radius: 10px; background: rgba(255,255,255,.055); color: rgba(244,234,219,.76); font-size: 12px; }
+        .book-search-add-success { display: grid; grid-template-columns: 1fr auto auto; gap: 9px; align-items: center; margin: 0 22px 14px; padding: 12px; border: 1px solid rgba(178,205,160,.22); border-radius: 13px; background: rgba(107,145,84,.12); }
+        .book-search-add-success span { display: grid; gap: 3px; min-width: 0; }.book-search-add-success strong,.book-search-add-success small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.book-search-add-success small { color: rgba(244,234,219,.58); font-size: 10px; }
+        .book-search-add-success button { min-height: 38px; padding: 0 11px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: rgba(255,255,255,.06); color: inherit; font: 800 10px Arial,sans-serif; cursor: pointer; }.book-search-add-success button:last-child { background: #e8decd; color: #2e2118; }
         .book-search-add-fallback { padding: 0 22px 15px; text-align: center; }
         .book-search-add-fallback button { border: 0; background: transparent; color: rgba(244,234,219,.58); font: inherit; font-size: 11px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
         .book-search-add-imports { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 11px; align-items: stretch; padding: 14px 22px 22px; border-top: 1px solid rgba(255,255,255,.08); }
@@ -204,6 +241,7 @@ export default function BookSearchAdd({ books, setBooks, showToast, onImportGood
           .book-search-result-cover { width: 48px; height: 70px; }
           .book-search-result-add { padding-inline: 7px; }
           .book-search-add-message, .book-search-add-fallback { margin-left: 17px; margin-right: 17px; }
+          .book-search-add-success { grid-template-columns: 1fr 1fr; margin-inline: 17px; }.book-search-add-success span { grid-column: 1 / -1; }
           .book-search-add-imports { grid-template-columns: 1fr; padding: 12px 17px 15px; }.book-search-goodreads-steps { grid-template-columns: 1fr; }.book-search-scan { min-width: 0; }
         }
       `}</style>
@@ -220,19 +258,25 @@ export default function BookSearchAdd({ books, setBooks, showToast, onImportGood
             <button className="book-search-add-submit" type="submit" disabled={title.trim().length < 2 || searching}>{searching ? "Searching…" : "Search"}</button>
           </form>
           <div className="book-search-add-hint">Results update automatically — partial names are okay.</div>
+          {addedBook ? <div className="book-search-add-success" role="status">
+            <span><strong>{addedBook.existed ? "Already on your shelf" : "Placed on your shelf"}</strong><small>{addedBook.title}</small></span>
+            <button type="button" onClick={addAnother}>Add another</button>
+            <button type="button" onClick={viewOnShelf}>View on shelf</button>
+          </div> : null}
           <div className="book-search-add-results" aria-live="polite">
-            {results.map((result, index) => (
-              <button key={`${result.id}-${index}`} className="book-search-result" type="button" onClick={() => choose(result)}>
+            {results.map((result, index) => {
+              const onShelf = resultIsOnShelf(books, result);
+              return <button key={`${result.id}-${index}`} className="book-search-result" type="button" onClick={() => choose(result)} aria-label={`${onShelf ? "Refresh" : "Add"} ${result.title} by ${result.author}`}>
                 <span className="book-search-result-cover">{result.coverUrl ? <img src={result.coverUrl} alt="" /> : <span aria-hidden="true">▤</span>}</span>
                 <span className="book-search-result-copy"><strong>{result.title}{index === 0 ? <span className="book-search-best">Best match</span> : null}</strong><span>{result.author}</span><small>{[result.year, result.isbn ? `ISBN ${result.isbn}` : ""].filter(Boolean).join(" · ")}</small></span>
-                <span className="book-search-result-add">Add</span>
-              </button>
-            ))}
+                <span className={`book-search-result-add ${onShelf ? "is-saved" : ""}`}>{onShelf ? "On shelf ✓" : "Add"}</span>
+              </button>;
+            })}
             {!results.length && searching ? <div className="book-search-add-status">Searching books…</div> : null}
             {!results.length && !searching && searched ? <div className="book-search-add-status">No confident matches yet. Try a little more of the title or author.</div> : null}
             {!searched && !searching ? <div className="book-search-add-status">Start typing a title and, if you know it, part of the author’s name.</div> : null}
           </div>
-          {message ? <div className="book-search-add-message" role="status">{message}</div> : null}
+          {message && !addedBook ? <div className="book-search-add-message" role="status">{message}</div> : null}
           {searched && title.trim() ? <div className="book-search-add-fallback"><button type="button" onClick={useTypedEntry}>Can’t find it? Add exactly “{title.trim()}”{author.trim() ? ` by ${author.trim()}` : ""}.</button></div> : null}
           <div className="book-search-add-imports"><section className="book-search-goodreads" aria-labelledby="goodreads-import-title"><div className="book-search-goodreads-copy"><strong id="goodreads-import-title">Bring over your Goodreads library</strong><p>On iPhone, Goodreads cannot export from its app. Open the export page in Safari, sign in, tap “Export Library,” then download the CSV to Files.</p></div><div className="book-search-goodreads-steps"><a href="https://www.goodreads.com/review/import" target="_blank" rel="noreferrer">1. Get my Goodreads file ↗</a><button type="button" onClick={importGoodreads}>2. Choose downloaded CSV</button></div></section><button className="book-search-scan" type="button" disabled title="Bookshelf photo scanning is coming soon">📷 Scan bookshelf · Soon</button></div>
         </section>

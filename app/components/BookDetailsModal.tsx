@@ -119,9 +119,11 @@ export function BookDetailsModal({
   const [noteDraft, setNoteDraft] = useState(selected.readerNote || "");
   const [quoteDraft, setQuoteDraft] = useState(selected.favoriteQuote || "");
   const [reviewDraft, setReviewDraft] = useState(selected.readerReview || "");
+  const [showMore, setShowMore] = useState(false);
   const [seriesEditing, setSeriesEditing] = useState(false);
   const [seriesNameDraft, setSeriesNameDraft] = useState("");
   const [seriesNumberDraft, setSeriesNumberDraft] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     setSelector(null);
@@ -131,7 +133,9 @@ export function BookDetailsModal({
     setNoteDraft(selected.readerNote || "");
     setQuoteDraft(selected.favoriteQuote || "");
     setReviewDraft(selected.readerReview || "");
+    setShowMore(false);
     setSeriesEditing(false);
+    setLinkCopied(false);
   }, [selected.id]);
 
   useEffect(() => {
@@ -155,6 +159,16 @@ export function BookDetailsModal({
       window.scrollTo(0, scrollY);
     };
   }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (selector) setSelector(null);
+      else onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose, selector]);
 
   useEffect(() => {
     if (coverOptions.length >= 3) return;
@@ -235,6 +249,18 @@ export function BookDetailsModal({
     setQuoteDraft(favoriteQuote);
     setReviewDraft(readerReview);
     onUpdateReaderMemory({ favoriteQuote, readerReview });
+  }
+
+  async function copyBookLink() {
+    const url = new URL(window.location.href);
+    url.searchParams.set("book", selected.id);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 1600);
+    } catch {
+      setLinkCopied(false);
+    }
   }
 
   const hasCoverOptions = coverOptions.length > 0;
@@ -516,6 +542,10 @@ export function BookDetailsModal({
               <h2>{selected.title}</h2>
               <p className="author">by {selected.author}</p>
 
+              <button className="book-copy-link" type="button" onClick={() => void copyBookLink()}>
+                {linkCopied ? "Link copied ✓" : "Share this book"}
+              </button>
+
               <div className="reader-book-summary">
                 {summaryItems.map(([icon, value]) => (
                   <span className="reader-book-chip" key={`${icon}-${value}`}>{icon} {value}</span>
@@ -541,6 +571,17 @@ export function BookDetailsModal({
                 </label>
               </section>
 
+              <button
+                type="button"
+                className="book-more-toggle"
+                aria-expanded={showMore}
+                onClick={() => setShowMore((current) => !current)}
+              >
+                <span><b>{showMore ? "Show less" : "Book information"}</b><small>{showMore ? "Return to the essentials" : "Series, journal, tags, and more"}</small></span>
+                <i aria-hidden="true">{showMore ? "−" : "+"}</i>
+              </button>
+
+              {showMore ? <>
               {currentSeries ? (
                 <section className="book-series-card" aria-label="Series on your shelf">
                   <div className="book-series-heading"><div><span>Series journey</span><strong>{currentSeries.name}</strong></div><button type="button" onClick={openSeriesEditor}>Fix series</button></div>
@@ -602,6 +643,7 @@ export function BookDetailsModal({
                   {storyTags.goodreads.length ? <div className="book-story-tag-group"><strong>Your Goodreads shelves</strong><div>{storyTags.goodreads.map((tag) => <span key={tag}># {tag}</span>)}</div></div> : null}
                 </details>
               ) : null}
+              </> : null}
 
               <label
                 style={{
@@ -637,7 +679,7 @@ export function BookDetailsModal({
                 </select>
               </label>
 
-              <details className="book-detail-drawer information-drawer">
+              {showMore ? <details className="book-detail-drawer information-drawer" open>
                 <summary>Book information</summary>
                 <dl>
                   {selected.year ? <><dt>Published</dt><dd>{selected.year}</dd></> : null}
@@ -646,7 +688,7 @@ export function BookDetailsModal({
                   {selected.importSource ? <><dt>Imported from</dt><dd>{selected.importSource}</dd></> : null}
                 </dl>
                 <BookInfoEditor book={selected} selectedIsbn={selectedIsbn} onSave={onSaveBookMetadata} />
-              </details>
+              </details> : null}
             </div>
           </>
         )}

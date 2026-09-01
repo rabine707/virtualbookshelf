@@ -28,12 +28,14 @@ type MobileShelfSceneProps = {
 
 type SortMode = "recent" | "title" | "author" | "rating" | "status" | "color";
 type SortDirection = "asc" | "desc";
+type ShelfFilter = "all" | "currently-reading" | "to-read" | "read" | "favorites";
 
 const BOOKS_PER_ROW = 6;
 const SHELF_ROW_HEIGHT = 199;
 const SHELF_HINT_HEIGHT = 78;
 const SHELF_OVERSCAN = 3;
 const SHELF_SCROLL_KEY = "shelf-of-fame-mobile-scroll-v1";
+const SPINE_HINT_KEY = "shelf-of-fame-spine-hint-seen-v1";
 const SORT_LABELS: Record<SortMode, string> = {
   recent: "Recently added",
   title: "Title",
@@ -41,6 +43,13 @@ const SORT_LABELS: Record<SortMode, string> = {
   rating: "Rating",
   status: "Reading status",
   color: "Spine color",
+};
+const FILTER_LABELS: Record<ShelfFilter, string> = {
+  all: "All books",
+  "currently-reading": "Reading now",
+  "to-read": "Want to read",
+  read: "Read",
+  favorites: "Favorites",
 };
 
 function SearchIcon() {
@@ -151,8 +160,13 @@ export default function MobileShelfScene({
   const [query, setQuery] = useState("");
   const [activeShelf, setActiveShelf] = useState(books.length ? 1 : 0);
   const [sortOpen, setSortOpen] = useState(false);
+  const [jumpOpen, setJumpOpen] = useState(false);
+  const [highlightsOpen, setHighlightsOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("recent");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [shelfFilter, setShelfFilter] = useState<ShelfFilter>("all");
+  const [highlightedBookId, setHighlightedBookId] = useState<string | null>(null);
+  const [showSpineHint, setShowSpineHint] = useState(false);
   const [renderWindow, setRenderWindow] = useState({ start: 0, end: 8 });
   const shelfViewport = useRef<HTMLDivElement>(null);
   const restoredScroll = useRef(false);
@@ -163,6 +177,53 @@ export default function MobileShelfScene({
 
   useEffect(() => () => {
     if (lightFrame.current !== null) cancelAnimationFrame(lightFrame.current);
+  }, []);
+
+  useEffect(() => {
+    if (!books.length || window.sessionStorage.getItem(SPINE_HINT_KEY) === "1") return;
+    window.sessionStorage.setItem(SPINE_HINT_KEY, "1");
+    setShowSpineHint(true);
+    const timer = window.setTimeout(() => setShowSpineHint(false), 6500);
+    return () => window.clearTimeout(timer);
+  }, [books.length]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setHighlightsOpen(false);
+      setJumpOpen(false);
+      setSortOpen(false);
+      setSearchOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  function openBook(book: Book) {
+    setShowSpineHint(false);
+    onSelect(book);
+  }
+
+  useEffect(() => {
+    let clearTimer = 0;
+    const showAddedBook = (event: Event) => {
+      const bookId = (event as CustomEvent<{ bookId?: string }>).detail?.bookId;
+      if (!bookId) return;
+      setQuery("");
+      setShelfFilter("all");
+      setSortMode("recent");
+      setSortDirection("desc");
+      setSearchOpen(false);
+      setHighlightedBookId(bookId);
+      requestAnimationFrame(() => shelfViewport.current?.scrollTo({ top: 0, behavior: "smooth" }));
+      window.clearTimeout(clearTimer);
+      clearTimer = window.setTimeout(() => setHighlightedBookId(null), 2600);
+    };
+    window.addEventListener("shelf-book-added", showAddedBook);
+    return () => {
+      window.removeEventListener("shelf-book-added", showAddedBook);
+      window.clearTimeout(clearTimer);
+    };
   }, []);
 
   function queueTouchLight(event: ReactPointerEvent<HTMLDivElement>) {
@@ -205,9 +266,14 @@ export default function MobileShelfScene({
 
   const visibleBooks = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const filtered = needle
-      ? books.filter((book) => `${book.title} ${book.author}`.toLowerCase().includes(needle))
-      : [...books];
+    const filtered = books.filter((book) => {
+      const matchesQuery = !needle || `${book.title} ${book.author}`.toLowerCase().includes(needle);
+      const matchesShelf = shelfFilter === "all"
+        || (shelfFilter === "favorites"
+          ? (book.rating || 0) >= 5 || (book.shelfAwards || []).includes("Five-star favorite")
+          : book.shelf === shelfFilter);
+      return matchesQuery && matchesShelf;
+    });
 
     const indexed = filtered.map((book) => ({ book, originalIndex: books.indexOf(book) }));
     indexed.sort((a, b) => {
@@ -222,7 +288,7 @@ export default function MobileShelfScene({
       return sortDirection === "asc" ? comparison : -comparison;
     });
     return indexed.map(({ book }) => book);
-  }, [books, query, sortDirection, sortMode]);
+  }, [books, query, shelfFilter, sortDirection, sortMode]);
 
   const rows = useMemo(() => {
     const next: Book[][] = [];
@@ -230,18 +296,57 @@ export default function MobileShelfScene({
       next.push(visibleBooks.slice(index, index + BOOKS_PER_ROW));
     }
 
-    if (!query.trim()) {
+    if (!query.trim() && shelfFilter === "all") {
       if (next.length === 0) next.push([]);
       else next.push([]);
     }
 
     return next;
-  }, [query, visibleBooks]);
+  }, [query, shelfFilter, visibleBooks]);
 
   const shelfCount = Math.ceil(visibleBooks.length / BOOKS_PER_ROW);
-  const countLabel = query.trim()
+  const isFiltered = Boolean(query.trim()) || shelfFilter !== "all";
+  const countLabel = isFiltered
     ? `${visibleBooks.length} ${visibleBooks.length === 1 ? "match" : "matches"}`
     : `${books.length} ${books.length === 1 ? "book" : "books"}`;
+
+  const highlightGroups = useMemo(() => ({
+    reading: books.filter((book) => book.shelf === "currently-reading").slice(0, 4),
+    favorites: books.filter((book) => (book.rating || 0) >= 5 || (book.shelfAwards || []).includes("Five-star favorite")).slice(0, 4),
+    recent: [...books].reverse().slice(0, 4),
+  }), [books]);
+
+  function revealBook(book: Book, openDetails = false) {
+    const recentBooks = [...books].reverse();
+    const shelfNumber = Math.max(1, Math.floor(recentBooks.findIndex((candidate) => candidate.id === book.id) / BOOKS_PER_ROW) + 1);
+    setQuery("");
+    setShelfFilter("all");
+    setSortMode("recent");
+    setSortDirection("desc");
+    setSearchOpen(false);
+    setHighlightsOpen(false);
+    setHighlightedBookId(book.id);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      shelfViewport.current?.scrollTo({ top: ((shelfNumber - 1) * SHELF_ROW_HEIGHT) + 2, behavior: "smooth" });
+      setActiveShelf(shelfNumber);
+      if (openDetails) window.setTimeout(() => onSelect(book), 420);
+    }));
+    window.setTimeout(() => setHighlightedBookId((current) => current === book.id ? null : current), 2600);
+  }
+
+  function pickRandomBook() {
+    if (!books.length) return;
+    revealBook(books[Math.floor(Math.random() * books.length)], true);
+  }
+
+  function jumpToShelf(shelfNumber: number) {
+    const viewport = shelfViewport.current;
+    if (!viewport || shelfCount === 0) return;
+    const nextShelf = Math.max(1, Math.min(shelfCount, shelfNumber));
+    viewport.scrollTo({ top: ((nextShelf - 1) * SHELF_ROW_HEIGHT) + 2, behavior: "smooth" });
+    setActiveShelf(nextShelf);
+    setJumpOpen(false);
+  }
 
   const syncVisibleRows = useCallback(() => {
     const viewport = shelfViewport.current;
@@ -299,14 +404,14 @@ export default function MobileShelfScene({
     viewport.scrollTop = 0;
     setRenderWindow({ start: 0, end: 8 });
     setActiveShelf(1);
-  }, [query, sortDirection, sortMode]);
+  }, [query, shelfFilter, sortDirection, sortMode]);
 
   const renderedRows = rows.slice(renderWindow.start, renderWindow.end);
   const topSpacerHeight = renderWindow.start * SHELF_ROW_HEIGHT;
   const hiddenAfterWindow = rows.slice(renderWindow.end);
   const bottomSpacerHeight = hiddenAfterWindow.reduce((height, row, index) => {
     const absoluteIndex = renderWindow.end + index;
-    const continuationHint = !query.trim() && books.length > 0 && row.length === 0 && absoluteIndex === rows.length - 1;
+    const continuationHint = !query.trim() && shelfFilter === "all" && books.length > 0 && row.length === 0 && absoluteIndex === rows.length - 1;
     return height + (continuationHint ? SHELF_HINT_HEIGHT : SHELF_ROW_HEIGHT);
   }, 0);
 
@@ -374,15 +479,32 @@ export default function MobileShelfScene({
 
       <div className={`${styles.shelfStage} ${polish.shelfStage}`} role="main">
         <div className={`${styles.cabinetCap} ${polish.cabinetCap}`} aria-hidden="true" />
+        {showSpineHint ? <aside className={styles.spineHint} aria-label="Shelf tip"><span>Tap any spine to open the book</span><button type="button" aria-label="Dismiss shelf tip" onClick={() => setShowSpineHint(false)}>×</button></aside> : null}
 
         <div
           className={styles.shelfStatus}
-          aria-label={`${countLabel}, ${shelfCount ? `shelf ${activeShelf || 1} of ${shelfCount}` : "no shelves"}`}
+          aria-label={`${countLabel}, ${shelfCount ? `row ${activeShelf || 1} of ${shelfCount}` : "no shelf rows"}`}
           style={{ display: "flex", alignItems: "center", gap: 8 }}
         >
           <span>{countLabel}</span>
           <i aria-hidden="true">·</i>
-          <strong>{shelfCount ? `shelf ${activeShelf || 1} of ${shelfCount}` : "no shelves"}</strong>
+          {shelfCount ? (
+            <button
+              type="button"
+              className={styles.shelfJumpButton}
+              onClick={() => setJumpOpen(true)}
+              aria-label={`Jump to a shelf row. Currently row ${activeShelf || 1} of ${shelfCount}`}
+            >
+              row {activeShelf || 1} of {shelfCount}
+            </button>
+          ) : <strong>no shelves</strong>}
+          {books.length ? <button
+            type="button"
+            className={styles.highlightsTrigger}
+            onClick={() => setHighlightsOpen(true)}
+            aria-label="Explore shelf highlights"
+            title="Shelf highlights"
+          >✦</button> : null}
           <button
             type="button"
             onClick={() => setSortOpen(true)}
@@ -411,7 +533,7 @@ export default function MobileShelfScene({
               {topSpacerHeight > 0 ? <div aria-hidden="true" style={{ height: topSpacerHeight }} /> : null}
               {renderedRows.map((row, windowIndex) => {
               const rowIndex = renderWindow.start + windowIndex;
-              const continuationHint = !query.trim() && books.length > 0 && row.length === 0 && rowIndex === rows.length - 1;
+              const continuationHint = !query.trim() && shelfFilter === "all" && books.length > 0 && row.length === 0 && rowIndex === rows.length - 1;
 
               return (
                 <section
@@ -427,7 +549,8 @@ export default function MobileShelfScene({
                         key={book.id}
                         book={book}
                         index={rowIndex * BOOKS_PER_ROW + bookIndex}
-                        onSelect={onSelect}
+                        onSelect={openBook}
+                        highlighted={book.id === highlightedBookId}
                       />
                     ))}
                     {row.length === 0 && books.length === 0 && rowIndex === 0 ? (
@@ -442,7 +565,7 @@ export default function MobileShelfScene({
             </> : (
               <div className={styles.noResults}>
                 <span>No books found.</span>
-                <button type="button" onClick={() => setQuery("")}>Show all books</button>
+                <button type="button" onClick={() => { setQuery(""); setShelfFilter("all"); }}>Show all books</button>
               </div>
             )}
           </div>
@@ -517,6 +640,78 @@ export default function MobileShelfScene({
         </div>
       ) : null}
 
+      {jumpOpen ? (
+        <div className={styles.sheetBackdrop} role="presentation" onClick={() => setJumpOpen(false)}>
+          <section className={styles.jumpSheet} role="dialog" aria-modal="true" aria-labelledby="jump-shelf-title" onClick={(event) => event.stopPropagation()}>
+            <header>
+              <div>
+                <span>Quick navigation</span>
+                <h2 id="jump-shelf-title">Jump to a shelf row</h2>
+              </div>
+              <button type="button" onClick={() => setJumpOpen(false)} aria-label="Close row navigation">×</button>
+            </header>
+            <p>Move through a large library without losing the bookshelf view.</p>
+            <input
+              type="range"
+              min="1"
+              max={Math.max(1, shelfCount)}
+              value={Math.max(1, activeShelf)}
+              onChange={(event) => {
+                const nextShelf = Number(event.target.value);
+                shelfViewport.current?.scrollTo({ top: ((nextShelf - 1) * SHELF_ROW_HEIGHT) + 2 });
+                setActiveShelf(nextShelf);
+              }}
+              aria-label="Shelf row"
+            />
+            <div className={styles.jumpGrid}>
+              {Array.from({ length: shelfCount }, (_, index) => index + 1).map((shelfNumber) => (
+                <button
+                  key={shelfNumber}
+                  type="button"
+                  className={shelfNumber === activeShelf ? styles.activeJumpButton : ""}
+                  onClick={() => jumpToShelf(shelfNumber)}
+                  aria-current={shelfNumber === activeShelf ? "true" : undefined}
+                >
+                  {shelfNumber}
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {highlightsOpen ? (
+        <div className={styles.sheetBackdrop} role="presentation" onClick={() => setHighlightsOpen(false)}>
+          <section className={`${styles.jumpSheet} ${styles.highlightsSheet}`} role="dialog" aria-modal="true" aria-labelledby="shelf-highlights-title" onClick={(event) => event.stopPropagation()}>
+            <header>
+              <div>
+                <span>A place to begin</span>
+                <h2 id="shelf-highlights-title">Shelf highlights</h2>
+              </div>
+              <button type="button" onClick={() => setHighlightsOpen(false)} aria-label="Close shelf highlights">×</button>
+            </header>
+            <p>Browse the moments that make this library personal, or let the shelf choose for you.</p>
+            <button className={styles.surpriseButton} type="button" onClick={pickRandomBook}>✦ Pick a book for me</button>
+            {([
+              ["Reading now", highlightGroups.reading],
+              ["Five-star favorites", highlightGroups.favorites],
+              ["Recently added", highlightGroups.recent],
+            ] as Array<[string, Book[]]>).map(([label, group]) => group.length ? (
+              <section className={styles.highlightGroup} key={label} aria-label={label}>
+                <h3>{label}</h3>
+                <div>
+                  {group.map((book) => <button type="button" key={book.id} onClick={() => revealBook(book)}>
+                    <span style={{ "--highlight-color": book.color } as CSSProperties} aria-hidden="true" />
+                    <strong>{book.title}</strong>
+                    <small>{book.author}</small>
+                  </button>)}
+                </div>
+              </section>
+            ) : null)}
+          </section>
+        </div>
+      ) : null}
+
       {searchOpen ? (
         <div
           className={styles.searchPanel}
@@ -539,6 +734,10 @@ export default function MobileShelfScene({
             flexWrap: "nowrap",
           }}
         >
+          <div className={styles.libraryDrawerHeading}>
+            <div><span>Your library</span><strong>My Books</strong></div>
+            <small>{books.length} total</small>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", minHeight: 38 }}>
             <SearchIcon />
             <input
@@ -584,6 +783,24 @@ export default function MobileShelfScene({
               <small style={{ opacity: .68 }}>{missingCoverCount} missing</small>
             </button>
           ) : null}
+          <div className={styles.shelfFilters} aria-label="Filter your shelf">
+            {(Object.keys(FILTER_LABELS) as ShelfFilter[]).map((filter) => (
+              <button
+                key={filter}
+                type="button"
+                className={shelfFilter === filter ? styles.activeFilter : ""}
+                onClick={() => setShelfFilter(filter)}
+                aria-pressed={shelfFilter === filter}
+              >
+                <span>{FILTER_LABELS[filter]}</span>
+                <small>{filter === "all"
+                  ? books.length
+                  : filter === "favorites"
+                    ? books.filter((book) => (book.rating || 0) >= 5 || (book.shelfAwards || []).includes("Five-star favorite")).length
+                    : books.filter((book) => book.shelf === filter).length}</small>
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
 
@@ -596,10 +813,11 @@ export default function MobileShelfScene({
             if (searchOpen) setQuery("");
             setSearchOpen((current) => !current);
           }}
+          aria-label="Search"
           aria-pressed={searchOpen}
         >
           <SearchIcon />
-          <span className={styles.dockLabel}>Search</span>
+          <span className={styles.dockLabel}>My Books</span>
         </button>
 
         <Link href="/readers" className={styles.dockLink} aria-label="Find readers">

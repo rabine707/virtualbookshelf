@@ -21,7 +21,6 @@ import { useShelfLibrary } from "./hooks/useShelfLibrary";
 import MobileShelfScene from "./mobile-first/MobileShelfScene";
 import ThemeEnricher from "./ThemeEnricher";
 import OnboardingGuide from "./OnboardingGuide";
-import GuestWelcome from "./GuestWelcome";
 import { Book, CoverResult, WebCoverResult } from "../lib/books/client-library";
 
 const DEFAULT_CLOTH_PREFIX = "shelf-of-fame-default-cloth:";
@@ -134,15 +133,43 @@ export default function Home() {
   }
 
   const goodreadsInput = useRef<HTMLInputElement>(null);
-  const [guestWelcomeBlocking, setGuestWelcomeBlocking] = useState(true);
   const [coverReviewOpen, setCoverReviewOpen] = useState(false);
+  const [bookSearchRequest, setBookSearchRequest] = useState(0);
   const [coverReviewInitialTotal, setCoverReviewInitialTotal] = useState(0);
   const [coverReviewScopeIds, setCoverReviewScopeIds] = useState<string[] | null>(null);
+  const deepLinkHandled = useRef(false);
   const booksNeedingCoverReview = books.filter((book) => !book.preferredCover?.url && !book.coverReviewStatus);
   const coverReviewScope = useMemo(() => coverReviewScopeIds ? new Set(coverReviewScopeIds) : null, [coverReviewScopeIds]);
   const activeCoverReviewBooks = coverReviewScope
     ? booksNeedingCoverReview.filter((book) => coverReviewScope.has(book.id))
     : booksNeedingCoverReview;
+
+  function openBookSearch() {
+    setBookSearchRequest((current) => current + 1);
+  }
+
+  function selectBook(book: Book) {
+    setSelected(book);
+    const url = new URL(window.location.href);
+    url.searchParams.set("book", book.id);
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  function closeBook() {
+    setSelected(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("book");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  useEffect(() => {
+    if (!storageReady || deepLinkHandled.current) return;
+    deepLinkHandled.current = true;
+    const requestedId = new URLSearchParams(window.location.search).get("book");
+    if (!requestedId) return;
+    const requestedBook = books.find((book) => book.id === requestedId);
+    if (requestedBook) setSelected(requestedBook);
+  }, [books, setSelected, storageReady]);
 
   function openFindCovers(scopeIds?: string[]) {
     const requestedScope = scopeIds?.length ? new Set(scopeIds) : null;
@@ -174,7 +201,7 @@ export default function Home() {
 
   function addMissingSeriesBook() {
     setSelected(null);
-    window.setTimeout(() => window.dispatchEvent(new Event("shelf-open-book-search")), 0);
+    window.setTimeout(openBookSearch, 0);
   }
 
   function finishReviewAndAdvance(approved: CoverResult[], primary?: CoverResult, status?: "skipped" | "no-match") {
@@ -204,17 +231,16 @@ export default function Home() {
   return (
     <>
       <CloudSyncIndicator status={cloudSyncStatus} />
-      <GuestWelcome onVisibilityChange={setGuestWelcomeBlocking} />
       <MobileShelfScene
         books={books}
         importMessage={importMessage}
         missingCoverCount={booksNeedingCoverReview.length}
         onFindCovers={() => openFindCovers()}
-        onSelect={setSelected}
-        onAddBook={() => window.dispatchEvent(new Event("shelf-open-book-search"))}
+        onSelect={selectBook}
+        onAddBook={openBookSearch}
       />
       <ThemeEnricher />
-      <OnboardingGuide books={books} eligible={storageReady && isFirstRun && !guestWelcomeBlocking} onAddBook={() => window.dispatchEvent(new Event("shelf-open-book-search"))} />
+      <OnboardingGuide books={books} eligible={storageReady && isFirstRun} onAddBook={openBookSearch} />
 
       <input
         ref={goodreadsInput}
@@ -229,6 +255,7 @@ export default function Home() {
         setBooks={setBooks}
         showToast={showToast}
         onImportGoodreads={() => goodreadsInput.current?.click()}
+        openRequest={bookSearchRequest}
       />
       <GoodreadsImportReview
         preview={goodreadsPreview}
@@ -299,7 +326,7 @@ export default function Home() {
           deepSearchLoading={deepSearchLoading}
           deepSearchDone={deepSearchDone}
           canResetCoverChoices={canResetCoverChoices}
-          onClose={() => setSelected(null)}
+          onClose={closeBook}
           onClearCover={() => setCover(null)}
           onUseSavedCover={chooseCoverAndSync}
           onRemoveSavedCover={removeSavedCover}
@@ -312,7 +339,7 @@ export default function Home() {
           onSaveBookMetadata={saveBookMetadata}
           onChangeReadStatus={changeReadStatus}
           onUpdateReaderMemory={updateReaderMemory}
-          onSelectBook={setSelected}
+          onSelectBook={selectBook}
           onUpdateSeriesBook={updateSeriesBook}
           onAddMissingSeriesBook={addMissingSeriesBook}
         />

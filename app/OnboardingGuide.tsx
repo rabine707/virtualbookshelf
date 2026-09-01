@@ -6,7 +6,6 @@ import { Book, looksLikeSampleShelf } from "../lib/books/client-library";
 import "./onboarding.css";
 
 const STATUS_KEY = "shelf-of-fame-onboarding-status-v1";
-const SESSION_DISMISSED_KEY = "shelf-of-fame-onboarding-dismissed-this-visit-v1";
 const DISCOVERY_KEY = "shelf-of-fame-onboarding-discovery-v1";
 const STYLE_DECIDED_KEY = "shelf-of-fame-onboarding-style-v1";
 const PRIVACY_DECIDED_KEY = "shelf-of-fame-onboarding-privacy-v1";
@@ -33,7 +32,6 @@ export default function OnboardingGuide({ books, eligible, onAddBook }: { books:
 
   useEffect(() => {
     if (!eligible) return;
-    if (window.sessionStorage.getItem(SESSION_DISMISSED_KEY) === "1") return;
     const status = window.localStorage.getItem(STATUS_KEY);
     if (status === "complete" || status === "skipped") return;
     setProgress(readProgress(books));
@@ -53,7 +51,7 @@ export default function OnboardingGuide({ books, eligible, onAddBook }: { books:
 
   function start() { window.localStorage.setItem(STATUS_KEY, "started"); setMode("checklist"); }
   function finish(status: "complete" | "skipped") { window.localStorage.setItem(STATUS_KEY, status); setMode("hidden"); }
-  function hideForVisit() { window.sessionStorage.setItem(SESSION_DISMISSED_KEY, "1"); setMode("hidden"); }
+  function hideForVisit() { setMode("hidden"); }
   function openStyle() { window.localStorage.setItem(STYLE_DECIDED_KEY, "1"); setProgress((current) => ({ ...current, style: true })); window.dispatchEvent(new Event("shelf-open-personalization")); }
   function visitPrivacy() { window.localStorage.setItem(PRIVACY_DECIDED_KEY, "1"); setProgress((current) => ({ ...current, privacy: true })); }
   function visitReaders() { window.localStorage.setItem(DISCOVERY_KEY, "1"); setProgress((current) => ({ ...current, discover: true })); }

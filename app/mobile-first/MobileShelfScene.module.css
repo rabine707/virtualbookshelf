@@ -332,6 +332,118 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+.highlightsTrigger {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(239, 207, 150, .34);
+  border-radius: 50%;
+  color: #ffe7b6;
+  background: rgba(101, 69, 38, .48);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.shelfJumpButton {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 116px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  color: #fff2d7;
+  background: transparent;
+  font: 700 9.5px/1 Arial, sans-serif;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 242, 215, .38);
+  text-underline-offset: 3px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sheetBackdrop {
+  position: fixed;
+  z-index: 96;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(15, 10, 7, .48);
+  backdrop-filter: blur(3px);
+}
+
+.jumpSheet {
+  width: 100%;
+  max-height: min(72svh, 620px);
+  padding: 20px 16px calc(24px + env(safe-area-inset-bottom));
+  overflow: auto;
+  border-radius: 24px 24px 0 0;
+  color: #2d2018;
+  background: #f4ecdf;
+  box-shadow: 0 -18px 44px rgba(0, 0, 0, .32);
+}
+
+.jumpSheet header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.jumpSheet header span { font: 800 10px/1 Arial, sans-serif; letter-spacing: .11em; text-transform: uppercase; opacity: .58; }
+.jumpSheet h2 { margin: 5px 0 0; font-size: 25px; }
+.jumpSheet p { margin: 10px 0 18px; color: #725e4f; font: 500 13px/1.45 Arial, sans-serif; }
+.jumpSheet header > button { width: 40px; height: 40px; border: 1px solid rgba(72,48,34,.18); border-radius: 50%; background: rgba(255,255,255,.5); font-size: 24px; }
+.jumpSheet input { width: 100%; accent-color: #76523b; }
+.jumpGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(43px, 1fr)); gap: 7px; margin-top: 17px; }
+.jumpGrid button { min-height: 42px; border: 1px solid rgba(76,52,36,.14); border-radius: 10px; background: rgba(255,255,255,.48); color: inherit; font: 700 12px Arial, sans-serif; }
+.jumpGrid .activeJumpButton { border-color: #76523b; background: #76523b; color: #fff8ef; }
+
+.highlightsSheet { display: grid; gap: 15px; }
+.highlightsSheet > p { margin: -5px 0 0; }
+.surpriseButton { min-height: 50px; border: 1px solid #76523b; border-radius: 14px; background: #76523b; color: #fff8ef; font: 800 14px Arial, sans-serif; }
+.highlightGroup { display: grid; gap: 8px; }
+.highlightGroup h3 { margin: 0; font: 700 14px Georgia, serif; }
+.highlightGroup > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.highlightGroup button { min-width: 0; display: grid; grid-template-columns: 7px minmax(0, 1fr); gap: 2px 9px; padding: 10px; border: 1px solid rgba(76,52,36,.13); border-radius: 12px; background: rgba(255,255,255,.48); color: inherit; text-align: left; }
+.highlightGroup button > span { grid-row: 1 / 3; width: 7px; height: 100%; min-height: 34px; border-radius: 99px; background: var(--highlight-color, #76523b); box-shadow: inset 1px 0 rgba(255,255,255,.22); }
+.highlightGroup strong, .highlightGroup small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.highlightGroup strong { font: 700 12px/1.25 Arial, sans-serif; }
+.highlightGroup small { color: #725e4f; font: 500 10px/1.25 Arial, sans-serif; }
+
+@media (max-width: 380px) {
+  .shelfStatus { max-width: calc(100% - 54px); gap: 4px !important; padding-inline: 7px; }
+  .highlightGroup > div { grid-template-columns: 1fr; }
+}
+
+.shelfFilters {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  padding: 1px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.shelfFilters::-webkit-scrollbar { display: none; }
+.shelfFilters button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  color: #d9ccba;
+  background: rgba(42,30,22,.76);
+  font: 700 11px/1 Arial, sans-serif;
+}
+.shelfFilters button span { display: inline; }
+.shelfFilters button small { margin-left: 6px; opacity: .58; font-size: 9px; }
+.shelfFilters .activeFilter { border-color: rgba(231,223,201,.72); background: #e7dfc9; color: #2d2018; }
+
+.libraryDrawerHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 2px 4px 3px; color: #f2e4d3; }
+.libraryDrawerHeading > div { display: grid; gap: 2px; }
+.libraryDrawerHeading span { color: #bfae99; font: 800 9px/1 Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.libraryDrawerHeading strong { font: 600 18px/1.1 Georgia, serif; }
+.libraryDrawerHeading > small { color: #bfae99; font: 700 10px/1 Arial, sans-serif; }
+
 .shelfStatus span,
 .shelfStatus strong {
   overflow: hidden;
@@ -409,6 +521,50 @@
 
 .shelfRowHint .booksRow {
   height: 62px;
+}
+
+.spineHint {
+  position: absolute;
+  z-index: 28;
+  top: 15px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 56px);
+  min-height: 38px;
+  padding: 6px 7px 6px 12px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(239, 214, 174, .3);
+  border-radius: 999px;
+  color: #f8ead4;
+  background: rgba(35, 24, 18, .91);
+  box-shadow: 0 8px 22px rgba(0,0,0,.32);
+  font: 700 10px/1.25 Arial, sans-serif;
+  white-space: nowrap;
+  animation: spineHintIn 360ms ease-out;
+}
+.spineHint button { width: 26px; height: 26px; flex: 0 0 auto; padding: 0; border: 0; border-radius: 50%; color: inherit; background: rgba(255,255,255,.08); font-size: 16px; }
+@keyframes spineHintIn { from { opacity: 0; transform: translate(-50%, -8px); } }
+
+.justAddedSpine {
+  z-index: 12;
+  animation: settleNewBook 900ms cubic-bezier(.2,.9,.25,1), celebrateNewBook 1.8s ease-out 700ms;
+}
+
+@keyframes settleNewBook {
+  0% { transform: translateY(-70px) rotate(-3deg); opacity: .2; }
+  68% { transform: translateY(4px) rotate(.5deg); opacity: 1; }
+  100% { transform: translateY(0) rotate(0); opacity: 1; }
+}
+
+@keyframes celebrateNewBook {
+  0%, 100% { filter: none; }
+  35% { filter: brightness(1.28) drop-shadow(0 0 12px rgba(239,203,132,.78)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .justAddedSpine { animation: none; outline: 2px solid rgba(239,203,132,.85); outline-offset: 3px; }
 }
 
 .shelfPlank {
