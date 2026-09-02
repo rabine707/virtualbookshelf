@@ -15,12 +15,7 @@ import {
   rejectedUrls,
   romanceCoverRequestUrl,
   uniqueCovers,
-  WebCoverResult,
 } from "../../lib/books/client-library";
-
-type WebCoverMode = "covers" | "alternate" | "custom";
-
-type WebCoverResponse = { results?: WebCoverResult[]; error?: string; setupRequired?: boolean };
 
 type UseBookCoverManagerOptions = {
   setBooks: Dispatch<SetStateAction<Book[]>>;
@@ -90,15 +85,6 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
   const [deepSearchLoading, setDeepSearchLoading] = useState(false);
   const [deepSearchDone, setDeepSearchDone] = useState(false);
   const [coverUndo, setCoverUndo] = useState<CoverUndoState | null>(null);
-  const [webCoverResults, setWebCoverResults] = useState<WebCoverResult[]>([]);
-  const [webCoverLoading, setWebCoverLoading] = useState(false);
-  const [webCoverMessage, setWebCoverMessage] = useState("Search the wider web when the database covers aren't what you want.");
-
-  useEffect(() => {
-    setWebCoverResults([]);
-    setWebCoverLoading(false);
-    setWebCoverMessage("Search the wider web when the database covers aren't what you want.");
-  }, [selected?.id]);
 
   useEffect(() => {
     if (!selected) return;
@@ -278,65 +264,6 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
     showToast(`Removed that saved cover for ${selected.title}.`);
   }
 
-  function chooseWebCover(result: WebCoverResult) {
-    if (!selected) return;
-    const option: CoverResult = { url: result.url, source: "Web image" };
-    const withSavedCover = rememberSavedCover(selected, option);
-    const feedback: CoverFeedback = {
-      ...selected.coverFeedback,
-      accepted: option.url,
-      rejected: (selected.coverFeedback?.rejected || []).filter((url) => url !== option.url),
-      wrongEdition: (selected.coverFeedback?.wrongEdition || []).filter((url) => url !== option.url),
-    };
-    const updated: Book = {
-      ...withSavedCover,
-      preferredCover: option,
-      coverFeedback: feedback,
-      webCoverPageUrl: result.pageUrl || undefined,
-      webCoverTitle: result.title || undefined,
-    };
-    setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
-    setSelected(updated);
-    setCover(option);
-    coverMemory.set(coverKey(updated), option);
-    setWebCoverMessage("✓ Applied to your shelf and saved with this book.");
-    showToast(`Applied a web cover to ${selected.title}.`);
-  }
-
-  async function searchWebCovers(mode: WebCoverMode) {
-    if (!selected || webCoverLoading) return;
-    setWebCoverResults([]);
-    setWebCoverLoading(true);
-    setWebCoverMessage(mode === "custom"
-      ? "Searching custom, special-edition, and Etsy-style covers…"
-      : mode === "alternate"
-        ? "Searching alternate and special editions…"
-        : "Searching the web for book covers…");
-
-    try {
-      const params = new URLSearchParams({ title: selected.title, author: selected.author, mode });
-      const response = await fetch(`/api/web-covers?${params.toString()}`, { cache: "no-store" });
-      const data = await response.json() as WebCoverResponse;
-      if (data.setupRequired) {
-        setWebCoverMessage("Web cover search is ready, but the Brave Search API key still needs to be added in Vercel.");
-        return;
-      }
-      if (!response.ok) {
-        setWebCoverMessage(data.error || "Web image search could not finish.");
-        return;
-      }
-      const results = Array.isArray(data.results) ? data.results.filter((result) => Boolean(result?.url)) : [];
-      setWebCoverResults(results);
-      setWebCoverMessage(results.length
-        ? `${results.length} web result${results.length === 1 ? "" : "s"} — tap one to use it on your shelf.`
-        : "No web images found for this search.");
-    } catch {
-      setWebCoverMessage("Web image search could not finish.");
-    } finally {
-      setWebCoverLoading(false);
-    }
-  }
-
   function rejectCurrentCover(kind: "wrong" | "edition") {
     if (!selected || !cover) return;
     const snapshot = selected;
@@ -494,9 +421,6 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
     setCover,
     coverOptions,
     savedCoverOptions,
-    webCoverResults,
-    webCoverLoading,
-    webCoverMessage,
     coverLoading,
     deepSearchLoading,
     deepSearchDone,
@@ -505,8 +429,6 @@ export function useBookCoverManager({ setBooks, showToast }: UseBookCoverManager
     previewCover,
     chooseCover,
     removeSavedCover,
-    chooseWebCover,
-    searchWebCovers,
     rejectCurrentCover,
     undoCoverDecision,
     dismissCoverUndo: () => setCoverUndo(null),

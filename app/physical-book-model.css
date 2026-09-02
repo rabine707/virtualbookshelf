@@ -1,4 +1,4 @@
-/* Actual 3D book geometry: the AI/crop spine is applied to the curved spine
+/* Actual 3D book geometry: custom spine artwork is applied to the curved spine
    material of /models/shelf-book.glb. The old DOM spine remains underneath as
    a fallback until the model and texture are both ready. */
 .book.has-cover[data-generated-spine="1"] .physical-book-model {

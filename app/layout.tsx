@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./modal-cover-hotfix.css";
 import "./modal-scroll-lock.css";
-import "./web-cover-search.css";
 import "./saved-cover-choices.css";
 import "./generated-spines.css";
 import "./spine-generator.css";

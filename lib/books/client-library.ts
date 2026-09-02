@@ -3,15 +3,6 @@ export type CoverResult = {
   source: string;
 };
 
-export type WebCoverResult = {
-  url: string;
-  thumbnailUrl?: string;
-  source?: string;
-  title?: string;
-  pageUrl?: string | null;
-  publisher?: string | null;
-};
-
 export type CoverResponse = {
   url: string | null;
   source: string | null;
@@ -60,14 +51,13 @@ export type Book = {
   isbnConfidence?: IdentifierConfidence;
   asin?: string;
   romanceioId?: string;
-  webCoverPageUrl?: string;
-  webCoverTitle?: string;
   importSource?: string;
   color: string;
   preferredCover?: CoverResult;
   savedCovers?: CoverResult[];
   coverFeedback?: CoverFeedback;
   coverReviewStatus?: "skipped" | "no-match";
+  defaultSpine?: boolean;
 };
 
 export const STORAGE_KEY = "shelf-of-fame-library-v1";
@@ -353,8 +343,6 @@ export function mergeGoodreadsFeedback(current: Book[], imported: Book[]) {
       coverFeedback: existing.coverFeedback,
       asin: existing.asin,
       romanceioId: existing.romanceioId,
-      webCoverPageUrl: existing.webCoverPageUrl,
-      webCoverTitle: existing.webCoverTitle,
       goodreadsTags: book.goodreadsTags?.length ? book.goodreadsTags : existing.goodreadsTags,
       tropes: book.tropes?.length ? book.tropes : existing.tropes,
       genres: book.genres?.length ? book.genres : existing.genres,

@@ -1,4 +1,4 @@
-/* Lightweight 2D physical-book treatment. The AI/crop spine remains a flat
+/* Lightweight 2D physical-book treatment. Custom spine artwork remains a flat
    image; depth is created entirely with CSS so hundreds of books stay cheap. */
 .book.has-cover[data-generated-spine="1"] {
   overflow: hidden !important;

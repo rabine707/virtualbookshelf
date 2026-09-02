@@ -41,6 +41,7 @@ type MobileBookSpineProps = {
   onSelect: (book: Book) => void;
   externalSpineUrl?: string;
   highlighted?: boolean;
+  titleOrientation?: "auto" | "upright" | "sideways";
 };
 
 type PrintFinish = "ink" | "debossed" | "foil";
@@ -393,7 +394,7 @@ function sidewaysTitleLayout(
   return { containerStyle, titleStyle };
 }
 
-export function MobileBookSpine({ book, index, onSelect, externalSpineUrl, highlighted = false }: MobileBookSpineProps) {
+export function MobileBookSpine({ book, index, onSelect, externalSpineUrl, highlighted = false, titleOrientation = "auto" }: MobileBookSpineProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const key = coverKey(book);
   const eager = index < 12;
@@ -406,7 +407,6 @@ export function MobileBookSpine({ book, index, onSelect, externalSpineUrl, highl
   const [generatedSpineFailed, setGeneratedSpineFailed] = useState(false);
   const [generatedMode, setGeneratedMode] = useState<SpineRenderMode>("overlay");
   const [spineCrop, setSpineCrop] = useState<string>();
-  const [titleOrientation, setTitleOrientation] = useState<"auto" | "upright" | "sideways">("auto");
   const displayedCover = preferred || cover;
   const coverUrl = displayedCover?.url;
   const [coverSpineColor, setCoverSpineColor] = useState<string | undefined>(() => (
@@ -430,20 +430,6 @@ export function MobileBookSpine({ book, index, onSelect, externalSpineUrl, highl
     : displayAuthor.length >= 8
       ? "condensed"
       : "normal";
-
-  useEffect(() => {
-    const applyPreference = (event?: Event) => {
-      const eventPreference = event ? (event as CustomEvent<string>).detail : undefined;
-      const stored = eventPreference || window.localStorage.getItem("shelf-of-fame-title-orientation-v1");
-      const legacy = window.localStorage.getItem("shelf-of-fame-sideways-titles-v1");
-      setTitleOrientation(stored === "upright" || stored === "sideways" || stored === "auto"
-        ? stored
-        : legacy === "off" ? "upright" : legacy === "on" ? "sideways" : "auto");
-    };
-    applyPreference();
-    window.addEventListener("shelf-title-orientation-changed", applyPreference);
-    return () => window.removeEventListener("shelf-title-orientation-changed", applyPreference);
-  }, []);
 
   useEffect(() => {
     if (preferred) {
@@ -612,6 +598,7 @@ export function MobileBookSpine({ book, index, onSelect, externalSpineUrl, highl
       aria-label={`${book.title} by ${book.author}`}
       title={`${book.title} — ${book.author}`}
       data-book-id={book.id}
+      data-force-default-cloth={book.defaultSpine ? "true" : undefined}
       data-spine-crop={spineCrop}
       data-spine-layout={design.layout.id}
       data-spine-variant={design.variant}

@@ -1,11 +1,4 @@
-.generate-spine-button {
-  margin-top: 4px;
-  min-height: 48px;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.generate-spine-status {
+.manual-spine-status {
   min-height: 18px;
   margin-top: -2px;
   padding: 0 4px;

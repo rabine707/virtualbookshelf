@@ -189,7 +189,7 @@ export async function fetchPublicImage(value: string) {
       }
 
       if (!response.ok) {
-        throw new RemoteImageError("Could not load the confirmed cover for Gemini.", 502);
+        throw new RemoteImageError("Could not load the confirmed cover.", 502);
       }
 
       const contentType = response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() || "";

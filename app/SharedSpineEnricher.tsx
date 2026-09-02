@@ -88,8 +88,8 @@ export default function SharedSpineEnricher() {
       const provider = detail.position
         ? "cover-crop"
         : detail.renderMode === "integrated"
-          ? "AI-integrated"
-          : "AI";
+          ? "curator-integrated"
+          : "curator-overlay";
 
       void publishSharedSpine(
         identity,

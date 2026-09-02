@@ -9,6 +9,7 @@ import {
 } from "../../lib/books/cloud-library";
 import { Book } from "../../lib/books/client-library";
 import { CloudSettings, loadMyShelf, readShelfSession, syncMyShelf } from "../cloud-sync";
+import type { ShelfPreferences } from "./useShelfPreferences";
 
 const THEME_KEY = "shelf-of-fame-theme-v1";
 const SPINE_LABELS_KEY = "shelf-of-fame-spine-labels-v1";
@@ -30,6 +31,8 @@ type UseCloudShelfSyncOptions = {
   books: Book[];
   setBooks: Dispatch<SetStateAction<Book[]>>;
   storageReady: boolean;
+  onCloudSettings?: (settings: CloudSettings) => void;
+  preferences: ShelfPreferences;
 };
 
 export type CloudSyncStatus = "local" | "saving" | "saved" | "offline" | "retrying";
@@ -51,16 +54,16 @@ function payloadBooks(books: Book[]) {
   return cloudPayloadBooks(books, readFavorites());
 }
 
-function currentSettings(fallbackPublic = false): CloudSettings {
+function currentSettings(fallbackPublic = false, preferences?: ShelfPreferences): CloudSettings {
   const decorOwned = safeJson<unknown[]>(OWNED_KEY, []);
   const decorActive = safeJson<Record<string, string>>(ACTIVE_KEY, {});
   const points = Math.max(0, Number(window.localStorage.getItem(POINTS_KEY) || 0) || 0);
   const publicRaw = window.localStorage.getItem(PUBLIC_KEY);
   return {
-    theme: window.localStorage.getItem(THEME_KEY) || "classic",
-    spine_labels: window.localStorage.getItem(SPINE_LABELS_KEY) !== "off",
-    sideways_titles: window.localStorage.getItem(TITLE_ORIENTATION_KEY) !== "upright",
-    title_orientation: (window.localStorage.getItem(TITLE_ORIENTATION_KEY) || "auto") as "auto" | "upright" | "sideways",
+    theme: preferences?.theme || window.localStorage.getItem(THEME_KEY) || "botanical",
+    spine_labels: preferences?.spineLabels ?? window.localStorage.getItem(SPINE_LABELS_KEY) !== "off",
+    sideways_titles: (preferences?.titleOrientation || window.localStorage.getItem(TITLE_ORIENTATION_KEY)) !== "upright",
+    title_orientation: preferences?.titleOrientation || (window.localStorage.getItem(TITLE_ORIENTATION_KEY) || "auto") as "auto" | "upright" | "sideways",
     decor_owned: decorOwned,
     decor_active: decorActive,
     community_stars: points,
@@ -75,35 +78,26 @@ function applyCloudFavorites(cloudBooks: Array<Record<string, unknown>>) {
 }
 
 function applyCloudSettings(settings: CloudSettings) {
-  if (settings.theme) window.localStorage.setItem(THEME_KEY, settings.theme);
-  window.localStorage.setItem(SPINE_LABELS_KEY, settings.spine_labels === false ? "off" : "on");
-  const titleOrientation = settings.title_orientation
-    || (settings.sideways_titles === false ? "upright" : settings.sideways_titles === true ? "sideways" : "auto");
-  const sidewaysTitles = titleOrientation !== "upright";
-  window.localStorage.setItem(SIDEWAYS_TITLES_KEY, sidewaysTitles ? "on" : "off");
-  window.localStorage.setItem(TITLE_ORIENTATION_KEY, titleOrientation);
   window.localStorage.setItem(OWNED_KEY, JSON.stringify(Array.isArray(settings.decor_owned) ? settings.decor_owned : []));
   window.localStorage.setItem(ACTIVE_KEY, JSON.stringify(settings.decor_active && typeof settings.decor_active === "object" ? settings.decor_active : {}));
   window.localStorage.setItem(POINTS_KEY, String(Math.max(0, Number(settings.community_stars || 0))));
   window.localStorage.setItem(PUBLIC_KEY, settings.shelf_public ? "on" : "off");
   window.localStorage.setItem(PROFILE_FAVORITES_KEY, JSON.stringify(Array.isArray(settings.profile_favorite_book_ids) ? settings.profile_favorite_book_ids.slice(0, 5) : []));
   window.localStorage.setItem(PROFILE_FAVORITES_STYLE_KEY, settings.profile_favorites_style === "spines" ? "spines" : "covers");
-  if (settings.theme) document.documentElement.dataset.shelfTheme = settings.theme;
-  document.documentElement.dataset.spineLabels = settings.spine_labels === false ? "off" : "on";
-  document.documentElement.dataset.titleOrientation = titleOrientation;
-  window.dispatchEvent(new CustomEvent<string>("shelf-title-orientation-changed", { detail: titleOrientation }));
 }
 
-function fingerprint(books: Book[], publicFallback = false) {
+function fingerprint(books: Book[], publicFallback = false, preferences?: ShelfPreferences) {
   return JSON.stringify({
     books: payloadBooks(books),
-    settings: currentSettings(publicFallback),
+    settings: currentSettings(publicFallback, preferences),
   });
 }
 
-export function useCloudShelfSync({ books, setBooks, storageReady }: UseCloudShelfSyncOptions) {
+export function useCloudShelfSync({ books, setBooks, storageReady, onCloudSettings, preferences }: UseCloudShelfSyncOptions) {
   const [status, setStatus] = useState<CloudSyncStatus>("local");
   const booksRef = useRef(books);
+  const preferencesRef = useRef(preferences);
+  const preferencesInitialized = useRef(false);
   const running = useRef(false);
   const lastSynced = useRef("");
   const publicFallback = useRef(false);
@@ -120,6 +114,15 @@ export function useCloudShelfSync({ books, setBooks, storageReady }: UseCloudShe
       requestFlush.current(DEBOUNCE_MS);
     }
   }, [books, storageReady]);
+
+  useEffect(() => {
+    preferencesRef.current = preferences;
+    if (!preferencesInitialized.current) {
+      preferencesInitialized.current = true;
+      return;
+    }
+    if (storageReady) requestFlush.current(DEBOUNCE_MS);
+  }, [preferences, storageReady]);
 
   useEffect(() => {
     storageReadyRef.current = storageReady;
@@ -171,9 +174,17 @@ export function useCloudShelfSync({ books, setBooks, storageReady }: UseCloudShe
         if (cloudSettings) {
           publicFallback.current = Boolean(cloudSettings.shelf_public);
           applyCloudSettings(cloudSettings);
+          const cloudOrientation = cloudSettings.title_orientation
+            || (cloudSettings.sideways_titles === false ? "upright" : cloudSettings.sideways_titles === true ? "sideways" : "auto");
+          preferencesRef.current = {
+            theme: "botanical",
+            spineLabels: cloudSettings.spine_labels !== false,
+            titleOrientation: cloudOrientation,
+          };
+          onCloudSettings?.(cloudSettings);
         }
 
-        const settings = currentSettings(publicFallback.current);
+        const settings = currentSettings(publicFallback.current, preferencesRef.current);
         if (!cloudBooks.length && !cloudSettings) {
           await syncMyShelf(payloadBooks(local), settings, true);
         } else if (local.length) {
@@ -181,7 +192,7 @@ export function useCloudShelfSync({ books, setBooks, storageReady }: UseCloudShe
         }
 
         window.localStorage.setItem(INITIALIZED_KEY, "1");
-        lastSynced.current = fingerprint(merged, publicFallback.current);
+        lastSynced.current = fingerprint(merged, publicFallback.current, preferencesRef.current);
         setStatus("saved");
       } catch {
         // The shelf remains fully usable offline/local if cloud sync is unavailable.
@@ -201,7 +212,7 @@ export function useCloudShelfSync({ books, setBooks, storageReady }: UseCloudShe
         return;
       }
       const currentBooks = localBooksForCloud(booksRef.current);
-      const next = fingerprint(currentBooks, publicFallback.current);
+      const next = fingerprint(currentBooks, publicFallback.current, preferencesRef.current);
       if (!next || next === lastSynced.current) {
         setStatus("saved");
         return;
@@ -212,7 +223,7 @@ export function useCloudShelfSync({ books, setBooks, storageReady }: UseCloudShe
       clearRetry();
       try { window.localStorage.setItem(PENDING_SYNC_KEY, next); } catch { /* best effort */ }
       try {
-        const result = await syncMyShelf(payloadBooks(currentBooks), currentSettings(publicFallback.current), true);
+        const result = await syncMyShelf(payloadBooks(currentBooks), currentSettings(publicFallback.current, preferencesRef.current), true);
         publicFallback.current = Boolean(result.settings?.shelf_public);
         lastSynced.current = next;
         retryCount.current = 0;
@@ -227,7 +238,7 @@ export function useCloudShelfSync({ books, setBooks, storageReady }: UseCloudShe
         scheduleRetry();
       } finally {
         running.current = false;
-        const latest = fingerprint(localBooksForCloud(booksRef.current), publicFallback.current);
+        const latest = fingerprint(localBooksForCloud(booksRef.current), publicFallback.current, preferencesRef.current);
         if (!failed && latest !== lastSynced.current) requestFlush.current(DEBOUNCE_MS);
       }
     };
@@ -269,7 +280,7 @@ export function useCloudShelfSync({ books, setBooks, storageReady }: UseCloudShe
       window.removeEventListener("offline", onOffline);
       window.removeEventListener("shelf-auth-changed", onAuth as EventListener);
     };
-  }, [setBooks, storageReady]);
+  }, [onCloudSettings, setBooks, storageReady]);
 
   return status;
 }

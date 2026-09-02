@@ -1,4 +1,4 @@
-/* AI-generated spines keep the model-designed title/artwork, while the app
+/* Integrated spine artwork keeps its designed title/artwork, while the app
    guarantees the author text. New generations reserve a quiet author zone near
    the base, so this correction can stay subtle instead of masking the artwork. */
 .generated-spine[data-typography="integrated"] .generated-spine-author-correction {

@@ -12,7 +12,7 @@ type ActiveBook = {
 };
 
 type BulkProgress = {
-  kind: "covers" | "spines";
+  kind: "covers";
   done: number;
   total: number;
   success: number;
@@ -21,7 +21,6 @@ type BulkProgress = {
 const SERIES_KEY = "shelf-of-fame-series-mode-v1";
 const FAVORITES_KEY = "shelf-of-fame-favorites-v1";
 const SKIPPED_COVERS_KEY = "shelf-of-fame-fix-skipped-covers-v1";
-const SKIPPED_SPINES_KEY = "shelf-of-fame-fix-skipped-spines-v1";
 
 function waitFor<T extends Element>(selector: string, timeout = 6000): Promise<T | null> {
   const existing = document.querySelector<T>(selector);
@@ -115,16 +114,12 @@ export default function QoLEnricher() {
     void version;
     const all = [...document.querySelectorAll<HTMLButtonElement>(".shelf-row .book")];
     const skippedCovers = readSkipped(SKIPPED_COVERS_KEY);
-    const skippedSpines = readSkipped(SKIPPED_SPINES_KEY);
     const missingCovers = all.filter((button) => !button.classList.contains("has-cover"));
-    const missingSpines = all.filter((button) => button.classList.contains("has-cover") && button.dataset.generatedSpine !== "1");
     const coverSkipped = missingCovers.filter((button) => skippedCovers.has(buttonKey(button))).length;
-    const spineSkipped = missingSpines.filter((button) => skippedSpines.has(buttonKey(button))).length;
     return {
       covers: missingCovers.length - coverSkipped,
-      spines: missingSpines.length - spineSkipped,
-      skipped: coverSkipped + spineSkipped,
-      totalMissing: missingCovers.length + missingSpines.length,
+      skipped: coverSkipped,
+      totalMissing: missingCovers.length,
     };
   }, [version, fixOpen, bulkBusy]);
 
@@ -145,12 +140,6 @@ export default function QoLEnricher() {
     return target;
   }
 
-  async function generateOne(button: HTMLButtonElement) {
-    await openAndFind(button);
-    const generator = await waitFor<HTMLButtonElement>(".modal .generate-spine-button", 6000);
-    generator?.click();
-  }
-
   function toggleFavorite(book: ActiveBook) {
     const identity = `${book.title}::${book.author}`;
     const stored = JSON.parse(window.localStorage.getItem(FAVORITES_KEY) || "[]") as string[];
@@ -166,12 +155,12 @@ export default function QoLEnricher() {
     writeSkipped(storageKey, skipped);
   }
 
-  function startBulk(targets: HTMLButtonElement[], kind: "covers" | "spines") {
+  function startBulk(targets: HTMLButtonElement[], kind: "covers") {
     setBulkBusy(true);
     cancelBulk.current = false;
     pendingKeys.current = targets.map(buttonKey);
     pendingIndex.current = 0;
-    pendingSkipStorageKey.current = kind === "covers" ? SKIPPED_COVERS_KEY : SKIPPED_SPINES_KEY;
+    pendingSkipStorageKey.current = SKIPPED_COVERS_KEY;
     setBulkProgress({ kind, done: 0, total: targets.length, success: 0 });
   }
 
@@ -186,7 +175,6 @@ export default function QoLEnricher() {
 
   function retrySkipped() {
     window.localStorage.removeItem(SKIPPED_COVERS_KEY);
-    window.localStorage.removeItem(SKIPPED_SPINES_KEY);
     setBulkStatus("Skipped books are back in the queue.");
     setVersion((value) => value + 1);
   }
@@ -244,52 +232,6 @@ export default function QoLEnricher() {
     window.setTimeout(() => setFixOpen(true), 120);
   }
 
-  async function generateMissingSpines() {
-    if (bulkBusy) return;
-    const skipped = readSkipped(SKIPPED_SPINES_KEY);
-    const targets = [...document.querySelectorAll<HTMLButtonElement>(".shelf-row .book.has-cover")]
-      .filter((button) => button.dataset.generatedSpine !== "1" && !skipped.has(buttonKey(button)));
-    if (!targets.length) return;
-    startBulk(targets, "spines");
-    let done = 0;
-
-    for (let index = 0; index < targets.length && !cancelBulk.current; index += 1) {
-      pendingIndex.current = index;
-      const button = targets[index];
-      const key = buttonKey(button);
-      setBulkStatus(`Generating spines… ${index + 1} of ${targets.length}`);
-      setBulkProgress({ kind: "spines", done: index, total: targets.length, success: done });
-      openOriginal(button);
-      const generator = await waitFor<HTMLButtonElement>(".modal .generate-spine-button", 6000);
-      if (!generator) {
-        markSkipped(SKIPPED_SPINES_KEY, key);
-        document.querySelector<HTMLButtonElement>(".modal .close")?.click();
-        continue;
-      }
-      generator.click();
-
-      let succeeded = false;
-      const started = Date.now();
-      while (Date.now() - started < 45000 && !cancelBulk.current) {
-        if (button.dataset.generatedSpine === "1") { done += 1; succeeded = true; break; }
-        const status = document.querySelector<HTMLElement>(".generate-spine-status")?.textContent || "";
-        if (/failed|needs|could not|error|unavailable/i.test(status)) break;
-        await delay(500);
-      }
-      if (!succeeded) markSkipped(SKIPPED_SPINES_KEY, key);
-      document.querySelector<HTMLButtonElement>(".modal .close")?.click();
-      setBulkProgress({ kind: "spines", done: index + 1, total: targets.length, success: done });
-      await delay(220);
-    }
-
-    pendingIndex.current = targets.length;
-    setBulkStatus(cancelBulk.current ? `Stopped — generated ${done} before pausing.` : `Finished — generated ${done} of ${targets.length}. Failed books were moved to Skipped.`);
-    setBulkProgress({ kind: "spines", done: Math.min(targets.length, pendingIndex.current), total: targets.length, success: done });
-    setBulkBusy(false);
-    setVersion((value) => value + 1);
-    window.setTimeout(() => setFixOpen(true), 120);
-  }
-
   if (!toolbar) return null;
   const pct = bulkProgress?.total ? Math.round((bulkProgress.done / bulkProgress.total) * 100) : 0;
 
@@ -304,7 +246,7 @@ export default function QoLEnricher() {
           <button type="button" className="qol-fix-button" onClick={() => setFixOpen(true)}>
             <span aria-hidden="true">✦</span>
             <span><small>Library</small><strong>Fix Missing</strong></span>
-            {(counts.covers + counts.spines) > 0 && <b>{counts.covers + counts.spines}</b>}
+            {counts.covers > 0 && <b>{counts.covers}</b>}
           </button>
         </div>,
         toolbar,
@@ -312,7 +254,7 @@ export default function QoLEnricher() {
 
       {bulkBusy && bulkProgress && createPortal(
         <aside className="qol-bulk-floater" aria-live="polite">
-          <div className="qol-bulk-head"><strong>{bulkProgress.kind === "covers" ? "Fixing covers" : "Generating spines"}</strong><span>{bulkProgress.done}/{bulkProgress.total} · {pct}%</span></div>
+          <div className="qol-bulk-head"><strong>Fixing covers</strong><span>{bulkProgress.done}/{bulkProgress.total} · {pct}%</span></div>
           <div className="qol-bulk-track"><i style={{ width: `${pct}%` }} /></div>
           <div className="qol-bulk-copy">{bulkStatus} · {bulkProgress.success} successful</div>
           <div className="qol-bulk-actions"><button type="button" onClick={() => { cancelBulk.current = true; setBulkStatus("Stopping after the current book…"); }}>Pause</button><button type="button" onClick={skipRemaining}>Skip remaining</button></div>
@@ -330,7 +272,7 @@ export default function QoLEnricher() {
             <div className="qol-actions-grid">
               <button type="button" onClick={() => openOriginal(active.button)}><span>☰</span><strong>Details</strong><small>Book info & covers</small></button>
               <button type="button" onClick={() => openAndFind(active.button, ".modal .cover-picker")}><span>▣</span><strong>Change Cover</strong><small>Browse alternatives</small></button>
-              <button type="button" onClick={() => generateOne(active.button)} disabled={!active.hasCover}><span>✦</span><strong>{active.hasSpine ? "Regenerate Spine" : "Generate Spine"}</strong><small>{active.hasCover ? "AI spine artwork" : "Needs a cover first"}</small></button>
+              <button type="button" onClick={() => openAndFind(active.button, ".modal .spine-selector")} disabled={!active.hasCover}><span>✦</span><strong>Choose Spine</strong><small>{active.hasCover ? "Manual & curator artwork" : "Needs a cover first"}</small></button>
               <button type="button" onClick={() => toggleFavorite(active)}><span>★</span><strong>Favorite</strong><small>Mark this book</small></button>
             </div>
           </section>
@@ -345,7 +287,6 @@ export default function QoLEnricher() {
             <header><div><small>Library cleanup</small><h2>Fix Missing</h2><p>{counts.totalMissing ? `${counts.totalMissing} books still need artwork. Work through them in batches.` : "Your visible shelf artwork is caught up."}</p></div><button type="button" className="qol-close" disabled={bulkBusy} onClick={() => setFixOpen(false)} aria-label="Close">×</button></header>
             <div className="qol-fix-options">
               <button type="button" disabled={bulkBusy || counts.covers === 0} onClick={() => void fixMissingCovers()}><span className="qol-count">{counts.covers}</span><span><strong>Find missing covers</strong><small>Search, save the strongest match, and skip unresolved books for later</small></span></button>
-              <button type="button" disabled={bulkBusy || counts.spines === 0} onClick={() => void generateMissingSpines()}><span className="qol-count">{counts.spines}</span><span><strong>Generate missing spines</strong><small>Runs the queue with persistent progress and failure handling</small></span></button>
             </div>
             {counts.skipped > 0 && <div className="qol-skipped-row"><span>{counts.skipped} unresolved book{counts.skipped === 1 ? " is" : "s are"} skipped for now.</span><button type="button" onClick={retrySkipped}>Retry skipped</button></div>}
             {bulkStatus && !bulkBusy && <div className="qol-progress" role="status"><span>{bulkStatus}</span></div>}

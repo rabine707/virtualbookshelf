@@ -13,14 +13,6 @@ function authorFromBookButton(button: HTMLButtonElement) {
   return cleanAuthor(raw.slice(splitAt + 3));
 }
 
-function authorFromModal(modal: Element) {
-  return cleanAuthor(
-    (modal.querySelector<HTMLElement>(".details .author")?.textContent || "")
-      .replace(/^by\s+/i, "")
-      .trim(),
-  );
-}
-
 function ensureShelfCorrection(button: HTMLButtonElement) {
   const spine = button.querySelector<HTMLElement>('.generated-spine[data-typography="integrated"]');
   if (!spine) return;
@@ -37,27 +29,8 @@ function ensureShelfCorrection(button: HTMLButtonElement) {
   if (correction.textContent !== author) correction.textContent = author;
 }
 
-function ensurePreviewCorrection(modal: Element) {
-  const editor = modal.querySelector<HTMLElement>('.spine-crop-editor[data-mode="ai"]');
-  const preview = editor?.querySelector<HTMLElement>(".spine-crop-preview");
-  if (!editor || !preview) return;
-  const author = authorFromModal(modal);
-  if (!author) return;
-
-  let correction = preview.querySelector<HTMLElement>(".spine-crop-preview-author-correction");
-  if (!correction) {
-    correction = document.createElement("span");
-    correction.className = "spine-crop-preview-author-correction";
-    correction.setAttribute("aria-hidden", "true");
-    preview.appendChild(correction);
-  }
-  if (correction.textContent !== author) correction.textContent = author;
-}
-
 function scan() {
   for (const button of document.querySelectorAll<HTMLButtonElement>("button.book")) ensureShelfCorrection(button);
-  const modal = document.querySelector(".modal");
-  if (modal) ensurePreviewCorrection(modal);
 }
 
 export default function SpineAuthorCorrector() {
@@ -76,7 +49,7 @@ export default function SpineAuthorCorrector() {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["src", "data-typography", "data-mode"],
+      attributeFilter: ["src", "data-typography"],
     });
     window.addEventListener("shelf-spine-generated", schedule);
     window.addEventListener("shelf-spine-gallery-changed", schedule);

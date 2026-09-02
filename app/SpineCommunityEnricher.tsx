@@ -27,7 +27,6 @@ type StoredBook = {
   coverFeedback?: { accepted?: string; rejected?: string[]; wrongEdition?: string[] };
 } & Record<string, unknown>;
 
-type WebCoverResult = { url?: string; thumbnailUrl?: string; source?: string; publisher?: string };
 
 const LIBRARY_KEY = "shelf-of-fame-library-v1";
 const CANDIDATES_KEY = "shelf-of-fame-spine-candidates-v1";
@@ -121,7 +120,6 @@ export default function SpineCommunityEnricher() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [revision, setRevision] = useState(0);
   const [dragX, setDragX] = useState(0);
-  const [loading, setLoading] = useState(false);
   const startX = useRef<number | null>(null);
 
   useEffect(() => {
@@ -155,7 +153,7 @@ export default function SpineCommunityEnricher() {
                 { title: book.title, author: book.author, isbn: book.isbn, asin: book.asin },
                 image,
                 sourceCoverUrl,
-                "AI-integrated",
+                "curator-integrated",
                 "manual-upload",
               );
               if (result.shared) {
@@ -204,33 +202,6 @@ export default function SpineCommunityEnricher() {
   const current = queue[0];
   const points = Number(typeof window !== "undefined" ? window.localStorage.getItem(POINTS_KEY) || 0 : 0);
 
-  async function fillQueue() {
-    if (loading) return;
-    setLoading(true);
-    try {
-      const existing = readCandidates(); const votes = readVotes(); const existingUrls = new Set(existing.filter(isCoverCandidate).map((item) => `${identity(item.title, item.author)}::${candidateImage(item)}`));
-      const books = readLibrary().filter((book) => book.title).filter((book) => {
-        const key = identity(book.title || "", book.author || "");
-        return !existing.some((item) => isCoverCandidate(item) && identity(item.title, item.author) === key && !votes[item.id]);
-      }).slice(0, 2);
-      const additions: Candidate[] = [];
-      for (const book of books) {
-        const params = new URLSearchParams({ title: book.title || "", author: book.author || "", mode: "alternate" });
-        const response = await fetch(`/api/web-covers?${params}`); if (!response.ok) continue;
-        const data = await response.json() as { results?: WebCoverResult[] };
-        for (const result of (data.results || []).slice(0, 3)) {
-          const image = result.url || result.thumbnailUrl; if (!image) continue;
-          const fingerprint = `${identity(book.title || "", book.author || "")}::${image}`;
-          if (existingUrls.has(fingerprint) || book.coverFeedback?.rejected?.includes(image) || book.preferredCover?.url === image) continue;
-          existingUrls.add(fingerprint); additions.push({ id: `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, title: book.title || "", author: book.author || "", coverUrl: book.preferredCover?.url, coverImage: image, source: "web", kind: "cover", createdAt: Date.now() });
-        }
-      }
-      if (additions.length) { writeCandidates([...existing, ...additions]); setRevision((v) => v + 1); }
-    } finally { setLoading(false); }
-  }
-
-  useEffect(() => { if (reviewOpen && queue.length < 2) void fillQueue(); }, [reviewOpen, queue.length]);
-
   function vote(value: Vote) {
     if (!current) return;
     const votes = readVotes(); votes[current.id] = value; window.localStorage.setItem(VOTES_KEY, JSON.stringify(votes));
@@ -249,7 +220,7 @@ export default function SpineCommunityEnricher() {
         <div className={`spine-swipe-card ${dragX > 50 ? "match" : dragX < -50 ? "wrong" : ""}`} style={{ transform: `translateX(${dragX}px) rotate(${dragX / 24}deg)` }} onPointerDown={(event) => { startX.current = event.clientX; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { if (startX.current !== null) setDragX(Math.max(-150, Math.min(150, event.clientX - startX.current))); }} onPointerUp={finishDrag} onPointerCancel={finishDrag}><img src={candidateImage(current)} alt={`Candidate cover for ${current.title}`} /><span className="swipe-wrong">WRONG</span><span className="swipe-match">MATCH</span></div>
         <div className="spine-review-actions"><button type="button" className="wrong" onClick={() => vote("wrong")}>✕ Wrong</button><button type="button" className="unsure" onClick={() => vote("unsure")}>? Skip</button><button type="button" className="match" onClick={() => vote("match")}>✓ Correct</button></div>
         <footer><span>{queue.length} covers ready to check</span><span>★ {points} verified</span></footer>
-      </> : <div className="spine-review-empty"><span>{loading ? "…" : "✓"}</span><h3>{loading ? "Finding covers…" : "You’re caught up"}</h3><p>{loading ? "We’re loading likely full-cover matches so they’re ready for you to check." : "More likely cover matches will appear here automatically."}</p>{!loading && <button type="button" className="primary" onClick={() => void fillQueue()}>Find more covers to check</button>}</div>}
+      </> : <div className="spine-review-empty"><span>✓</span><h3>You’re caught up</h3><p>New community-submitted cover matches will appear here when they are ready to review.</p></div>}
     </section></div>, document.body)}
   </>;
 }

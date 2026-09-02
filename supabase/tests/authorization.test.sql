@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(16);
+select plan(15);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -27,11 +27,6 @@ insert into public.user_settings (user_id, theme, shelf_public)
 values
   ('11111111-1111-4111-8111-111111111111', 'classic', false),
   ('22222222-2222-4222-8222-222222222222', 'classic', false);
-
-insert into public.shelf_scans (user_id, source_name)
-values
-  ('11111111-1111-4111-8111-111111111111', 'auth-test-a'),
-  ('22222222-2222-4222-8222-222222222222', 'auth-test-b');
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
@@ -59,12 +54,6 @@ select is(
   (select count(*) from public.user_settings where user_id = '22222222-2222-4222-8222-222222222222'),
   0::bigint,
   'authenticated user cannot read another users settings'
-);
-
-select is(
-  (select count(*) from public.shelf_scans where user_id = '22222222-2222-4222-8222-222222222222'),
-  0::bigint,
-  'authenticated user cannot read another users shelf scans'
 );
 
 select throws_ok(

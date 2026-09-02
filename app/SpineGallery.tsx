@@ -156,14 +156,6 @@ async function rememberHistory(book: BookIdentity, choice: SpineChoice) {
   window.dispatchEvent(new CustomEvent("shelf-spine-gallery-changed"));
 }
 
-async function forgetHistory(book: BookIdentity, image: string) {
-  const current = await readHistory(book);
-  const next = current.filter((entry) => entry.image !== image);
-  if (next.length === current.length) return;
-  await writeHistory(book, next);
-  window.dispatchEvent(new CustomEvent("shelf-spine-gallery-changed"));
-}
-
 async function markHistoryShared(book: BookIdentity, image: string) {
   const current = await readHistory(book);
   let changed = false;
@@ -218,11 +210,11 @@ function sharedChoice(row: SharedSpineRow): SpineChoice | null {
     ? row.model
     : undefined;
   const source = renderMode === "integrated"
-    ? "Community AI"
+    ? "Community spine"
     : row.provider === "cover-crop"
       ? `${position ? `${position[0].toUpperCase()}${position.slice(1)} ` : ""}crop`
       : row.provider === "AI"
-        ? "Community AI"
+        ? "Community spine"
         : "Community";
   return {
     image: publicSpineUrl(row.storage_path),
@@ -259,30 +251,6 @@ function uniqueChoices(entries: SpineChoice[]) {
     if (!entry.image || seen.has(entry.image)) return false;
     seen.add(entry.image);
     return true;
-  });
-}
-
-function previewSource(editor: Element) {
-  const detail = editor.querySelector<HTMLElement>(".spine-crop-heading span")?.textContent || "";
-  if (/gpt image 2/i.test(detail)) return "GPT Image 2";
-  if (/klein/i.test(detail)) return "Klein AI";
-  if (/gemini/i.test(detail)) return "Gemini AI";
-  return "AI generation";
-}
-
-async function captureAiPreview(modal: Element) {
-  const book = modalBook(modal);
-  const editor = modal.querySelector<HTMLElement>('.spine-crop-editor[data-mode="ai"]');
-  const image = editor?.querySelector<HTMLImageElement>(".spine-crop-preview img")?.src || "";
-  if (!book || !editor || !image || editor.dataset.spineGalleryCaptured === image) return;
-  editor.dataset.spineGalleryCaptured = image;
-  await rememberHistory(book, {
-    image,
-    renderMode: "integrated",
-    source: previewSource(editor),
-    createdAt: Date.now(),
-    shared: false,
-    coverUrl: book.coverUrl,
   });
 }
 
@@ -353,7 +321,7 @@ async function renderGallery(modal: Element) {
   holder.replaceChildren();
   empty.textContent = choices.length
     ? ""
-    : "Generate, crop, or upload a spine and it will stay here so you can compare before choosing.";
+    : "Upload or choose a curator spine and it will stay here so you can compare before choosing.";
 
   for (const choice of choices) {
     const button = document.createElement("button");
@@ -418,21 +386,8 @@ export default function SpineGallery() {
       timer = window.setTimeout(() => {
         const modal = document.querySelector(".modal");
         if (!modal) return;
-        void captureAiPreview(modal);
         void renderGallery(modal);
       }, 80);
-    };
-
-    const onClick = (event: MouseEvent) => {
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      const reject = target.closest(".spine-crop-reject");
-      const editor = reject?.closest<HTMLElement>('.spine-crop-editor[data-mode="ai"]');
-      if (!editor) return;
-      const modal = editor.closest(".modal");
-      const book = modal ? modalBook(modal) : null;
-      const image = editor.querySelector<HTMLImageElement>(".spine-crop-preview img")?.src || "";
-      if (book && image) void forgetHistory(book, image);
     };
 
     const onGenerated = (event: Event) => {
@@ -448,7 +403,7 @@ export default function SpineGallery() {
         ? `${detail.position[0].toUpperCase()}${detail.position.slice(1)} crop`
         : detail.shared
           ? "Community spine"
-          : "AI generation";
+          : "Manual spine";
       void rememberHistory(book, {
         image: detail.image,
         renderMode: detail.renderMode || (detail.position ? "overlay" : "integrated"),
@@ -483,7 +438,6 @@ export default function SpineGallery() {
       schedule();
     });
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "data-mode"] });
-    document.addEventListener("click", onClick, true);
     window.addEventListener("shelf-spine-generated", onGenerated);
     window.addEventListener("shelf-community-spine-published", onPublished);
     window.addEventListener("shelf-spine-gallery-changed", schedule);
@@ -491,7 +445,6 @@ export default function SpineGallery() {
 
     return () => {
       observer.disconnect();
-      document.removeEventListener("click", onClick, true);
       window.removeEventListener("shelf-spine-generated", onGenerated);
       window.removeEventListener("shelf-community-spine-published", onPublished);
       window.removeEventListener("shelf-spine-gallery-changed", schedule);

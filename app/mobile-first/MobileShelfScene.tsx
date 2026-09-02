@@ -16,6 +16,7 @@ import { SPINE_SHELL_TEXTURES } from "./spineShellTextures";
 import headStyles from "./CinematicHead.module.css";
 import styles from "./MobileShelfScene.module.css";
 import polish from "./MobileShelfPolish.module.css";
+import type { ShelfPreferences } from "../hooks/useShelfPreferences";
 
 type MobileShelfSceneProps = {
   books: Book[];
@@ -24,6 +25,8 @@ type MobileShelfSceneProps = {
   onFindCovers: () => void;
   onSelect: (book: Book) => void;
   onAddBook: () => void;
+  preferences: ShelfPreferences;
+  onOpenPersonalization: () => void;
 };
 
 type SortMode = "recent" | "title" | "author" | "rating" | "status" | "color";
@@ -155,6 +158,8 @@ export default function MobileShelfScene({
   onFindCovers,
   onSelect,
   onAddBook,
+  preferences,
+  onOpenPersonalization,
 }: MobileShelfSceneProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -551,6 +556,7 @@ export default function MobileShelfScene({
                         index={rowIndex * BOOKS_PER_ROW + bookIndex}
                         onSelect={openBook}
                         highlighted={book.id === highlightedBookId}
+                        titleOrientation={preferences.titleOrientation}
                       />
                     ))}
                     {row.length === 0 && books.length === 0 && rowIndex === 0 ? (
@@ -832,7 +838,7 @@ export default function MobileShelfScene({
 
         <button
           type="button"
-          onClick={() => window.dispatchEvent(new Event("shelf-open-personalization"))}
+          onClick={onOpenPersonalization}
           aria-label="Personalize your shelf"
         >
           <StyleIcon />

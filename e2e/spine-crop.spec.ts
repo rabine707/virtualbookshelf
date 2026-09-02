@@ -30,4 +30,12 @@ test("opens the shared spine selector without reloading", async ({ page }) => {
   await expect(dialog.getByRole("region", { name: "Choose a spine" })).toBeVisible();
   await expect(dialog.getByText("Active", { exact: true })).toBeVisible();
   await expect(dialog.getByText("No custom curator spines have been published for this book yet.")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /generate.*spine/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /scan a bookshelf/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /web covers|alternate editions|custom & etsy/i })).toHaveCount(0);
+
+  for (const retiredRoute of ["/api/generate-spine", "/api/web-covers", "/api/scan-shelf"]) {
+    const response = await page.request.get(retiredRoute);
+    expect(response.status(), `${retiredRoute} should no longer exist`).toBe(404);
+  }
 });

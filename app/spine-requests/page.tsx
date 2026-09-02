@@ -268,7 +268,7 @@ export default function SpineRequestsPage() {
           { title: request.title, author: request.author, isbn: request.isbn || undefined, asin: request.asin || undefined },
           upload.image,
           request.cover_url || "",
-          upload.mode === "integrated" ? "AI-integrated" : "AI-overlay",
+          upload.mode === "integrated" ? "curator-integrated" : "curator-overlay",
           upload.type,
         );
         if (!published.shared) throw new Error("This account cannot publish shared spines.");

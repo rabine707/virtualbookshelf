@@ -62,8 +62,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/api/generate-spine",
-    "/api/web-covers",
     "/api/cover",
     "/api/cover-palette",
     "/api/romance-cover",

@@ -346,7 +346,7 @@ Key files include:
 - `app/BotanicalPropStyles.tsx` — scene/decor treatment
 - `app/BotanicalLampFixStyles.tsx` — lamp refinements
 - `app/BotanicalAssetEnricher.tsx` — Botanical asset enrichment
-- `app/ThemeEnricher.tsx` — theme selection and per-theme decor behavior
+- `app/hooks/useShelfPreferences.ts` and `app/PersonalizationDialog.tsx` — React-owned shelf preferences and personalization controls
 
 ### Architecture rule
 
@@ -526,7 +526,7 @@ Before making a visual change:
 - Botanical overrides should use `html[data-shelf-theme="botanical"]` or an equally narrow scope.
 - Avoid adding new global selectors for a one-theme fix.
 - Prefer CSS variables/tokens for repeated design values.
-- Preserve the existing theme selector contract from `ThemeEnricher.tsx`.
+- Preserve the controlled shelf-preference contract exposed by `useShelfPreferences`.
 - Decorative scene layers should remain non-interactive.
 - Do not remove a fallback merely because cinematic assets currently load successfully.
 - When several historical style layers target the same element, consolidate deliberately instead of stacking another patch whenever practical.

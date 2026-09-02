@@ -75,7 +75,7 @@
 }
 
 /* Text is intentionally independent from the artwork for cover crops and
-   legacy AI spines. New integrated AI spines hide these nodes at runtime. */
+   legacy integrated spines. Integrated artwork hides these nodes at runtime. */
 .generated-spine-text-lane,
 .generated-spine-rule {
   display: none;
@@ -287,7 +287,7 @@ html[data-spine-labels="off"] .generated-spine-rule {
   transform-origin: left bottom;
 }
 
-/* Printed-cover sheen and curved-spine falloff over the AI artwork. */
+/* Printed-cover sheen and curved-spine falloff over custom artwork. */
 .generated-spine::after {
   content: "";
   position: absolute;

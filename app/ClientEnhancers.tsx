@@ -5,13 +5,11 @@ import AuthEnricher from "./AuthEnricher";
 import CloudAccountSettings from "./CloudAccountSettings";
 import MobileTapFix from "./MobileTapFix";
 import QoLEnricher from "./QoLEnricher";
-import ShelfScanner from "./ShelfScanner";
 import SharedSpineEnricher from "./SharedSpineEnricher";
 import SpineArtEnricher from "./SpineArtEnricher";
 import SpineAuthorCorrector from "./SpineAuthorCorrector";
 import SpineCommunityEnricher from "./SpineCommunityEnricher";
 import SpineGallery from "./SpineGallery";
-import ThemeEnricher from "./ThemeEnricher";
 
 function MobileBottomNav() {
   const click = (selector: string) => {
@@ -83,7 +81,7 @@ function MobileBottomNav() {
       }}>
         <span aria-hidden="true">＋</span><b>Add</b>
       </button>
-      <button type="button" onClick={() => click(".theme-picker-trigger")}>
+      <button type="button" onClick={() => click('[aria-label="Personalize your shelf"]')}>
         <span aria-hidden="true">✦</span><b>Style</b>
       </button>
       <button type="button" onClick={() => {
@@ -103,7 +101,6 @@ export default function ClientEnhancers() {
   if (!mounted) return null;
   return <>
     <AuthEnricher />
-    <ShelfScanner />
     <CloudAccountSettings />
     <SpineArtEnricher />
     <SharedSpineEnricher />
@@ -111,7 +108,6 @@ export default function ClientEnhancers() {
     <SpineAuthorCorrector />
     <SpineCommunityEnricher />
     <MobileTapFix />
-    <ThemeEnricher />
     <QoLEnricher />
     <MobileBottomNav />
   </>;

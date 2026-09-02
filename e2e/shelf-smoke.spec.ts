@@ -3,7 +3,6 @@ import { searchShelf, shelfBook } from "./mobile-shelf-helpers";
 
 const COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23567'/%3E%3C/svg%3E";
 const SECOND_COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23765'/%3E%3C/svg%3E";
-const WEB_COVER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23987'/%3E%3C/svg%3E";
 
 async function mockCoverApis(page: Page) {
   await page.route("**/api/cover?**", async (route) => {
@@ -22,21 +21,6 @@ async function mockCoverApis(page: Page) {
   });
   await page.route("**/api/romance-cover?**", async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ url: null, source: null }) });
-  });
-  await page.route("**/api/web-covers?**", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        results: [{
-          url: WEB_COVER_URL,
-          thumbnailUrl: WEB_COVER_URL,
-          title: "Fourth Wing alternate cover",
-          publisher: "Example",
-          pageUrl: "https://example.com/fourth-wing",
-        }],
-      }),
-    });
   });
   await page.route("**/api/book-search?**", async (route) => {
     await route.fulfill({
@@ -143,18 +127,6 @@ test("saved cover choices are managed by React without reloading", async ({ page
   await expect(removeSaved).toBeVisible();
   await removeSaved.click();
   await expect(removeSaved).toHaveCount(0);
-});
-
-test("web cover search applies and saves a cover without reloading", async ({ page }) => {
-  await openFourthWing(page);
-  await openCoverSelector(page);
-  await page.evaluate(() => { (window as typeof window & { __webCoverMarker?: string }).__webCoverMarker = "alive"; });
-
-  await page.getByRole("button", { name: "Alternate editions" }).click();
-  await useCover(page, "Crop or use web image 1");
-
-  await expect.poll(() => preferredCover(page)).toBe(WEB_COVER_URL);
-  await expect.poll(() => page.evaluate(() => (window as typeof window & { __webCoverMarker?: string }).__webCoverMarker)).toBe("alive");
 });
 
 test("adding a searched book updates the live shelf without reloading", async ({ page }) => {

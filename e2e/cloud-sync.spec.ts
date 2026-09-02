@@ -29,7 +29,8 @@ test("hydrates a signed-in cloud shelf into React state without reloading", asyn
         }],
         settings: {
           theme: "classic",
-          spine_labels: true,
+          spine_labels: false,
+          title_orientation: "sideways",
           decor_owned: [],
           decor_active: {},
           community_stars: 3,
@@ -59,6 +60,13 @@ test("hydrates a signed-in cloud shelf into React state without reloading", asyn
   await expect(cloudBook).toBeVisible({ timeout: 8000 });
   await expect(page.locator('button[data-book-id]')).toHaveCount(1);
   await expect(page.getByText("Saved to cloud", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Personalize your shelf" }).click();
+  const personalization = page.getByRole("dialog", { name: "Personalize your shelf" });
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("shelf-of-fame-spine-labels-v1"))).toBe("off");
+  await expect(personalization.getByRole("button", { name: /Spine text/ })).toHaveAttribute("aria-pressed", "false");
+  await expect(personalization.getByRole("button", { name: "Sideways" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-title-orientation", "sideways");
+  await personalization.getByRole("button", { name: "Close theme picker" }).click();
   await cloudBook.click();
   await expect(page.getByAltText("Cover of Cloud Reader Book")).toHaveAttribute("src", CLOUD_COVER);
 

@@ -19,18 +19,20 @@ import { useImportedCoverFinder } from "./hooks/useImportedCoverFinder";
 import { useRomanceShelfEnrichment } from "./hooks/useRomanceShelfEnrichment";
 import { useShelfLibrary } from "./hooks/useShelfLibrary";
 import MobileShelfScene from "./mobile-first/MobileShelfScene";
-import ThemeEnricher from "./ThemeEnricher";
+import PersonalizationDialog from "./PersonalizationDialog";
 import OnboardingGuide from "./OnboardingGuide";
-import { Book, CoverResult, WebCoverResult } from "../lib/books/client-library";
+import { Book, CoverResult } from "../lib/books/client-library";
+import { useShelfPreferences } from "./hooks/useShelfPreferences";
 
 const DEFAULT_CLOTH_PREFIX = "shelf-of-fame-default-cloth:";
-type BookWithSpineChoice = Book & { defaultSpine?: boolean };
 
 function defaultClothKey(book: Book) {
   return `${DEFAULT_CLOTH_PREFIX}${book.title.trim().toLowerCase()}::${book.author.trim().toLowerCase()}`;
 }
 
 export default function Home() {
+  const { preferences, ready: preferencesReady, updatePreferences, applyCloudPreferences } = useShelfPreferences();
+  const [personalizationOpen, setPersonalizationOpen] = useState(false);
   const {
     books,
     setBooks,
@@ -49,16 +51,16 @@ export default function Home() {
     dismissGoodreadsUndo,
   } = useShelfLibrary();
 
-  const cloudSyncStatus = useCloudShelfSync({ books, setBooks, storageReady });
+  const cloudSyncStatus = useCloudShelfSync({ books, setBooks, storageReady: storageReady && preferencesReady, onCloudSettings: applyCloudPreferences, preferences });
   const importedCoverFinder = useImportedCoverFinder({ books, setBooks, storageReady });
   const { submitCoverChoice } = useCommunityCoverSync({ books, setBooks });
   useRomanceShelfEnrichment({ books, setBooks });
 
   const {
     selected, setSelected, selectedIsbn, cover, setCover, coverOptions, savedCoverOptions,
-    webCoverResults, webCoverLoading, webCoverMessage, coverLoading, deepSearchLoading,
+    coverLoading, deepSearchLoading,
     deepSearchDone, canResetCoverChoices, coverUndo, chooseCover, removeSavedCover,
-    chooseWebCover, searchWebCovers, rejectCurrentCover, undoCoverDecision, dismissCoverUndo,
+    rejectCurrentCover, undoCoverDecision, dismissCoverUndo,
     resetCoverChoices, searchMoreCovers,
     finishCoverReview,
   } = useBookCoverManager({ setBooks, showToast });
@@ -73,7 +75,7 @@ export default function Home() {
   useEffect(() => {
     if (!storageReady) return;
     const needsMigration = books.some((book) => (
-      !(book as BookWithSpineChoice).defaultSpine
+      !book.defaultSpine
       && window.localStorage.getItem(defaultClothKey(book)) === "1"
     ));
     if (!needsMigration) return;
@@ -84,19 +86,6 @@ export default function Home() {
     )));
   }, [books, setBooks, storageReady]);
 
-  // The shelf's cover art is CSS-driven, so re-apply synced spine choices after every render/update.
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      const spines = document.querySelectorAll<HTMLButtonElement>("button[data-book-id]");
-      for (const spine of spines) {
-        const book = books.find((candidate) => candidate.id === spine.dataset.bookId) as BookWithSpineChoice | undefined;
-        if (book?.defaultSpine) spine.dataset.forceDefaultCloth = "true";
-        else delete spine.dataset.forceDefaultCloth;
-      }
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [books]);
-
   // SpineTools already emits this event whenever a spine choice is saved/restored.
   // Mirror that choice onto the selected book so the existing account sync can persist it.
   useEffect(() => {
@@ -105,7 +94,7 @@ export default function Home() {
       const detail = (event as CustomEvent<{ image?: string }>).detail;
       if (!detail) return;
       const defaultSpine = detail.image === "";
-      const updated = { ...selected, defaultSpine } as BookWithSpineChoice;
+      const updated = { ...selected, defaultSpine };
       setBooks((current) => current.map((book) => book.id === selected.id ? updated : book));
       setSelected(updated);
     };
@@ -116,11 +105,6 @@ export default function Home() {
   function chooseCoverAndSync(option: CoverResult) {
     chooseCover(option);
     if (selected) void submitCoverChoice(selected, option);
-  }
-
-  function chooseWebCoverAndSync(result: WebCoverResult) {
-    chooseWebCover(result);
-    if (selected) void submitCoverChoice(selected, { url: result.url, source: "Web image" });
   }
 
   function changeReadStatus(shelf: string) {
@@ -238,9 +222,11 @@ export default function Home() {
         onFindCovers={() => openFindCovers()}
         onSelect={selectBook}
         onAddBook={openBookSearch}
+        preferences={preferences}
+        onOpenPersonalization={() => setPersonalizationOpen(true)}
       />
-      <ThemeEnricher />
-      <OnboardingGuide books={books} eligible={storageReady && isFirstRun} onAddBook={openBookSearch} />
+      <PersonalizationDialog open={personalizationOpen} preferences={preferences} onChange={updatePreferences} onClose={() => setPersonalizationOpen(false)} />
+      <OnboardingGuide books={books} eligible={storageReady && isFirstRun} onAddBook={openBookSearch} onOpenPersonalization={() => setPersonalizationOpen(true)} />
 
       <input
         ref={goodreadsInput}
@@ -300,14 +286,10 @@ export default function Home() {
           position={Math.max(1, coverReviewInitialTotal - activeCoverReviewBooks.length + 1)}
           total={Math.max(1, coverReviewInitialTotal)}
           coverOptions={coverOptions}
-          webCoverResults={webCoverResults}
           loading={coverLoading}
           deepSearchLoading={deepSearchLoading}
           deepSearchDone={deepSearchDone}
-          webCoverLoading={webCoverLoading}
-          webCoverMessage={webCoverMessage}
           onSearchMore={searchMoreCovers}
-          onSearchWeb={() => searchWebCovers("covers")}
           onFinish={finishReviewAndAdvance}
           onClose={() => { setCoverReviewOpen(false); setCoverReviewScopeIds(null); setSelected(null); }}
         />
@@ -319,9 +301,6 @@ export default function Home() {
           cover={cover}
           coverOptions={coverOptions}
           savedCovers={savedCoverOptions}
-          webCoverResults={webCoverResults}
-          webCoverLoading={webCoverLoading}
-          webCoverMessage={webCoverMessage}
           coverLoading={coverLoading}
           deepSearchLoading={deepSearchLoading}
           deepSearchDone={deepSearchDone}
@@ -330,8 +309,6 @@ export default function Home() {
           onClearCover={() => setCover(null)}
           onUseSavedCover={chooseCoverAndSync}
           onRemoveSavedCover={removeSavedCover}
-          onSearchWebCovers={searchWebCovers}
-          onChooseWebCover={chooseWebCoverAndSync}
           onChooseCover={chooseCoverAndSync}
           onRejectCurrentCover={rejectCurrentCover}
           onSearchMoreCovers={searchMoreCovers}

@@ -334,99 +334,6 @@ export type Database = {
           },
         ]
       }
-      shelf_scan_usage: {
-        Row: {
-          passes: number
-          updated_at: string
-          usage_date: string
-          user_id: string
-        }
-        Insert: {
-          passes?: number
-          updated_at?: string
-          usage_date: string
-          user_id: string
-        }
-        Update: {
-          passes?: number
-          updated_at?: string
-          usage_date?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      shelf_scans: {
-        Row: {
-          accepted_count: number
-          created_at: string
-          detected_books: Json
-          detected_count: number
-          id: string
-          source_name: string | null
-          status: string
-          user_id: string
-        }
-        Insert: {
-          accepted_count?: number
-          created_at?: string
-          detected_books?: Json
-          detected_count?: number
-          id?: string
-          source_name?: string | null
-          status?: string
-          user_id?: string
-        }
-        Update: {
-          accepted_count?: number
-          created_at?: string
-          detected_books?: Json
-          detected_count?: number
-          id?: string
-          source_name?: string | null
-          status?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      spine_generation_usage: {
-        Row: {
-          asin: string | null
-          attempts: number
-          author: string
-          book_key: string
-          created_at: string
-          isbn: string | null
-          last_generated_at: string | null
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          asin?: string | null
-          attempts?: number
-          author?: string
-          book_key: string
-          created_at?: string
-          isbn?: string | null
-          last_generated_at?: string | null
-          title?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          asin?: string | null
-          attempts?: number
-          author?: string
-          book_key?: string
-          created_at?: string
-          isbn?: string | null
-          last_generated_at?: string | null
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       spine_requests: {
         Row: {
           asin: string | null
@@ -755,30 +662,6 @@ export type Database = {
           remaining: number
           request_count: number
           retry_after_seconds: number
-        }[]
-      }
-      consume_shelf_scan_pass: {
-        Args: { p_limit?: number }
-        Returns: {
-          allowed: boolean
-          passes: number
-          remaining: number
-        }[]
-      }
-      consume_spine_generation_attempt: {
-        Args: {
-          p_asin?: string
-          p_author: string
-          p_book_key: string
-          p_isbn?: string
-          p_limit?: number
-          p_title: string
-        }
-        Returns: {
-          allowed: boolean
-          attempts: number
-          remaining: number
-          shared_storage_path: string
         }[]
       }
       discover_public_profiles: {

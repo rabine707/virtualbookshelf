@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Book, CoverResult, uniqueCovers, WebCoverResult } from "../../lib/books/client-library";
+import { Book, CoverResult, uniqueCovers } from "../../lib/books/client-library";
 import { coverCropImageStyle, stripCoverCrop } from "../../lib/books/cover-crop";
 
 type CoverReviewQueueProps = {
@@ -9,52 +9,35 @@ type CoverReviewQueueProps = {
   position: number;
   total: number;
   coverOptions: CoverResult[];
-  webCoverResults: WebCoverResult[];
   loading: boolean;
   deepSearchLoading: boolean;
   deepSearchDone: boolean;
-  webCoverLoading: boolean;
-  webCoverMessage: string;
   onSearchMore: () => void;
-  onSearchWeb: () => void;
   onFinish: (approved: CoverResult[], primary?: CoverResult, status?: "skipped" | "no-match") => void;
   onClose: () => void;
 };
-
-function webOption(result: WebCoverResult): CoverResult {
-  return { url: result.url, source: result.publisher || result.source || "Web image" };
-}
 
 export function CoverReviewQueue({
   book,
   position,
   total,
   coverOptions,
-  webCoverResults,
   loading,
   deepSearchLoading,
   deepSearchDone,
-  webCoverLoading,
-  webCoverMessage,
   onSearchMore,
-  onSearchWeb,
   onFinish,
   onClose,
 }: CoverReviewQueueProps) {
   const [approvedUrls, setApprovedUrls] = useState<Set<string>>(new Set());
   const [primaryUrl, setPrimaryUrl] = useState<string>();
   const deepStartedFor = useRef<string | undefined>(undefined);
-  const webStartedFor = useRef<string | undefined>(undefined);
-  const candidates = useMemo(() => uniqueCovers([
-    ...coverOptions,
-    ...webCoverResults.map(webOption),
-  ]), [coverOptions, webCoverResults]);
+  const candidates = useMemo(() => uniqueCovers(coverOptions), [coverOptions]);
 
   useEffect(() => {
     setApprovedUrls(new Set());
     setPrimaryUrl(undefined);
     deepStartedFor.current = undefined;
-    webStartedFor.current = undefined;
   }, [book.id]);
 
   useEffect(() => {
@@ -63,13 +46,6 @@ export function CoverReviewQueue({
     deepStartedFor.current = book.id;
     onSearchMore();
   }, [book.id, coverOptions.length, deepSearchDone, deepSearchLoading, loading, onSearchMore]);
-
-  useEffect(() => {
-    if (!deepSearchDone || candidates.length >= 6 || webCoverLoading || webCoverResults.length) return;
-    if (webStartedFor.current === book.id) return;
-    webStartedFor.current = book.id;
-    onSearchWeb();
-  }, [book.id, candidates.length, deepSearchDone, onSearchWeb, webCoverLoading, webCoverResults.length]);
 
   function toggle(option: CoverResult) {
     setApprovedUrls((current) => {
@@ -90,7 +66,7 @@ export function CoverReviewQueue({
 
   const approved = candidates.filter((candidate) => approvedUrls.has(candidate.url));
   const primary = candidates.find((candidate) => candidate.url === primaryUrl);
-  const searching = loading || deepSearchLoading || webCoverLoading;
+  const searching = loading || deepSearchLoading;
 
   return (
     <div className="cover-review-backdrop" role="presentation">
@@ -132,7 +108,6 @@ export function CoverReviewQueue({
 
         {searching ? <p className="cover-review-status" role="status">Searching title, author, identifiers, and alternate editions…</p> : null}
         {!searching && !candidates.length ? <p className="cover-review-empty">No likely matches were found yet.</p> : null}
-        {!searching && webCoverMessage ? <p className="cover-review-status" role="status">{webCoverMessage}</p> : null}
 
         <footer className="cover-review-actions">
           <div>

@@ -10,8 +10,6 @@ type RateLimitResult = {
 };
 
 const POLICIES: Record<string, RateLimitPolicy> = {
-  "/api/generate-spine": { limit: 10, windowMs: 10 * 60_000 },
-  "/api/web-covers": { limit: 60, windowMs: 60_000 },
   "/api/cover": { limit: 240, windowMs: 60_000 },
   "/api/romance-cover": { limit: 120, windowMs: 60_000 },
   "/api/asin": { limit: 120, windowMs: 60_000 },
@@ -62,9 +60,8 @@ export async function enforceApiRateLimit(request: Request) {
     || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "https://vrkuimrfdkejfhpxlwlf.supabase.co").trim();
 
-  // The paid AI endpoint still has its own authenticated, per-user generation
-  // allowance. This shared limiter is defense-in-depth for distributed Vercel
-  // traffic and for the public upstream-search endpoints.
+  // This shared limiter protects distributed Vercel traffic for the remaining
+  // public upstream-data endpoints.
   if (!serviceRoleKey || !supabaseUrl) return null;
 
   try {
