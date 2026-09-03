@@ -14,7 +14,7 @@ type BookLayout = "center" | "left" | "right" | "split";
 
 const DECOR_VARIATIONS: DecorSpec[] = [
   { left: "plant", right: "warm-glow" },
-  { right: "plant-small" },
+  { right: "warm-glow" },
   { left: "warm-glow" },
   { left: "warm-glow", right: "plant" },
   { left: "plant-small" },
